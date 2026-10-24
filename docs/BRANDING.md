@@ -6,20 +6,27 @@ The website and GitHub presentation use English as their primary language. The w
 
 ## Requested final typography
 
-- **GTA:** Pricedown, in the heavy/Black style associated with the series. [Raymond Larabie's history](https://typodermicfonts.com/between-the-lines/stories/pricedown/) confirms its use by Rockstar. [Publisher page](https://typodermicfonts.com/pricedown/) describes desktop licenses for logos and static graphics. Exact cover lettering may include custom spacing or modifications beyond typing the letters.
-- **CHINATOWN WARS / CTW:** the font identified for the title is **Bruce Mikita**, not Chinese Rocks. [Historical identification](https://m.thegtaplace.com/downloads/f2974-chinatown-wars-font-bruce-mikita); [Harold Lohner's current publisher page](https://www.haroldsfonts.com/font/bruce-mikita) offers Regular and Solid variants. Confirm the correct variant against the cover when creating the artwork.
+- **GTA:** Pricedown, in the heavy/Black style associated with the series. [Raymond Larabie's history](https://typodermicfonts.com/between-the-lines/stories/pricedown/) confirms its use by Rockstar. [Publisher page](https://typodermicfonts.com/pricedown/) describes desktop licenses for logos and static graphics.
+- **CHINATOWN WARS / CTW:** the font identified for the title is **Bruce Mikita**, not Chinese Rocks. [Historical identification](https://m.thegtaplace.com/downloads/f2974-chinatown-wars-font-bruce-mikita); [Harold Lohner's current publisher page](https://www.haroldsfonts.com/font/bruce-mikita) offers Regular and Solid variants.
 
 ## Implemented artwork — 24 October 2026
 
-The main and compact SVGs now contain actual outlined glyphs from the font files provided by Benjamin:
+The project features two official SVG logo versions generated with outlined glyphs from the authentic typefaces:
 
-- `Pricedown Bl.otf`: **Pricedown Black**, version 5.200, Typodermic Fonts. GTA lettering.
-- `BRUCM___.TTF`: **Bruce Mikita Regular**, v1.0 (Fontographer 4.1.3, 23 July 2000), Harold Lohner. CHINATOWN WARS and CTW lettering, with the font's inset highlight.
-- The supplied Bruce Mikita Two / BRUCMT__ variants were inspected but not selected. Regular retains the inset detail.
+1. **Version 1: Horizontal / Inline (`docs/assets/logo-ctw.svg`, 960 × 260)**
+   - Single-row presentation: `ReGTA : CTW` with a stylized Chinatown gold diamond separator.
+   - `ReGTA`: Large, integrated Pricedown Black typography. The "**Re**" uses a capital **R** and lowercase **e**, rendered in vibrant Recomp Red (`#FF3B30` → `#E52521` → `#7F1D1D`) with bold black contour and drop shadow; seamlessly continuing into "**GTA**" in classic pure white/silver (`#FFFFFF` → `#CBD5E1`).
+   - `CTW`: Authentic Chinatown Wars red and yellow/gold dual-tone styling. Heavy black drop shadow, golden imperial outline, deep lacquer red face, and calligraphic golden accents.
+   - Ideal for horizontal navigation bars, website headers, and repository banners.
 
-These are new project wordmarks built with the identified typefaces, not copies of the original Rockstar logo composition. Exact cover spacing and any custom alterations are not claimed. The red Re prefix and PSP RECOMP subtitle use ordinary sans-serif text.
+2. **Version 2: Vertical / Stacked (`docs/assets/logo.svg`, 900 × 480)**
+   - Stacked cover presentation: **`ReGTA` on top, `CTW` located directly underneath ("en bas du ReGTA")**.
+   - `ReGTA`: Prominently centered on the top line in full Pricedown Black with capital **R** and lowercase **e**, red-and-white two-tone wordmark.
+   - `CTW`: Centered directly below `ReGTA` with authentic Chinatown Wars lacquer red face and imperial golden yellow contour and highlights.
+   - Subtitle: `PSP RECOMPILATION` letter-spaced in clean modern silver.
+   - Ideal for the GitHub Pages showcase hero section, game box presentation, and social media cards.
 
-Both SVGs were rasterized locally and visually inspected at their native dimensions. The fonts are not embedded as webfonts. Each line is fixed vector artwork, not a reusable glyph library.
+Both SVGs were rasterized locally and visually inspected at their native dimensions using Microsoft Edge headless rendering. The fonts are not embedded as webfonts; each line is fixed vector artwork.
 
 ## Terms and publication status
 
@@ -31,15 +38,13 @@ The files remain private under ignored `target/private-fonts/`. No font software
 
 ## Reproduce the artwork
 
-Install `fonttools` in a local Python environment, then supply your own font paths:
+Install `fonttools` in a local Python environment, then run the generator:
 
 ```powershell
-python tools/research/generate_brand_logos.py --pricedown "PATH/Pricedown Bl.otf" --bruce-mikita "PATH/BRUCM___.TTF"
+python tools/research/generate_brand_logos.py
 ```
 
-Outputs: `docs/assets/logo.svg` (900 × 480) and `docs/assets/logo-ctw.svg` (900 × 260). The generator preserves glyph proportions and generates fixed paths. No font dependency is needed to view the GTA / CTW lettering.
-
-The old `generate_authentic_logo.py` and `generate_compact_logo.py` scripts are preserved as historical drafts but no longer overwrite public logos when run directly.
+Outputs: `docs/assets/logo.svg` (900 × 480) and `docs/assets/logo-ctw.svg` (960 × 260). The generator preserves glyph proportions and generates fixed paths. No font dependency is needed to view the GTA / CTW lettering.
 
 ## Input fingerprints
 

@@ -11,6 +11,11 @@ Changes are recorded by release. The project is in the alpha phase; a version nu
 
 ### Added
 
+- **Refonte officielle de l'identité visuelle et des logos ReGTA CTW (`docs/assets/logo.svg`, `docs/assets/logo-ctw.svg`, `docs/BRANDING.md`)**:
+  - Typographie Pricedown Black authentique pour `ReGTA` : le "Re" en grand intégré avec "GTA", avec le 'e' en minuscule. Coloris deux tons : "Re" en dégradé rouge Recomp (`#FF3B30` → `#E52521` → `#7F1D1D`) et "GTA" en blanc/platine pur GTA (`#FFFFFF` → `#CBD5E1`) sous contour noir massif et ombre portée.
+  - Typographie Bruce Mikita pour `CTW` avec les coloris exacts du jeu original Chinatown Wars : corps rouge laqué impérial (`#F82B2B` → `#DC1414` → `#7A0808`), liseré doré jaune vif (`#FFF875` → `#FFD700` → `#D97706`), et rehauts calligraphiques intérieurs.
+  - Deux versions officielles vectorielles : Version 1 horizontale (`logo-ctw.svg`, 960x260) pour les bannières et barres de navigation, et Version 2 verticale empilée (`logo.svg`, 900x480) avec le CTW positionné proprement sous le ReGTA pour la vitrine principale.
+  - Validation visuelle directe par rendu headless Microsoft Edge.
 - **Interactive PDA Contacts and Address Book (`src/pda.rs`, `contactsapp` Overlay 014)**:
   - Intégration du carnet de contacts des 8 boss d'histoire (Kenny, Chan, Zhou, Hsin, Heston, Lester, Rudy, Xin Shan) avec leurs districts, affiliations de gang et numéros de téléphone.
   - Sélection interactive et routage GPS automatique vers le point de rencontre du contact.

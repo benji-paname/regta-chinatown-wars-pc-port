@@ -28,6 +28,7 @@ mod props;
 mod psp;
 mod radar;
 mod radio;
+mod races;
 mod roll;
 mod safehouse;
 mod stats;

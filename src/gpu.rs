@@ -1185,6 +1185,15 @@ impl Renderer {
                         rounded([ox - 6., oy - 4., desc.len() as f32 * 13. + 20., 32.], 3., [0.08, 0.10, 0.14]);
                         self.psp_text(ox, oy, desc, 1.8, [0.98, 0.92, 0.72]);
                     }
+
+                    // Active Street Race HUD Overlay
+                    if let Some(race) = &scene.active_race {
+                        let rx = 24.;
+                        let ry = 60. + top;
+                        let text = format!("COURSE : {}  |  {}  |  POS : {}  |  {}", race.circuit.name, race.lap_display(), race.rank_display(), race.timer_display());
+                        rounded([rx - 6., ry - 4., text.len() as f32 * 12. + 24., 32.], 3., [0.12, 0.08, 0.04]);
+                        self.psp_text(rx, ry, &text, 1.8, [1.0, 0.85, 0.20]);
+                    }
                 }
                 let mini = crate::gps::MapView {
                     rect: crate::hud::mini(bands),
@@ -1660,6 +1669,30 @@ impl Renderer {
                             glVertex2f(jp[0] + v[0], jp[1] + v[1]);
                         }
                         glEnd();
+                    }
+                }
+            }
+
+            // Active Street Race Checkpoint Waypoint
+            if let Some(race) = &s.active_race {
+                if let Some((blip_pos, blip_color)) = race.current_radar_blip() {
+                    let mut jp = view.screen(blip_pos);
+                    if !large {
+                        jp = view.edge_marker(jp, 9.);
+                    }
+                    if view.contains(jp) {
+                        let cr = blip_color[0] as f32 / 255.0;
+                        let cg = blip_color[1] as f32 / 255.0;
+                        let cb = blip_color[2] as f32 / 255.0;
+                        for k in 0..2 {
+                            let r = if k == 0 { 8. } else { 5.0 };
+                            glColor3f(if k == 0 { 0.05 } else { cr }, if k == 0 { 0.05 } else { cg }, if k == 0 { 0.05 } else { cb });
+                            glBegin(7);
+                            for v in [[0., -r], [r, 0.], [0., r], [-r, 0.]] {
+                                glVertex2f(jp[0] + v[0], jp[1] + v[1]);
+                            }
+                            glEnd();
+                        }
                     }
                 }
             }

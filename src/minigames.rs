@@ -54,6 +54,24 @@ pub enum MinigameKind {
         wires_connected: u8, // 0..=3 (power, ground, detonator switch)
         armed: bool,
     },
+    /// Tattoo parlor needle tracing minigame (Overlay 141 tattooingapp).
+    Tattooing {
+        motif: TattooMotif,
+        stencil_progress: f32, // 0.0 to 1.0 (traced lines)
+        needle_accuracy: f32,  // 0.0 to 1.0 (precision tracking)
+        pain_level: f32,       // 0.0 to 1.0 (flinch/kickout threshold)
+        ink_level: f32,        // 0.0 to 1.0 (machine ink supply)
+        reloads_done: u8,
+    },
+}
+
+/// Authentic Chinatown Wars tattoo motifs for Triad and gang artwork.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TattooMotif {
+    DragonOfBroker,
+    KoiOfDukes,
+    TigerOfBohan,
+    ViperOfAlgonquin,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -168,6 +186,80 @@ impl MinigameSession {
         }
     }
 
+    pub fn new_tattoo(motif: TattooMotif) -> Self {
+        let reward = match motif {
+            TattooMotif::DragonOfBroker => 1200,
+            TattooMotif::KoiOfDukes => 800,
+            TattooMotif::TigerOfBohan => 950,
+            TattooMotif::ViperOfAlgonquin => 1500,
+        };
+        Self {
+            kind: MinigameKind::Tattooing {
+                motif,
+                stencil_progress: 0.0,
+                needle_accuracy: 1.0,
+                pain_level: 0.0,
+                ink_level: 1.0,
+                reloads_done: 0,
+            },
+            completed: false,
+            failed: false,
+            reward_cash: reward,
+            reward_message: None,
+        }
+    }
+
+    /// Replenish tattoo machine ink reservoir from cap.
+    pub fn dip_ink(&mut self) {
+        if let MinigameKind::Tattooing { ink_level, pain_level, reloads_done, .. } = &mut self.kind {
+            *ink_level = 1.0;
+            *pain_level = (*pain_level - 0.10).max(0.0);
+            *reloads_done += 1;
+        }
+    }
+
+    /// Traces needle stroke along or off the stencil contour.
+    pub fn apply_needle_stroke(&mut self, on_stencil: bool) -> bool {
+        if self.completed || self.failed {
+            return self.completed;
+        }
+
+        let reward = self.reward_cash;
+        if let MinigameKind::Tattooing { stencil_progress, needle_accuracy, pain_level, ink_level, .. } = &mut self.kind {
+            if *ink_level <= 0.0 {
+                return false; // Out of ink, must dip!
+            }
+
+            if on_stencil {
+                *stencil_progress = (*stencil_progress + 0.20).min(1.0);
+                *ink_level = (*ink_level - 0.15).max(0.0);
+                *needle_accuracy = (*needle_accuracy * 0.95 + 0.05).min(1.0);
+                *pain_level = (*pain_level + 0.06).min(1.0);
+            } else {
+                // Needle slip outside stencil line
+                *needle_accuracy = (*needle_accuracy * 0.80).max(0.1);
+                *pain_level = (*pain_level + 0.35).min(1.0);
+            }
+
+            if *pain_level >= 1.0 {
+                self.failed = true;
+                self.reward_message = Some("TATOUAGE ÉCHOUÉ ! Le client s'est enfui à cause de la douleur.".into());
+                return false;
+            }
+
+            if *stencil_progress >= 1.0 && *needle_accuracy >= 0.70 {
+                self.completed = true;
+                self.reward_message = Some(format!(
+                    "TATOUAGE TERMINÉ AVEC SUCCÈS ! Précision : {:.0}% (+${})",
+                    *needle_accuracy * 100.0,
+                    reward
+                ));
+            }
+        }
+
+        self.completed
+    }
+
     /// Primary interaction action (strike glass, twist wire, pump fuel, scratch cell, turn dial).
     pub fn trigger_action(&mut self) -> bool {
         if self.completed || self.failed {
@@ -250,6 +342,13 @@ impl MinigameSession {
                     self.reward_message = Some("BOMBE AUTOMOBILE AMORCÉE ! Le véhicule explosera au démarrage (+500$)".into());
                 }
             }
+            MinigameKind::Tattooing { ink_level, .. } => {
+                if *ink_level <= 0.0 {
+                    self.dip_ink();
+                } else {
+                    self.apply_needle_stroke(true);
+                }
+            }
         }
 
         self.completed
@@ -278,6 +377,9 @@ impl MinigameSession {
                         *is_pumping = false;
                     }
                 }
+            }
+            MinigameKind::Tattooing { pain_level, .. } => {
+                *pain_level = (*pain_level - dt * 0.15).max(0.0);
             }
             _ => {}
         }
@@ -377,5 +479,49 @@ mod tests {
         } else {
             panic!("Wrong minigame kind");
         }
+    }
+
+    #[test]
+    fn tattoo_parlor_needle_tracing_and_completion() {
+        let mut tat = MinigameSession::new_tattoo(TattooMotif::DragonOfBroker);
+        assert!(!tat.completed);
+        assert!(!tat.failed);
+
+        // Apply needle strokes on stencil with ink dips
+        for _ in 0..5 {
+            if let MinigameKind::Tattooing { ink_level, .. } = tat.kind {
+                if ink_level <= 0.0 {
+                    tat.dip_ink();
+                }
+            }
+            tat.apply_needle_stroke(true);
+        }
+
+        // Final ink dip and finishing pass
+        if let MinigameKind::Tattooing { ink_level, .. } = tat.kind {
+            if ink_level <= 0.0 {
+                tat.dip_ink();
+            }
+        }
+        tat.apply_needle_stroke(true);
+
+        assert!(tat.completed);
+        assert_eq!(tat.reward_cash, 1200);
+        assert!(tat.reward_message.unwrap().contains("TATOUAGE TERMINÉ"));
+    }
+
+    #[test]
+    fn tattoo_parlor_needle_slip_causes_pain_and_failure() {
+        let mut tat = MinigameSession::new_tattoo(TattooMotif::ViperOfAlgonquin);
+        assert!(!tat.failed);
+
+        // Slip multiple times off stencil line: sharp pain spike
+        tat.apply_needle_stroke(false);
+        tat.apply_needle_stroke(false);
+        tat.apply_needle_stroke(false); // pain reaches 1.05 >= 1.0!
+
+        assert!(tat.failed);
+        assert!(!tat.completed);
+        assert!(tat.reward_message.unwrap().contains("Le client s'est enfui"));
     }
 }

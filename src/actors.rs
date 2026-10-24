@@ -278,6 +278,8 @@ pub struct Scene {
     pub minigame: Option<crate::minigames::MinigameSession>,
     pub jobs: crate::jobs::JobManager,
     pub collectibles: crate::collectibles::CollectibleManager,
+    pub races: crate::races::RaceManager,
+    pub active_race: Option<crate::races::RaceSession>,
     pub cash: u32,
     pub prompt: Option<String>,
     pub banner: Option<(String, f32)>,
@@ -532,6 +534,8 @@ impl Scene {
             minigame: None,
             jobs: crate::jobs::JobManager::new(),
             collectibles: crate::collectibles::CollectibleManager::new(),
+            races: crate::races::RaceManager::new(),
+            active_race: None,
             cash: 500,
             prompt: None,
             banner: None,
@@ -1167,6 +1171,34 @@ impl Scene {
                         self.banner = Some(msg);
                     }
                     return true;
+                }
+            }
+        }
+
+        // 4b. Street Races (Overlay 140 streetrace)
+        if self.driving.is_some() {
+            if let Some(race) = &self.active_race {
+                if matches!(race.state, crate::races::RaceState::Finished { .. } | crate::races::RaceState::Failed { .. }) {
+                    self.active_race = None;
+                    return true;
+                }
+            } else if !self.jobs.is_active() {
+                for circuit in &self.races.circuits {
+                    let start_cp = circuit.checkpoints[0];
+                    if planar(player_pos, start_cp) < 20.0 {
+                        let id = circuit.id;
+                        match self.races.start_race(id, &mut self.cash) {
+                            Ok(session) => {
+                                self.banner = session.banner_message.clone();
+                                self.active_race = Some(session);
+                                return true;
+                            }
+                            Err(err) => {
+                                self.banner = Some((err.to_string(), 3.0));
+                                return true;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -2248,6 +2280,13 @@ impl Scene {
                 crate::minigames::MinigameKind::CarBombFitting { wires_connected, .. } => {
                     format!("[ E / Y ] RACCORDER LES FILS DU DÉTONATEUR ({}/3)", wires_connected)
                 }
+                crate::minigames::MinigameKind::Tattooing { stencil_progress, ink_level, .. } => {
+                    if *ink_level <= 0.0 {
+                        "[ E / Y ] TREMPER L'AIGUILLE DANS L'ENCRE".to_string()
+                    } else {
+                        format!("[ E / Y ] TATOUER LE POCHOIR ({}%)", (stencil_progress * 100.0) as u32)
+                    }
+                }
             };
             self.prompt = Some(action_hint);
         } else if self.driving.is_none() {
@@ -2302,10 +2341,36 @@ impl Scene {
                 }
             }
         } else if let Some(car_idx) = self.driving {
-            if self.jobs.is_active() {
+            if let Some(race) = &self.active_race {
+                match &race.state {
+                    crate::races::RaceState::Countdown(_) => {
+                        self.prompt = Some("ATTENTION AU DÉPART !".to_string());
+                    }
+                    crate::races::RaceState::Racing => {
+                        self.prompt = Some(format!("{} - POS : {}", race.lap_display(), race.rank_display()));
+                    }
+                    crate::races::RaceState::Finished { rank, reward, .. } => {
+                        self.prompt = Some(format!("[ E / Y ] TERMINER LA COURSE ({}e place, +${})", rank, reward));
+                    }
+                    crate::races::RaceState::Failed { .. } => {
+                        self.prompt = Some("[ E / Y ] QUITTER LA COURSE ÉCHOUÉE".to_string());
+                    }
+                }
+            } else if self.jobs.is_active() {
                 self.prompt = Some("[ E / Y ] QUITTER LE SERVICE".to_string());
             } else if let Some(job_kind) = crate::jobs::JobKind::from_vehicle(self.cars[car_idx].name) {
                 self.prompt = Some(job_kind.start_prompt().to_string());
+            } else {
+                for circuit in &self.races.circuits {
+                    let start_cp = circuit.checkpoints[0];
+                    if planar(focus, start_cp) < 20.0 {
+                        self.prompt = Some(format!(
+                            "[ E / Y ] COURSE DE RUE : {} (Frais: ${})",
+                            circuit.name, circuit.entry_fee
+                        ));
+                        break;
+                    }
+                }
             }
         }
 
@@ -2404,6 +2469,20 @@ impl Scene {
         );
         if let Some(msg) = self.collectibles.banner_message.take() {
             self.banner = Some(msg);
+        }
+
+        // Update Street Races engine (Overlay 140 streetrace)
+        if let Some(race) = &mut self.active_race {
+            race.update(
+                dt,
+                focus,
+                player_in_vehicle,
+                &mut self.save_progress,
+                &mut self.cash,
+            );
+            if let Some(msg) = race.banner_message.take() {
+                self.banner = Some(msg);
+            }
         }
 
         self.driving.map(|i| self.cars[i].p)
@@ -2755,6 +2834,8 @@ mod tests {
             minigame: None,
             jobs: crate::jobs::JobManager::new(),
             collectibles: crate::collectibles::CollectibleManager::new(),
+            races: crate::races::RaceManager::new(),
+            active_race: None,
             cash: 500,
             prompt: None,
             banner: None,

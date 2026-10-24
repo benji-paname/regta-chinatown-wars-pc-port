@@ -8,7 +8,7 @@
 **by Benji Paname**
 
 [![Version](https://img.shields.io/badge/milestone-0.1.4--alpha-orange)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/local_tests-152_passed-brightgreen)](docs/STATUS.md)
+[![Tests](https://img.shields.io/badge/local_tests-160_passed-brightgreen)](docs/STATUS.md)
 [![Warnings](https://img.shields.io/badge/compiler_warnings-0-brightgreen)](docs/STATUS.md)
 [![Platform](https://img.shields.io/badge/platform-Windows_x64-blue)](#build-and-run)
 [![Language](https://img.shields.io/badge/runtime-Rust-dea584)](#repository-layout)
@@ -18,17 +18,18 @@ ReGTA CTW is an independent reverse-engineering and native-port project for **Gr
 
 > **Pre-alpha — no public playable download.** No game executable, ROM, ISO or proprietary game assets are offered for download. The local prototype is unfinished; no release date or complete gameplay parity is promised. Building from source requires the tools and personal game copy described below.
 
-The city, player movement, cameras, navigation, vehicles and combat already have prototype implementations. The work ahead is to verify their behaviour against the PSP original and connect them into a complete game. **152 passing tests and 166 indexed code overlays are progress measurements, not proof of full-game equivalence.**
+The city, player movement, cameras, navigation, vehicles and combat already have prototype implementations. The work ahead is to verify their behaviour against the PSP original and connect them into a complete game. **160 passing tests and 166 indexed code overlays are progress measurements, not proof of full-game equivalence.**
 
 **[Support on Tipeee](https://fr.tipeee.com/benji-paname/)** · [Support via PayPal](https://paypal.me/BenjiLsg)
 Support helps sustain Benji Paname's reverse engineering, native development and documentation. It does not buy the game, game assets or early access, and does not guarantee completion or a release date.
 
-[Project website source](docs/index.html) · [Implementation status](docs/STATUS.md) · [Changelog](CHANGELOG.md) · [Publish with GitHub Pages](docs/PUBLISHING.md)
+[Project website source](docs/index.html) · [Implementation status](docs/STATUS.md) · [Changelog](CHANGELOG.md) · [Publish with GitHub Pages](docs/PUBLISHING.md) · [YouTube Creator Kit](docs/YOUTUBE_CREATOR_KIT.md)
 
 ## Next milestones
 
 - Review the English-first presentation and font-based logos; see [branding provenance](docs/BRANDING.md) for the outstanding Bruce Mikita license documentation.
-- Investigate precision tattooing (`tattoominigame`, PSP overlay 142) and street races (`streetrace`, overlay 140), then implement from verified findings.
+- YouTube premiere video: record and publish devlog using the complete production kit in [`docs/YOUTUBE_CREATOR_KIT.md`](docs/YOUTUBE_CREATOR_KIT.md).
+- Expand story missions execution engine across Boss contacts with scripted cutscene staging.
 - Continue PSP behaviour comparisons, progression and save work before considering a public playable release.
 
 ## Build and run
@@ -42,7 +43,7 @@ From the repository root, in PowerShell:
 .\outputs\CTW-Rust\CTW-Rust.exe --iso "D:\Games\Chinatown-Wars-PSP.iso" --slice
 ```
 
-The compiler runs with warnings treated as errors, tests the workspace, and updates the executable only after success. Unit tests use generated synthetic fixtures and do not require an ISO or extracted game tables. Local validation on **24 October 2026: 152 passed, 0 failed, 0 ignored, 0 compiler warnings**. This is a local result, not a hosted CI badge.
+The compiler runs with warnings treated as errors, tests the workspace, and updates the executable only after success. Unit tests use generated synthetic fixtures and do not require an ISO or extracted game tables. Local validation on **24 October 2026: 160 passed, 0 failed, 0 ignored, 0 compiler warnings**. This is a local result, not a hosted CI badge.
 
 For desktop launchers, set `CTW_ISO` in the launching environment or pass `--iso` to a launcher:
 

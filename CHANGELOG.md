@@ -2,15 +2,22 @@
 
 Changes are recorded by release. The project is in the alpha phase; a version number does not imply complete PSP behaviour.
 
-## [Unreleased]
-
-- Tattoo parlor precision needle minigame (`tattoominigame`, Overlay 142).
-- Street races circuit checkpoint racing (`streetrace`, Overlay 140).
-
 ## [0.1.4-alpha] — 2026-10-24
 
 ### Added
 
+- **Moteur des 16 Courses de Rue et Contre-la-Montre (`src/races.rs`, `streetrace` Overlay 140)** :
+  - Intégration complète des 16 circuits officiels de Chinatown Wars répartis sur Broker, Dukes, Bohan et Algonquin (Transporterror, Midtown Mayhem, South Boulevard Boogie, Beach Blitz, Boulevard Boogie, Industrial Drift, Bridge Burner, Alleyway Dash, Star Junction GP, Algonquin Expressway, Castle Gardens Sprint, Meat Quarter Dash, Suffolk Circuit, Heliport Rush, Times Square Shakedown, et le Grand Prix d'endurance de Liberty City).
+  - Détection dynamique des checkpoints en coordonnées mondiales (rayon 14m), décompte de départ authentique 3.. 2.. 1.. GO, calcul en temps réel des temps au tour et du meilleur tour.
+  - Concurrents rivaux IA avec modèles de véhicules de course officiels (`STREETRACER1` à `STREETRACER5`, `STREETRACER1 MOD`) et mécanique de rubber-banding authentique.
+  - Calcul dynamique de la position en course (1er à 4e), seuils de médailles (Bronze, Argent, Or), récompenses en cash et enregistrement du record personnel dans `save_progress.race_best_time[16]` (IDs `0x4C` à `0x5B`).
+  - Sécurité anti-triche et abandon : chrono de 10 secondes si Huang quitte son véhicule en pleine course.
+  - Affichage radar du checkpoint actuel en or impérial et HUD de course en temps réel (Circuit, Tour, Position, Chronomètre).
+- **Minijeu de Salon de Tatouage (`src/minigames.rs`, `tattooingapp` Overlay 141)** :
+  - 4 motifs officiels de la pègre chinoise : Dragon de Broker ($1200), Carpe Koï de Dukes ($800), Tigre de Bohan ($950), Vipère d'Algonquin ($1500).
+  - Mécanique de traçage d'aiguille le long du pochoir avec réapprovisionnement en encre et jauge de douleur du client (échec si la douleur atteint 100% lors d'un dérapage).
+- **Kit Créateur YouTube Officiel (`docs/YOUTUBE_CREATOR_KIT.md`)** :
+  - Guide complet pour Benjamin : titres à fort taux de clic, concepts de miniatures avec logos officiels, script minute par minute, description prête à copier avec horodatages, liens de dons (Tipeee et PayPal.Me) et avertissements légaux, guide de capture OBS 60 FPS en plein écran.
 - **Refonte officielle de l'identité visuelle et des logos ReGTA CTW (`docs/assets/logo.svg`, `docs/assets/logo-ctw.svg`, `docs/BRANDING.md`)**:
   - Typographie Pricedown Black authentique pour `ReGTA` : le "Re" en grand intégré avec "GTA", avec le 'e' en minuscule. Coloris deux tons : "Re" en dégradé rouge Recomp (`#FF3B30` → `#E52521` → `#7F1D1D`) et "GTA" en blanc/platine pur GTA (`#FFFFFF` → `#CBD5E1`) sous contour noir massif et ombre portée.
   - Typographie Bruce Mikita pour `CTW` avec les coloris exacts du jeu original Chinatown Wars : corps rouge laqué impérial (`#F82B2B` → `#DC1414` → `#7A0808`), liseré doré jaune vif (`#FFF875` → `#FFD700` → `#D97706`), et rehauts calligraphiques intérieurs.
@@ -45,7 +52,7 @@ Changes are recorded by release. The project is in the alpha phase; a version nu
 
 ### Validation
 
-- **152/152 unit tests passing**, 0 failed, 0 warnings under `-D warnings`.
+- **160/160 unit tests passing**, 0 failed, 0 warnings under `-D warnings`.
 - Binaire compilé et actualisé sous `outputs/CTW-Rust/CTW-Rust.exe`.
 
 ## [0.1.3-alpha] — 2026-10-24

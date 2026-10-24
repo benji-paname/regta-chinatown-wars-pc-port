@@ -3,6 +3,7 @@ mod actors;
 mod audio;
 mod camera;
 mod collision;
+mod drugs;
 mod explosions;
 mod gamepad;
 mod gps;
@@ -22,6 +23,7 @@ mod psp;
 mod radar;
 mod radio;
 mod roll;
+mod safehouse;
 mod stats;
 #[cfg(test)]
 mod test_support;

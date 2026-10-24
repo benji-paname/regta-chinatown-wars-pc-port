@@ -1,0 +1,495 @@
+// SPDX-License-Identifier: GPL-3.0-only
+//! PSP vehicle table (PAK 29, 106 entries x 312 bytes), paint swatches (PAK 1 -> 2..28)
+//! and 3D vehicle models (PAK 30..198). Dimensions and handling follow ctw-native
+//! cVehicle / cWheeledVehicle / cBike::SetPropertiesFromVehicleInfo (C) 2026 Kryo.to.
+use crate::{
+    collision::{BoxShape, Collision},
+    iso::{bytes, u16le, u32le, Disc, Result},
+    model::{self, Mesh},
+    pak::Pak,
+    pavement::Rng,
+    texture::{self, Texture},
+};
+use std::collections::HashMap;
+
+/// cBike::VehicleScale() in vehicle.h (0x14CC / 4096.0 = 1.2998047).
+pub const BIKE_SCALE_Q12: i64 = 0x14cc;
+pub const BIKE_SCALE: f32 = BIKE_SCALE_Q12 as f32 / 4096.;
+
+#[derive(Clone, Copy, Debug)]
+pub struct Spec {
+    pub info_id: usize,
+    pub kind: u16,
+    pub model_id: u16,
+    pub colour_mask: u32,
+    pub raw_dims: [i32; 3],
+    pub top_speed: u16,
+    pub num_gears: u8,
+    pub mass_q12: i32,
+    pub max_torque_q12: i32,
+    pub brake_force_q12: i32,
+    pub drive_split_q12: i16,
+    pub grip_q12: i16,
+    pub front_axle_q12: i16,
+    pub rear_axle_q12: i16,
+    pub front_k18_q12: i32,
+    pub rear_k18_q12: i32,
+    pub steer_lock_q12: i32,
+    pub steer_rate_q12: i32,
+    pub steer_red_q12: i32,
+    pub sway_damping_q12: i32,
+    pub seat_y_q12: i32,
+    pub flags8e: u16,
+    pub name: &'static str,
+}
+impl Spec {
+    pub fn half_extents(&self) -> [f32; 3] {
+        let mut hx = ((self.raw_dims[0] * 0x2332 >> 12) >> 1) as i64;
+        let mut hy = ((self.raw_dims[1] * 0x2332 >> 12) >> 1) as i64;
+        let mut hz = self.raw_dims[2] as i64;
+        if self.is_bike() {
+            hx = (hx * BIKE_SCALE_Q12) >> 12;
+            hy = (hy * BIKE_SCALE_Q12) >> 12;
+            hz = (hz * BIKE_SCALE_Q12) >> 12;
+        }
+        [hx as f32 / 4096., hy as f32 / 4096., hz as f32 / 4096.]
+    }
+    /// Land vehicles: standard cars/trucks (0), motorcycles (1), and Rhino tank (5).
+    /// Excludes boats (2), jetskis (3), and helicopters (4).
+    pub fn is_land_vehicle(&self) -> bool {
+        matches!(self.kind, 0 | 1 | 5)
+    }
+    pub fn is_bike(&self) -> bool {
+        self.kind == 1
+    }
+    pub fn mass(&self) -> f32 {
+        (self.mass_q12 as f32 / 4096.).max(0.4)
+    }
+    pub fn max_torque(&self) -> f32 {
+        (self.max_torque_q12 as f32 / 4096.).max(10.)
+    }
+    pub fn brake_force(&self) -> f32 {
+        (self.brake_force_q12 as f32 / 4096.).max(50.)
+    }
+    pub fn drive_split(&self) -> f32 {
+        (self.drive_split_q12 as f32 / 4096.).clamp(0., 1.)
+    }
+    pub fn grip(&self) -> f32 {
+        (self.grip_q12 as f32 / 4096.).max(0.5)
+    }
+    pub fn wheelbase(&self) -> f32 {
+        ((self.front_axle_q12 as i32 - self.rear_axle_q12 as i32) as f32 / 4096.).max(1.8)
+    }
+    pub fn front_stiffness(&self) -> f32 {
+        (self.front_k18_q12 as f32 / 4096.).max(1.5)
+    }
+    pub fn rear_stiffness(&self) -> f32 {
+        (self.rear_k18_q12 as f32 / 4096.).max(1.5)
+    }
+    pub fn steer_lock_deg(&self) -> f32 {
+        (self.steer_lock_q12 as f32 / 4096.).clamp(20., 95.)
+    }
+    pub fn steer_rate_deg(&self) -> f32 {
+        (self.steer_rate_q12 as f32 / 4096.).clamp(15., 180.)
+    }
+    pub fn steer_speed_red(&self) -> f32 {
+        (self.steer_red_q12 as f32 / 4096.).clamp(0.02, 0.5)
+    }
+    pub fn sway_damping(&self) -> f32 {
+        (self.sway_damping_q12 as f32 / 4096.).clamp(0.1, 0.95)
+    }
+    pub fn seat_y(&self) -> f32 {
+        self.seat_y_q12 as f32 / 4096.
+    }
+    pub fn visual_scale(&self) -> f32 {
+        if self.is_bike() {
+            BIKE_SCALE
+        } else {
+            1.0
+        }
+    }
+    pub fn sound_type(&self) -> usize {
+        if self.is_bike() {
+            12
+        } else if self.kind == 4 {
+            3
+        } else if self.kind == 5 {
+            7
+        } else {
+            self.info_id % 20
+        }
+    }
+}
+
+pub const BIKE_POOL: &[usize] = &[12, 89, 91, 93, 97, 98];
+
+#[allow(dead_code)]
+pub const TRAFFIC_POOL: &[usize] = &[
+    0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27, 33, 34,
+    40, 51, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 89, 93, 98,
+];
+
+/// Authentic vehicle lists from PSP popinfo.bin (13 lists, excluding watercraft).
+pub const VEH_LISTS: &[&[usize]] = &[
+    &[92],                                  // 0: Cabby
+    &[10, 19, 54, 55, 56, 52],              // 1: Commercial / Trucks (Flatbed, Yankee, Yankee variants)
+    &[12, 93, 91, 89, 98],                  // 2: Bikes (Angel, Sanchez, PCJ600, NRG900, Chopper)
+    &[20, 16, 17, 57],                      // 3: Sports (Coquette, Banshee, Comet, Infernus)
+    &[],                                    // 4: Boats (excluded from land street traffic)
+    &[66],                                  // 5: Limo
+    &[0, 5, 14, 59, 62],                    // 6: Common A (Admiral, Buccaneer, Hellenbach, Sabre GT, Peyote)
+    &[22, 2, 1, 64, 60, 63],                // 7: Common B (Chavos, Dukes, Blista, Perren, Stallion, Ingot)
+    &[],                                    // 8: Streetracers (special missions)
+    &[21, 24, 23, 61, 58],                  // 9: Luxury / SUVs (Cognoscenti, EXT, Cavalcade, Sultan, Patriot)
+    &[13],                                  // 10: Taxi (Cabbie)
+    &[9, 46, 47, 48, 49, 50, 25],           // 11: Vans / Pickups (Burrito & commercial liveries, Bobcat)
+];
+
+/// Authentic zone vehicle makeups from PSP popinfo.bin / population_tables.bin (CTWZONE1).
+/// Each entry is a list of (veh_list_index, weight).
+const ZONE_MAKEUPS: &[&[(usize, u32)]] = &[
+    // 0: Default
+    &[(3, 40), (6, 50), (1, 15), (9, 50), (10, 150), (11, 30), (5, 5), (2, 10)],
+    // 1: Bohan / North Industrial
+    &[(3, 30), (6, 50), (1, 30), (7, 40), (9, 5), (10, 100), (11, 50), (2, 10)],
+    // 2: Downtown Algonquin / L'Exchange / Chinatown (high taxis, sedans, luxury, bikes)
+    &[(3, 40), (6, 50), (1, 15), (9, 50), (10, 150), (11, 30), (5, 5), (2, 10)],
+    // 3: Dukes / Residential East
+    &[(3, 5), (6, 50), (1, 15), (7, 40), (9, 5), (10, 20), (11, 30), (2, 10)],
+    // 4: Industrial South / Docks / Meadows
+    &[(6, 25), (1, 100), (7, 20), (10, 1), (11, 80), (2, 8)],
+    // 5: General Commercial
+    &[(3, 40), (6, 50), (1, 15), (9, 50), (10, 150), (11, 30), (5, 5), (2, 10)],
+    // 6: Suburbs / Alderney
+    &[(6, 90), (1, 50), (7, 90), (10, 7), (11, 50), (2, 7)],
+    // 7: Castle Gardens / Financial / Midtown
+    &[(3, 50), (6, 50), (1, 10), (7, 10), (9, 50), (10, 20), (11, 40), (2, 10)],
+];
+
+/// Choose a vehicle for ambient traffic following PSP popinfo.bin zone budgets and 5% police chance.
+pub fn choose_traffic_vehicle(pos: [f32; 3], rng: &mut Rng) -> usize {
+    // 5% ambient patrol police car (PopulationProfile pedType 10 weight 5 / ~100)
+    if rng.below(100) < 5 {
+        return 18; // POLICE
+    }
+    let m_idx = if pos[1] > 2000. {
+        1 // Bohan
+    } else if pos[1] < 800. && pos[0] < 200. {
+        7 // Castle Gardens / Financial
+    } else if pos[0] > 200. {
+        if pos[1] < 800. {
+            4 // Docks / Meadows
+        } else {
+            3 // Dukes
+        }
+    } else if pos[0] < -700. {
+        6 // Alderney / Suburbs
+    } else {
+        2 // Downtown Algonquin / L'Exchange
+    };
+    let makeup = ZONE_MAKEUPS[m_idx];
+    let total_weight: u32 = makeup.iter().map(|(_, w)| *w).sum();
+    if total_weight == 0 {
+        return 0; // Admiral fallback
+    }
+    let mut roll = rng.below(total_weight);
+    let mut chosen_list = 6;
+    for &(list_id, weight) in makeup {
+        if roll < weight {
+            chosen_list = list_id;
+            break;
+        }
+        roll -= weight;
+    }
+    let vids = VEH_LISTS.get(chosen_list).copied().unwrap_or(&[]);
+    if vids.is_empty() {
+        return 0;
+    }
+    vids[rng.below(vids.len() as u32) as usize]
+}
+
+pub fn spec(info_id: usize) -> &'static Spec {
+    &SPECS[info_id.min(SPECS.len() - 1)]
+}
+
+pub fn choose_paint(info_id: usize, colour: u8, rng: &mut Rng) -> u8 {
+    if colour < 25 {
+        return colour;
+    }
+    let mask = spec(info_id).colour_mask;
+    if mask == 0 {
+        return 0;
+    }
+    let mut allowed = [0u8; 27];
+    let mut len = 0;
+    for c in 0..27u8 {
+        if (mask >> c) & 1 != 0 {
+            allowed[len] = c;
+            len += 1;
+        }
+    }
+    if len == 0 {
+        0
+    } else {
+        allowed[rng.below(len as u32) as usize]
+    }
+}
+
+pub const SPECS: [Spec; 106] = [
+    Spec { info_id:   0, kind: 0, model_id:  30, colour_mask: 0x015806f3, raw_dims: [  4528,  12536,   3362], top_speed: 100, num_gears: 3, mass_q12:  4096, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4534, front_axle_q12:  9367, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 245760, steer_rate_q12: 491520, steer_red_q12:  626, sway_damping_q12: 3252, seat_y_q12:    196, flags8e: 0x2110, name: "ADMIRAL" },
+    Spec { info_id:   1, kind: 0, model_id:  32, colour_mask: 0x002999b7, raw_dims: [  4286,   9870,   3130], top_speed: 100, num_gears: 3, mass_q12:  4096, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4534, front_axle_q12:  9367, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 245760, steer_rate_q12: 491520, steer_red_q12:  626, sway_damping_q12: 3252, seat_y_q12:    -57, flags8e: 0x6110, name: "BLISTA" },
+    Spec { info_id:   2, kind: 0, model_id:  33, colour_mask: 0x01fffff7, raw_dims: [  4581,  11184,   3029], top_speed: 130, num_gears: 3, mass_q12:  6144, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12:   24, grip_q12: 4538, front_axle_q12:  9744, rear_axle_q12:  -9928, front_k18_q12: 16384, rear_k18_q12: 11452, steer_lock_q12: 253952, steer_rate_q12: 122847, steer_red_q12:  339, sway_damping_q12: 3244, seat_y_q12:    169, flags8e: 0x0310, name: "DUKES" },
+    Spec { info_id:   3, kind: 4, model_id:  34, colour_mask: 0x00000000, raw_dims: [  4184,  20829,   6440], top_speed: 120, num_gears: 3, mass_q12: 40960, max_torque_q12: 2457600, brake_force_q12:  819200, drive_split_q12: 2048, grip_q12: 4096, front_axle_q12:     0, rear_axle_q12:      0, front_k18_q12:  4096, rear_k18_q12:  4096, steer_lock_q12: 368640, steer_rate_q12: 368640, steer_red_q12:    0, sway_damping_q12:    0, seat_y_q12:   7380, flags8e: 0x0300, name: "POLMAV" },
+    Spec { info_id:   4, kind: 0, model_id:  36, colour_mask: 0x00000000, raw_dims: [  5361,  12893,   5808], top_speed: 100, num_gears: 3, mass_q12:  8192, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4538, front_axle_q12:  9371, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 245760, steer_rate_q12: 491520, steer_red_q12:  684, sway_damping_q12: 3256, seat_y_q12:   5383, flags8e: 0x6111, name: "SWAT" },
+    Spec { info_id:   5, kind: 0, model_id:  38, colour_mask: 0x004a1453, raw_dims: [  4425,  12370,   2967], top_speed:  90, num_gears: 3, mass_q12:  6144, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4534, front_axle_q12:  9367, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 245760, steer_rate_q12: 491520, steer_red_q12:  626, sway_damping_q12: 3252, seat_y_q12:  -1306, flags8e: 0x0110, name: "BUCCANEER" },
+    Spec { info_id:   6, kind: 0, model_id:  39, colour_mask: 0x00000000, raw_dims: [  6091,  19270,   7107], top_speed:  60, num_gears: 3, mass_q12: 12288, max_torque_q12: 327680, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4526, front_axle_q12: 13455, rear_axle_q12: -17604, front_k18_q12:  9703, rear_k18_q12:  7778, steer_lock_q12: 253952, steer_rate_q12: 122847, steer_red_q12:  282, sway_damping_q12: 3244, seat_y_q12:  13279, flags8e: 0x6141, name: "FIRETRUCK" },
+    Spec { info_id:   7, kind: 5, model_id:  41, colour_mask: 0x00000000, raw_dims: [  7610,  18624,   8059], top_speed:  50, num_gears: 3, mass_q12: 20480, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4530, front_axle_q12:  9363, rear_axle_q12:  -9416, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12:  81879, steer_red_q12:  569, sway_damping_q12: 3248, seat_y_q12:  -5954, flags8e: 0xa100, name: "RHINO" },
+    Spec { info_id:   8, kind: 0, model_id:  43, colour_mask: 0x00000000, raw_dims: [  4813,  13643,   5039], top_speed: 100, num_gears: 3, mass_q12:  8192, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4534, front_axle_q12:  9367, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 245760, steer_rate_q12: 491520, steer_red_q12:  626, sway_damping_q12: 3252, seat_y_q12:   4323, flags8e: 0x6911, name: "AMBULANCE" },
+    Spec { info_id:   9, kind: 0, model_id:  45, colour_mask: 0x01c25ef7, raw_dims: [  5127,  12916,   4855], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4562, front_axle_q12:  9396, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  397, sway_damping_q12: 3268, seat_y_q12:   1149, flags8e: 0x6108, name: "BURRITO" },
+    Spec { info_id:  10, kind: 0, model_id:  46, colour_mask: 0x00625452, raw_dims: [  6224,  18954,   7690], top_speed:  70, num_gears: 3, mass_q12: 12288, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:   6962, flags8e: 0x6148, name: "FLATBED" },
+    Spec { info_id:  11, kind: 2, model_id:  47, colour_mask: 0x01180231, raw_dims: [  6453,  22892,   6574], top_speed: 120, num_gears: 3, mass_q12:  6144, max_torque_q12:   6144, brake_force_q12:    4096, drive_split_q12: 2441, grip_q12: 2048, front_axle_q12:  8192, rear_axle_q12: -16384, front_k18_q12:    16, rear_k18_q12:  2048, steer_lock_q12: 327696, steer_rate_q12:  79585, steer_red_q12:  110, sway_damping_q12: 1024, seat_y_q12:   2714, flags8e: 0x1304, name: "SPEEDER" },
+    Spec { info_id:  12, kind: 1, model_id:  49, colour_mask: 0x01804208, raw_dims: [  2872,   7780,   3695], top_speed:  90, num_gears: 3, mass_q12:  2048, max_torque_q12: 245760, brake_force_q12:  409600, drive_split_q12: 2080, grip_q12: 4558, front_axle_q12:  6144, rear_axle_q12:  -6144, front_k18_q12: 22528, rear_k18_q12: 24576, steer_lock_q12: 143360, steer_rate_q12: 204787, steer_red_q12:  282, sway_damping_q12: 1024, seat_y_q12:  -2098, flags8e: 0x0304, name: "ANGEL" },
+    Spec { info_id:  13, kind: 0, model_id:  50, colour_mask: 0x00000000, raw_dims: [  4977,  10970,   3698], top_speed: 100, num_gears: 3, mass_q12:  4096, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12:  196, grip_q12: 4530, front_axle_q12:  9363, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 368664, steer_rate_q12: 409579, steer_red_q12: 1372, sway_damping_q12: 3248, seat_y_q12:    382, flags8e: 0x6310, name: "CABBIE" },
+    Spec { info_id:  14, kind: 0, model_id:  52, colour_mask: 0x00317c2c, raw_dims: [  4962,  11417,   3384], top_speed: 130, num_gears: 3, mass_q12:  4096, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4554, front_axle_q12:  9760, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  454, sway_damping_q12: 3260, seat_y_q12:   -497, flags8e: 0x6310, name: "HELLENBACH" },
+    Spec { info_id:  15, kind: 0, model_id:  53, colour_mask: 0x01bddaf3, raw_dims: [  6079,  29781,   7425], top_speed:  60, num_gears: 3, mass_q12: 12288, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4558, front_axle_q12: 13488, rear_axle_q12: -17608, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 368664, steer_red_q12:  741, sway_damping_q12: 3264, seat_y_q12:  16987, flags8e: 0x6130, name: "TANKER" },
+    Spec { info_id:  16, kind: 0, model_id:  54, colour_mask: 0x01a8481a, raw_dims: [  4625,  12222,   3178], top_speed: 130, num_gears: 3, mass_q12:  4096, max_torque_q12: 184320, brake_force_q12: 8192000, drive_split_q12: 2048, grip_q12: 4550, front_axle_q12:  9756, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  397, sway_damping_q12: 3256, seat_y_q12:  -1494, flags8e: 0x4318, name: "BANSHEE" },
+    Spec { info_id:  17, kind: 0, model_id:  55, colour_mask: 0x000d6432, raw_dims: [  5339,  11724,   3222], top_speed: 130, num_gears: 3, mass_q12:  4096, max_torque_q12: 204800, brake_force_q12: 2048000, drive_split_q12:  401, grip_q12: 4546, front_axle_q12:  9752, rear_axle_q12:  -9924, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 327696, steer_rate_q12: 491520, steer_red_q12: 1028, sway_damping_q12: 3252, seat_y_q12:  -1325, flags8e: 0x4318, name: "COMET" },
+    Spec { info_id:  18, kind: 0, model_id:  56, colour_mask: 0x00000000, raw_dims: [  4576,  12192,   3673], top_speed: 110, num_gears: 3, mass_q12:  4096, max_torque_q12: 163840, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4534, front_axle_q12:  9367, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 327696, steer_rate_q12: 491520, steer_red_q12: 1142, sway_damping_q12: 3252, seat_y_q12:     67, flags8e: 0x4311, name: "POLICE" },
+    Spec { info_id:  19, kind: 0, model_id:  58, colour_mask: 0x00621452, raw_dims: [  5299,  15184,   6378], top_speed:  70, num_gears: 3, mass_q12:  8192, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:   4209, flags8e: 0x6148, name: "YANKEE" },
+    Spec { info_id:  20, kind: 0, model_id:  59, colour_mask: 0x0181b01b, raw_dims: [  4906,  12192,   3286], top_speed: 130, num_gears: 3, mass_q12:  4096, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4554, front_axle_q12:  9760, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  454, sway_damping_q12: 3260, seat_y_q12:   -781, flags8e: 0x4318, name: "COQUETTE" },
+    Spec { info_id:  21, kind: 0, model_id:  60, colour_mask: 0x015806f3, raw_dims: [  4776,  12523,   3487], top_speed: 130, num_gears: 3, mass_q12:  6144, max_torque_q12: 184320, brake_force_q12: 6144000, drive_split_q12: 2048, grip_q12: 4550, front_axle_q12:  9756, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  397, sway_damping_q12: 3256, seat_y_q12:    111, flags8e: 0x2318, name: "COGNOSCENTI" },
+    Spec { info_id:  22, kind: 0, model_id:  61, colour_mask: 0x01881dee, raw_dims: [  4634,  11761,   3314], top_speed:  70, num_gears: 3, mass_q12:  4096, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4562, front_axle_q12:  9396, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  397, sway_damping_q12: 3268, seat_y_q12:    335, flags8e: 0x0108, name: "CHAVOS" },
+    Spec { info_id:  23, kind: 0, model_id:  62, colour_mask: 0x0028a89b, raw_dims: [  4722,  11393,   4088], top_speed: 115, num_gears: 3, mass_q12:  6144, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4534, front_axle_q12:  9367, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 286728, steer_rate_q12: 409579, steer_red_q12: 1028, sway_damping_q12: 3252, seat_y_q12:   -202, flags8e: 0x0110, name: "CAVCADE" },
+    Spec { info_id:  24, kind: 0, model_id:  63, colour_mask: 0x007daa9b, raw_dims: [  4540,  11323,   3877], top_speed: 115, num_gears: 3, mass_q12:  6144, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4534, front_axle_q12:  9367, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 286728, steer_rate_q12: 409579, steer_red_q12: 1028, sway_damping_q12: 3252, seat_y_q12:     97, flags8e: 0x2118, name: "EXT" },
+    Spec { info_id:  25, kind: 0, model_id:  64, colour_mask: 0x00420473, raw_dims: [  4790,  11849,   4179], top_speed:  70, num_gears: 3, mass_q12:  4096, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4558, front_axle_q12:  9392, rear_axle_q12:  -9416, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 245760, steer_rate_q12: 368664, steer_red_q12:  339, sway_damping_q12: 3264, seat_y_q12:    425, flags8e: 0x6110, name: "BOBCAT" },
+    Spec { info_id:  26, kind: 0, model_id:  65, colour_mask: 0x00000000, raw_dims: [  4823,  15770,   5745], top_speed:  70, num_gears: 3, mass_q12: 12288, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4562, front_axle_q12: 13492, rear_axle_q12: -17608, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 184332, steer_rate_q12: 327696, steer_red_q12:  397, sway_damping_q12: 3268, seat_y_q12:  11099, flags8e: 0x6110, name: "RECOVERY" },
+    Spec { info_id:  27, kind: 0, model_id:  66, colour_mask: 0x01ac5208, raw_dims: [  5228,  12156,   2544], top_speed: 160, num_gears: 3, mass_q12:  4096, max_torque_q12: 225280, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4550, front_axle_q12:  9756, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 225243, steer_rate_q12: 491520, steer_red_q12:  397, sway_damping_q12: 3256, seat_y_q12:  -1311, flags8e: 0x8604, name: "F1" },
+    Spec { info_id:  28, kind: 0, model_id:  67, colour_mask: 0x00000000, raw_dims: [  4687,  11122,   3760], top_speed: 130, num_gears: 3, mass_q12:  4096, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4554, front_axle_q12:  9760, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  454, sway_damping_q12: 3260, seat_y_q12:  -1158, flags8e: 0x4390, name: "STREETRACER1" },
+    Spec { info_id:  29, kind: 0, model_id:  69, colour_mask: 0x00000000, raw_dims: [  4862,  12322,   3584], top_speed: 130, num_gears: 3, mass_q12:  4096, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4554, front_axle_q12:  9760, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  454, sway_damping_q12: 3260, seat_y_q12:   -680, flags8e: 0x2390, name: "STREETRACER2" },
+    Spec { info_id:  30, kind: 0, model_id:  71, colour_mask: 0x00000000, raw_dims: [  5705,  12201,   3408], top_speed: 130, num_gears: 3, mass_q12:  4096, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4554, front_axle_q12:  9760, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  454, sway_damping_q12: 3260, seat_y_q12:  -1325, flags8e: 0x4390, name: "STREETRACER3" },
+    Spec { info_id:  31, kind: 0, model_id:  73, colour_mask: 0x00000000, raw_dims: [  5705,  12201,   3408], top_speed: 130, num_gears: 3, mass_q12:  4096, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4554, front_axle_q12:  9760, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  454, sway_damping_q12: 3260, seat_y_q12:  -1325, flags8e: 0x2398, name: "STREETRACER4" },
+    Spec { info_id:  32, kind: 0, model_id:  75, colour_mask: 0x00000000, raw_dims: [  4906,  12682,   3286], top_speed: 130, num_gears: 3, mass_q12:  4096, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4554, front_axle_q12:  9760, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  454, sway_damping_q12: 3260, seat_y_q12:   -264, flags8e: 0x4398, name: "STREETRACER5" },
+    Spec { info_id:  33, kind: 0, model_id:  77, colour_mask: 0x00c24440, raw_dims: [  6582,  15914,   6088], top_speed:  70, num_gears: 3, mass_q12: 12288, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4562, front_axle_q12:  9396, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  397, sway_damping_q12: 3268, seat_y_q12:  -1722, flags8e: 0x8100, name: "BULLDOZER" },
+    Spec { info_id:  34, kind: 0, model_id:  78, colour_mask: 0x00000000, raw_dims: [  5120,  11799,   4484], top_speed: 110, num_gears: 3, mass_q12:  6144, max_torque_q12: 163840, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4538, front_axle_q12:  9371, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 245760, steer_rate_q12: 491520, steer_red_q12:  684, sway_damping_q12: 3256, seat_y_q12:    283, flags8e: 0x0319, name: "FBIRANCHER" },
+    Spec { info_id:  35, kind: 2, model_id:  79, colour_mask: 0x015802f3, raw_dims: [  8419,  30759,  16363], top_speed: 120, num_gears: 3, mass_q12:  8192, max_torque_q12:   4096, brake_force_q12:    4096, drive_split_q12: 3260, grip_q12: 2048, front_axle_q12:  8192, rear_axle_q12: -18034, front_k18_q12:    16, rear_k18_q12:  2048, steer_lock_q12: 532488, steer_rate_q12: 245760, steer_red_q12:  110, sway_damping_q12: 1024, seat_y_q12:    928, flags8e: 0x1300, name: "REEFER" },
+    Spec { info_id:  36, kind: 2, model_id:  85, colour_mask: 0x00000000, raw_dims: [  6534,  15664,   4955], top_speed: 120, num_gears: 3, mass_q12:  4096, max_torque_q12:   4096, brake_force_q12:    4096, drive_split_q12: 3260, grip_q12: 2048, front_axle_q12:  8192, rear_axle_q12: -14336, front_k18_q12:    12, rear_k18_q12:  2048, steer_lock_q12: 368664, steer_rate_q12:  81879, steer_red_q12:  110, sway_damping_q12: 1024, seat_y_q12:    -16, flags8e: 0x1304, name: "CGDINGHY" },
+    Spec { info_id:  37, kind: 2, model_id:  87, colour_mask: 0x00000000, raw_dims: [  7759,  29624,  11894], top_speed: 120, num_gears: 3, mass_q12:  6144, max_torque_q12:  12288, brake_force_q12:    4096, drive_split_q12: 3264, grip_q12: 2048, front_axle_q12:  8192, rear_axle_q12: -18432, front_k18_q12:     8, rear_k18_q12:  2048, steer_lock_q12: 327696, steer_rate_q12:  79585, steer_red_q12:  167, sway_damping_q12: 1024, seat_y_q12:    456, flags8e: 0x1300, name: "CGLAUNCH" },
+    Spec { info_id:  38, kind: 2, model_id:  90, colour_mask: 0x00000000, raw_dims: [  9301,  32753,   9960], top_speed: 120, num_gears: 3, mass_q12:  4096, max_torque_q12:   8192, brake_force_q12:    4096, drive_split_q12: 3252, grip_q12: 2048, front_axle_q12:  8192, rear_axle_q12: -18432, front_k18_q12:     8, rear_k18_q12:  2048, steer_lock_q12: 327696, steer_rate_q12:  79585, steer_red_q12:    0, sway_damping_q12: 1024, seat_y_q12:    -31, flags8e: 0x1100, name: "TORPEDOLAUNCH" },
+    Spec { info_id:  39, kind: 2, model_id:  92, colour_mask: 0x015806f3, raw_dims: [  6651,  13773,   2975], top_speed: 120, num_gears: 3, mass_q12:  4096, max_torque_q12:   4096, brake_force_q12:    4096, drive_split_q12: 3260, grip_q12: 2048, front_axle_q12:  8192, rear_axle_q12: -14336, front_k18_q12:    12, rear_k18_q12:  2048, steer_lock_q12: 368664, steer_rate_q12:  81879, steer_red_q12:  110, sway_damping_q12: 1024, seat_y_q12:  -3418, flags8e: 0x1304, name: "DINGHY" },
+    Spec { info_id:  40, kind: 0, model_id:  93, colour_mask: 0x00000000, raw_dims: [  5993,  22952,   6305], top_speed:  70, num_gears: 3, mass_q12: 12288, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4558, front_axle_q12: 13488, rear_axle_q12: -17608, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 184332, steer_rate_q12: 327696, steer_red_q12:  339, sway_damping_q12: 3264, seat_y_q12:  19022, flags8e: 0x4140, name: "BUS" },
+    Spec { info_id:  41, kind: 0, model_id:  95, colour_mask: 0x00000000, raw_dims: [  3685,   8401,   2648], top_speed: 130, num_gears: 3, mass_q12:  4096, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4554, front_axle_q12:  9760, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  454, sway_damping_q12: 3260, seat_y_q12:  -1796, flags8e: 0x4300, name: "STREETRACER1 MOD" },
+    Spec { info_id:  42, kind: 0, model_id:  96, colour_mask: 0x00000000, raw_dims: [  4822,  12403,   8869], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4562, front_axle_q12:  9396, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  397, sway_damping_q12: 3268, seat_y_q12:   1916, flags8e: 0x6100, name: "BURRITO MOD" },
+    Spec { info_id:  43, kind: 3, model_id:  97, colour_mask: 0x015806f3, raw_dims: [  4061,   9743,   3162], top_speed: 150, num_gears: 3, mass_q12:  2048, max_torque_q12:   8192, brake_force_q12:    8192, drive_split_q12: 1404, grip_q12: 2048, front_axle_q12:  8192, rear_axle_q12:  -8192, front_k18_q12:    12, rear_k18_q12:     0, steer_lock_q12: 327696, steer_rate_q12:  79585, steer_red_q12:   53, sway_damping_q12: 1024, seat_y_q12:  -3944, flags8e: 0x1304, name: "WETSKI" },
+    Spec { info_id:  44, kind: 2, model_id:  98, colour_mask: 0x015802f3, raw_dims: [  7971,  27125,   6257], top_speed: 140, num_gears: 3, mass_q12:  2048, max_torque_q12:  11055, brake_force_q12:    4096, drive_split_q12: 3260, grip_q12: 2048, front_axle_q12:  8192, rear_axle_q12: -28672, front_k18_q12:    12, rear_k18_q12:  2048, steer_lock_q12: 327696, steer_rate_q12:  79585, steer_red_q12:  110, sway_damping_q12: 1024, seat_y_q12:  -4319, flags8e: 0x1304, name: "CRUISER" },
+    Spec { info_id:  45, kind: 4, model_id:  99, colour_mask: 0x00000000, raw_dims: [  7547,  19319,   6797], top_speed: 120, num_gears: 3, mass_q12: 40960, max_torque_q12: 2457600, brake_force_q12:  819200, drive_split_q12: 2048, grip_q12: 4096, front_axle_q12:     0, rear_axle_q12:      0, front_k18_q12:  4096, rear_k18_q12:  4096, steer_lock_q12: 368640, steer_rate_q12: 368640, steer_red_q12:    0, sway_damping_q12:    0, seat_y_q12:   3858, flags8e: 0x0300, name: "DEFENDER" },
+    Spec { info_id:  46, kind: 0, model_id: 101, colour_mask: 0x00000000, raw_dims: [  5127,  12916,   4855], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4562, front_axle_q12:  9396, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  397, sway_damping_q12: 3268, seat_y_q12:   1149, flags8e: 0x6108, name: "BURRITO BURGER" },
+    Spec { info_id:  47, kind: 0, model_id: 103, colour_mask: 0x00000000, raw_dims: [  5127,  12916,   4855], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4562, front_axle_q12:  9396, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  397, sway_damping_q12: 3268, seat_y_q12:   1149, flags8e: 0x6108, name: "BURRITO DEBRIS" },
+    Spec { info_id:  48, kind: 0, model_id: 105, colour_mask: 0x00000000, raw_dims: [  5127,  12916,   4855], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4562, front_axle_q12:  9396, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  397, sway_damping_q12: 3268, seat_y_q12:   1149, flags8e: 0x6108, name: "BURRITO FLY" },
+    Spec { info_id:  49, kind: 0, model_id: 107, colour_mask: 0x00000000, raw_dims: [  5127,  12916,   4855], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4562, front_axle_q12:  9396, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  397, sway_damping_q12: 3268, seat_y_q12:   1149, flags8e: 0x6108, name: "BURRITO RANCH" },
+    Spec { info_id:  50, kind: 0, model_id: 109, colour_mask: 0x00000000, raw_dims: [  5127,  12916,   4855], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4562, front_axle_q12:  9396, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  397, sway_damping_q12: 3268, seat_y_q12:   1149, flags8e: 0x6108, name: "BURRITO SPRUNK" },
+    Spec { info_id:  51, kind: 0, model_id: 111, colour_mask: 0x01a8481a, raw_dims: [  3987,   6791,   1816], top_speed: 100, num_gears: 3, mass_q12:  4096, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4538, front_axle_q12:  9371, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 245760, steer_rate_q12: 491520, steer_red_q12:  684, sway_damping_q12: 3256, seat_y_q12:   -456, flags8e: 0x8204, name: "GOKART" },
+    Spec { info_id:  52, kind: 0, model_id: 112, colour_mask: 0x00000000, raw_dims: [  5299,  15184,   6378], top_speed:  70, num_gears: 3, mass_q12:  8192, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:   4209, flags8e: 0x6148, name: "YANKEE 247" },
+    Spec { info_id:  53, kind: 0, model_id: 114, colour_mask: 0x00000000, raw_dims: [  5299,  15184,   6378], top_speed:  70, num_gears: 3, mass_q12:  8192, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:   4209, flags8e: 0x0148, name: "YANKEE AMMO" },
+    Spec { info_id:  54, kind: 0, model_id: 116, colour_mask: 0x00000000, raw_dims: [  5299,  15184,   6378], top_speed:  70, num_gears: 3, mass_q12:  8192, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:   4209, flags8e: 0x0148, name: "YANKEE CLUCKIN" },
+    Spec { info_id:  55, kind: 0, model_id: 118, colour_mask: 0x00000000, raw_dims: [  5299,  15184,   6378], top_speed:  70, num_gears: 3, mass_q12:  8192, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:   4209, flags8e: 0x6148, name: "YANKEE ECOLA" },
+    Spec { info_id:  56, kind: 0, model_id: 120, colour_mask: 0x00000000, raw_dims: [  5299,  15184,   6378], top_speed:  70, num_gears: 3, mass_q12:  8192, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:   4209, flags8e: 0x6148, name: "YANKEE HINTER" },
+    Spec { info_id:  57, kind: 0, model_id: 122, colour_mask: 0x0181b01b, raw_dims: [  5426,  12140,   3147], top_speed: 130, num_gears: 3, mass_q12:  4096, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4554, front_axle_q12:  9760, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  454, sway_damping_q12: 3260, seat_y_q12:  -1699, flags8e: 0x5318, name: "INFERNUS" },
+    Spec { info_id:  58, kind: 0, model_id: 123, colour_mask: 0x007daa9b, raw_dims: [  4998,  11184,   4146], top_speed: 100, num_gears: 3, mass_q12:  6144, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4538, front_axle_q12:  9371, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 245760, steer_rate_q12: 491520, steer_red_q12:  684, sway_damping_q12: 3256, seat_y_q12:    484, flags8e: 0x6318, name: "PATRIOT" },
+    Spec { info_id:  59, kind: 0, model_id: 124, colour_mask: 0x00317c2c, raw_dims: [  4772,  11900,   3219], top_speed: 130, num_gears: 3, mass_q12:  4096, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4554, front_axle_q12:  9760, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  454, sway_damping_q12: 3260, seat_y_q12:  -1905, flags8e: 0x4310, name: "SABREGT" },
+    Spec { info_id:  60, kind: 0, model_id: 125, colour_mask: 0x00317c2c, raw_dims: [  4807,  12025,   3044], top_speed: 120, num_gears: 3, mass_q12:  4096, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12:   24, grip_q12: 4538, front_axle_q12:  9744, rear_axle_q12:  -9928, front_k18_q12: 16384, rear_k18_q12: 11452, steer_lock_q12: 253952, steer_rate_q12: 122847, steer_red_q12:  339, sway_damping_q12: 3244, seat_y_q12:  -1980, flags8e: 0x6310, name: "STALLION" },
+    Spec { info_id:  61, kind: 0, model_id: 126, colour_mask: 0x0181b01b, raw_dims: [  4714,  11758,   3345], top_speed: 130, num_gears: 3, mass_q12:  4096, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4554, front_axle_q12:  9760, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  454, sway_damping_q12: 3260, seat_y_q12:   -337, flags8e: 0x4390, name: "SULTAN" },
+    Spec { info_id:  62, kind: 0, model_id: 127, colour_mask: 0x004a1453, raw_dims: [  4756,  12679,   2939], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:  -2802, flags8e: 0x6310, name: "PEYOTE" },
+    Spec { info_id:  63, kind: 0, model_id: 128, colour_mask: 0x004a1453, raw_dims: [  4625,  12007,   3392], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:   -108, flags8e: 0x2308, name: "INGOT" },
+    Spec { info_id:  64, kind: 0, model_id: 129, colour_mask: 0x01881dee, raw_dims: [  4334,  11618,   3978], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:   1037, flags8e: 0x0308, name: "PERREN" },
+    Spec { info_id:  65, kind: 0, model_id: 130, colour_mask: 0x00000000, raw_dims: [  4514,  12971,   3387], top_speed: 115, num_gears: 3, mass_q12:  6144, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4534, front_axle_q12:  9367, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 286728, steer_rate_q12: 409579, steer_red_q12: 1028, sway_damping_q12: 3252, seat_y_q12:   1384, flags8e: 0x6110, name: "HEARSE" },
+    Spec { info_id:  66, kind: 0, model_id: 132, colour_mask: 0x01881dee, raw_dims: [  4894,  16988,   3449], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4562, front_axle_q12: 13492, rear_axle_q12: -17608, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 188399, steer_rate_q12: 327696, steer_red_q12:  397, sway_damping_q12: 3268, seat_y_q12:   6935, flags8e: 0x2318, name: "LIMO" },
+    Spec { info_id:  67, kind: 0, model_id: 133, colour_mask: 0x00000000, raw_dims: [  4486,  12419,   3331], top_speed: 100, num_gears: 3, mass_q12:  4096, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4538, front_axle_q12:  9371, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 245760, steer_rate_q12: 491520, steer_red_q12:  684, sway_damping_q12: 3256, seat_y_q12:    152, flags8e: 0x2310, name: "GANG ADMIRAL" },
+    Spec { info_id:  68, kind: 0, model_id: 135, colour_mask: 0x00000000, raw_dims: [  4625,  12683,   3188], top_speed: 110, num_gears: 3, mass_q12:  4096, max_torque_q12: 163840, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4554, front_axle_q12:  9760, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  454, sway_damping_q12: 3260, seat_y_q12:  -1494, flags8e: 0x4398, name: "GANG BANSHEE" },
+    Spec { info_id:  69, kind: 0, model_id: 137, colour_mask: 0x00000000, raw_dims: [  4822,  12403,   5032], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:    925, flags8e: 0x6308, name: "GANG BURR AFR" },
+    Spec { info_id:  70, kind: 0, model_id: 139, colour_mask: 0x00000000, raw_dims: [  4636,  11932,   6124], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:    714, flags8e: 0x6308, name: "GANG BURR CHAN" },
+    Spec { info_id:  71, kind: 0, model_id: 141, colour_mask: 0x00000000, raw_dims: [  4822,  12403,   5028], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:    925, flags8e: 0x6308, name: "GANG BURR ANGEL" },
+    Spec { info_id:  72, kind: 0, model_id: 143, colour_mask: 0x00000000, raw_dims: [  4790,  11849,   4179], top_speed:  70, num_gears: 3, mass_q12:  4096, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4558, front_axle_q12:  9392, rear_axle_q12:  -9416, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 245760, steer_rate_q12: 368664, steer_red_q12:  339, sway_damping_q12: 3264, seat_y_q12:    341, flags8e: 0x6110, name: "GANG BOBCAT" },
+    Spec { info_id:  73, kind: 0, model_id: 145, colour_mask: 0x00000000, raw_dims: [  5127,  12916,   5215], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:   1149, flags8e: 0x6308, name: "GANG BURR IRE3" },
+    Spec { info_id:  74, kind: 0, model_id: 147, colour_mask: 0x00000000, raw_dims: [  5127,  12916,   4855], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:   1149, flags8e: 0x6308, name: "GANG BURR JAM" },
+    Spec { info_id:  75, kind: 0, model_id: 149, colour_mask: 0x00000000, raw_dims: [  5127,  12916,   4855], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:   1149, flags8e: 0x6308, name: "GANG BURR KEN" },
+    Spec { info_id:  76, kind: 0, model_id: 151, colour_mask: 0x00000000, raw_dims: [  5127,  12916,   4855], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:   1149, flags8e: 0x6308, name: "GANG BURR KOR" },
+    Spec { info_id:  77, kind: 0, model_id: 153, colour_mask: 0x00000000, raw_dims: [  5127,  12916,   4855], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:   1149, flags8e: 0x6308, name: "GANG BURR MOB" },
+    Spec { info_id:  78, kind: 0, model_id: 155, colour_mask: 0x00000000, raw_dims: [  5127,  12916,   5581], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:   1149, flags8e: 0x6308, name: "GANG BURR RUSS" },
+    Spec { info_id:  79, kind: 0, model_id: 157, colour_mask: 0x00000000, raw_dims: [  5127,  12916,   4855], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:   1149, flags8e: 0x6308, name: "GANG BURR SPAN" },
+    Spec { info_id:  80, kind: 0, model_id: 159, colour_mask: 0x00000000, raw_dims: [  5224,  13160,   6397], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:   1149, flags8e: 0x6308, name: "GANG BURR ZHOU" },
+    Spec { info_id:  81, kind: 0, model_id: 161, colour_mask: 0x00000000, raw_dims: [  4634,  11761,   3314], top_speed:  70, num_gears: 3, mass_q12:  4096, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4567, front_axle_q12:  9400, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  454, sway_damping_q12: 3272, seat_y_q12:    335, flags8e: 0x0308, name: "GANG CHAVOS" },
+    Spec { info_id:  82, kind: 0, model_id: 163, colour_mask: 0x00000000, raw_dims: [  4776,  12523,   3487], top_speed: 130, num_gears: 3, mass_q12:  6144, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4554, front_axle_q12:  9760, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  454, sway_damping_q12: 3260, seat_y_q12:    111, flags8e: 0x2318, name: "GANG COGNOSCENTI" },
+    Spec { info_id:  83, kind: 0, model_id: 165, colour_mask: 0x00000000, raw_dims: [  5705,  12201,   3408], top_speed: 110, num_gears: 3, mass_q12:  4096, max_torque_q12: 163840, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4550, front_axle_q12:  9756, rear_axle_q12:  -9924, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 327696, steer_rate_q12: 491520, steer_red_q12: 1085, sway_damping_q12: 3256, seat_y_q12:  -1325, flags8e: 0x4318, name: "GANG COMET" },
+    Spec { info_id:  84, kind: 0, model_id: 167, colour_mask: 0x00000000, raw_dims: [  4906,  12192,   3286], top_speed: 130, num_gears: 3, mass_q12:  4096, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4554, front_axle_q12:  9760, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  454, sway_damping_q12: 3260, seat_y_q12:   -781, flags8e: 0x4318, name: "GANG COQUETTE" },
+    Spec { info_id:  85, kind: 0, model_id: 169, colour_mask: 0x00000000, raw_dims: [  4936,  12050,   3263], top_speed: 130, num_gears: 3, mass_q12:  6144, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12:   24, grip_q12: 4538, front_axle_q12:  9744, rear_axle_q12:  -9928, front_k18_q12: 16384, rear_k18_q12: 11452, steer_lock_q12: 253952, steer_rate_q12: 122847, steer_red_q12:  339, sway_damping_q12: 3244, seat_y_q12:      0, flags8e: 0x0310, name: "GANG DUKES" },
+    Spec { info_id:  86, kind: 0, model_id: 171, colour_mask: 0x00000000, raw_dims: [  4540,  11323,   4575], top_speed: 100, num_gears: 3, mass_q12:  6144, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4538, front_axle_q12:  9371, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 245760, steer_rate_q12: 491520, steer_red_q12:  684, sway_damping_q12: 3256, seat_y_q12:     97, flags8e: 0x2318, name: "GANG EXT" },
+    Spec { info_id:  87, kind: 0, model_id: 172, colour_mask: 0x00000000, raw_dims: [  4724,  10873,   3352], top_speed: 130, num_gears: 3, mass_q12:  4096, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4554, front_axle_q12:  9760, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  454, sway_damping_q12: 3260, seat_y_q12:   -653, flags8e: 0x6390, name: "GANG HELLEN" },
+    Spec { info_id:  88, kind: 0, model_id: 174, colour_mask: 0x00000000, raw_dims: [  4469,  13155,   3215], top_speed: 100, num_gears: 3, mass_q12:  4096, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4538, front_axle_q12:  9371, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 245760, steer_rate_q12: 491520, steer_red_q12:  684, sway_damping_q12: 3256, seat_y_q12:  -1426, flags8e: 0x0308, name: "GANG MANANA" },
+    Spec { info_id:  89, kind: 1, model_id: 176, colour_mask: 0x01804208, raw_dims: [  2244,   7385,   3128], top_speed: 130, num_gears: 3, mass_q12:  2048, max_torque_q12: 286720, brake_force_q12:  409600, drive_split_q12: 2072, grip_q12: 4550, front_axle_q12:  6144, rear_axle_q12:  -6144, front_k18_q12: 22528, rear_k18_q12: 24576, steer_lock_q12: 143360, steer_rate_q12:  81879, steer_red_q12:  282, sway_damping_q12: 1024, seat_y_q12:  -2111, flags8e: 0x0304, name: "NRG900" },
+    Spec { info_id:  90, kind: 0, model_id: 177, colour_mask: 0x00000000, raw_dims: [  5047,  13040,   5798], top_speed: 100, num_gears: 3, mass_q12:  8192, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4534, front_axle_q12:  9367, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 245760, steer_rate_q12: 491520, steer_red_q12:  626, sway_damping_q12: 3252, seat_y_q12:   5080, flags8e: 0x6110, name: "ALPHAMAIL" },
+    Spec { info_id:  91, kind: 1, model_id: 179, colour_mask: 0x01804208, raw_dims: [  2872,   7780,   3695], top_speed:  90, num_gears: 3, mass_q12:  2048, max_torque_q12: 245760, brake_force_q12:  409600, drive_split_q12: 2080, grip_q12: 4558, front_axle_q12:  6144, rear_axle_q12:  -6144, front_k18_q12: 22528, rear_k18_q12: 24576, steer_lock_q12: 143360, steer_rate_q12: 204787, steer_red_q12:  282, sway_damping_q12: 1024, seat_y_q12:  -2098, flags8e: 0x0304, name: "ANGEL2" },
+    Spec { info_id:  92, kind: 0, model_id: 180, colour_mask: 0x00000000, raw_dims: [  3829,   8187,   3198], top_speed:  80, num_gears: 3, mass_q12:  4096, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4534, front_axle_q12:  9367, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 245760, steer_rate_q12: 491520, steer_red_q12:  626, sway_damping_q12: 3252, seat_y_q12:  -4972, flags8e: 0x0104, name: "BAGGAGE" },
+    Spec { info_id:  93, kind: 1, model_id: 181, colour_mask: 0x01804208, raw_dims: [  3195,   7994,   3712], top_speed:  95, num_gears: 3, mass_q12:  2048, max_torque_q12: 327680, brake_force_q12:  409600, drive_split_q12: 2072, grip_q12: 4550, front_axle_q12:  6144, rear_axle_q12:  -6144, front_k18_q12: 22528, rear_k18_q12: 24576, steer_lock_q12: 135168, steer_rate_q12:  81920, steer_red_q12:  286, sway_damping_q12: 1024, seat_y_q12:  -1573, flags8e: 0x0304, name: "CHOPPER" },
+    Spec { info_id:  94, kind: 0, model_id: 182, colour_mask: 0x00000000, raw_dims: [  4604,  13460,   3109], top_speed: 100, num_gears: 3, mass_q12:  4096, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4538, front_axle_q12:  9371, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 245760, steer_rate_q12: 491520, steer_red_q12:  684, sway_damping_q12: 3256, seat_y_q12:   -314, flags8e: 0x6310, name: "GANG VOODOO" },
+    Spec { info_id:  95, kind: 4, model_id: 184, colour_mask: 0x00000000, raw_dims: [  5979,  17558,   5964], top_speed: 120, num_gears: 3, mass_q12: 40960, max_torque_q12: 2457600, brake_force_q12:  819200, drive_split_q12: 2048, grip_q12: 4096, front_axle_q12:     0, rear_axle_q12:      0, front_k18_q12:  4096, rear_k18_q12:  4096, steer_lock_q12: 368640, steer_rate_q12: 368640, steer_red_q12:    0, sway_damping_q12:    0, seat_y_q12:   2204, flags8e: 0x0300, name: "SPARROW" },
+    Spec { info_id:  96, kind: 2, model_id: 186, colour_mask: 0x00000000, raw_dims: [  8483, -32132,  15042], top_speed: 120, num_gears: 3, mass_q12:  8192, max_torque_q12:  12288, brake_force_q12:    4096, drive_split_q12: 3260, grip_q12: 2048, front_axle_q12:  8192, rear_axle_q12: -18038, front_k18_q12:    16, rear_k18_q12:  2048, steer_lock_q12: 368664, steer_rate_q12: 122847, steer_red_q12:  110, sway_damping_q12: 1024, seat_y_q12:   6713, flags8e: 0x1300, name: "ZHOUBOAT" },
+    Spec { info_id:  97, kind: 1, model_id: 188, colour_mask: 0x00000000, raw_dims: [  2872,   7780,   3695], top_speed:  90, num_gears: 3, mass_q12:  2048, max_torque_q12: 245760, brake_force_q12:  409600, drive_split_q12: 2084, grip_q12: 4562, front_axle_q12:  6144, rear_axle_q12:  -6144, front_k18_q12: 22528, rear_k18_q12: 24576, steer_lock_q12: 143360, steer_rate_q12: 204787, steer_red_q12:  339, sway_damping_q12: 1024, seat_y_q12:  -2098, flags8e: 0x0304, name: "GANG ANGEL" },
+    Spec { info_id:  98, kind: 1, model_id: 189, colour_mask: 0x01804208, raw_dims: [  3447,   7322,   3482], top_speed: 110, num_gears: 3, mass_q12:  2048, max_torque_q12: 286720, brake_force_q12:  409600, drive_split_q12: 2080, grip_q12: 4558, front_axle_q12:  6144, rear_axle_q12:  -6144, front_k18_q12: 22528, rear_k18_q12: 24576, steer_lock_q12: 143360, steer_rate_q12: 204787, steer_red_q12:  282, sway_damping_q12: 1024, seat_y_q12:  -1671, flags8e: 0x0304, name: "SANCHEZ" },
+    Spec { info_id:  99, kind: 2, model_id: 190, colour_mask: 0x015802f3, raw_dims: [  7487,  25068,   4810], top_speed: 120, num_gears: 3, mass_q12:  6144, max_torque_q12:   4096, brake_force_q12:    4096, drive_split_q12: 2441, grip_q12: 2048, front_axle_q12:  8192, rear_axle_q12: -24576, front_k18_q12:    16, rear_k18_q12:  2048, steer_lock_q12: 409579, steer_rate_q12: 102391, steer_red_q12:  110, sway_damping_q12: 1024, seat_y_q12:  -6191, flags8e: 0x1304, name: "JETMAX" },
+    Spec { info_id: 100, kind: 0, model_id: 191, colour_mask: 0x00000000, raw_dims: [  5127,  16202,  10732], top_speed: 100, num_gears: 3, mass_q12:  4096, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12:  196, grip_q12: 4530, front_axle_q12:  9363, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 368664, steer_rate_q12: 409579, steer_red_q12: 1372, sway_damping_q12: 3248, seat_y_q12:   1149, flags8e: 0x6308, name: "BURRITO CHINESE" },
+    Spec { info_id: 101, kind: 0, model_id: 193, colour_mask: 0x00000000, raw_dims: [  4776,  12523,   3487], top_speed: 130, num_gears: 3, mass_q12:  6144, max_torque_q12: 184320, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4554, front_axle_q12:  9760, rear_axle_q12:  -9928, front_k18_q12: 24576, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 491520, steer_red_q12:  454, sway_damping_q12: 3260, seat_y_q12:    111, flags8e: 0x2318, name: "GANG COG KEN" },
+    Spec { info_id: 102, kind: 0, model_id:  65, colour_mask: 0x00000000, raw_dims: [  4823,  15770,   5745], top_speed: 100, num_gears: 3, mass_q12: 12288, max_torque_q12: 143360, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4562, front_axle_q12: 13492, rear_axle_q12: -17608, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 368664, steer_rate_q12: 409579, steer_red_q12: 1314, sway_damping_q12: 3268, seat_y_q12:  11099, flags8e: 0x6100, name: "RECOV DUMMY" },
+    Spec { info_id: 103, kind: 0, model_id: 195, colour_mask: 0x00000000, raw_dims: [  5329,  13046,   4855], top_speed:  70, num_gears: 3, mass_q12:  6144, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4562, front_axle_q12:  9396, rear_axle_q12:  -9420, front_k18_q12: 20480, rear_k18_q12: 16384, steer_lock_q12: 155623, steer_rate_q12: 327696, steer_red_q12:  397, sway_damping_q12: 3268, seat_y_q12:   1149, flags8e: 0x6108, name: "BURRITO MEL" },
+    Spec { info_id: 104, kind: 4, model_id: 196, colour_mask: 0x00000000, raw_dims: [  4260,  20803,   6558], top_speed: 120, num_gears: 3, mass_q12: 40960, max_torque_q12: 2457600, brake_force_q12:  819200, drive_split_q12: 2048, grip_q12: 4096, front_axle_q12:     0, rear_axle_q12:      0, front_k18_q12:  4096, rear_k18_q12:  4096, steer_lock_q12: 368640, steer_rate_q12: 368640, steer_red_q12:    0, sway_damping_q12:    0, seat_y_q12:   3846, flags8e: 0x0300, name: "HIGGMAV" },
+    Spec { info_id: 105, kind: 0, model_id: 198, colour_mask: 0x00000000, raw_dims: [  6079,  29781,   7425], top_speed:  60, num_gears: 3, mass_q12: 12288, max_torque_q12: 102400, brake_force_q12: 2048000, drive_split_q12: 2048, grip_q12: 4558, front_axle_q12: 13488, rear_axle_q12: -17608, front_k18_q12: 20480, rear_k18_q12: 20480, steer_lock_q12: 204787, steer_rate_q12: 368664, steer_red_q12:  741, sway_damping_q12: 3264, seat_y_q12:  16987, flags8e: 0x6130, name: "TANKER TERROIL" },
+];
+
+pub struct TestCar {
+    pub mesh: Mesh,
+    pub models: HashMap<u16, Mesh>,
+    pub textures: HashMap<u16, Texture>,
+    pub p: [f32; 3],
+    pub angle: f32,
+    pub shape: BoxShape,
+}
+impl TestCar {
+    pub fn load(
+        disc: &mut Disc,
+        pak: &Pak,
+        collision: &mut Collision,
+        xy: [f32; 2],
+        angle: f32,
+    ) -> Result<Self> {
+        let mut car = Self::load_mesh(disc, pak, xy, angle)?;
+        let ground = collision.ground(xy[0], xy[1], 0.);
+        if ground.water {
+            return Err("Test car must be placed on land".into());
+        }
+        car.p[2] = ground.z - car.mesh.declared_bounds[0][2];
+        car.shape.c[2] = car.p[2] + car.shape.h[2];
+        let (cx, cy) = Collision::cell_xy(xy[0], xy[1]).ok_or("Car outside map")?;
+        collision.cells[cx * 100 + cy].boxes.push(car.shape.clone());
+        Ok(car)
+    }
+    /// Decode the shared Admiral mesh and the full land vehicle catalog (PAK 29 + PAK 1..28).
+    pub fn load_mesh(disc: &mut Disc, pak: &Pak, xy: [f32; 2], angle: f32) -> Result<Self> {
+        if !xy.iter().all(|v| v.is_finite()) || !angle.is_finite() {
+            return Err("Car position and angle must be finite".into());
+        }
+        let info = pak.read(disc, 29)?.0;
+        let count = u32le(&info, 0)? as usize;
+        bytes(&info, 4, count * 312)?;
+        if count != SPECS.len()
+            || u16le(&info, 6)? != 30
+            || !bytes(&info, 12, 32)?.starts_with(b"./Admiral.vehicle\0")
+        {
+            return Err("Unsupported PSP vehicle table".into());
+        }
+        for (i, s) in SPECS.iter().enumerate() {
+            let base = 4 + i * 312;
+            if u16le(&info, base)? != s.kind
+                || u16le(&info, base + 2)? != s.model_id
+                || u16le(&info, base + 0x4e)? != s.top_speed
+                || u32le(&info, base + 0x50)? as i32 != s.mass_q12
+                || u32le(&info, base + 0x6c)? as i32 != s.max_torque_q12
+                || u16le(&info, base + 0x8e)? != s.flags8e
+            {
+                return Err("PSP vehicle table entry mismatch".into());
+            }
+        }
+        let mut textures = HashMap::new();
+        // PAK 1 lists the 27 PSP vehicle paint swatch textures (PAK 2..=28).
+        let paint_dir = pak.read(disc, 1)?.0;
+        let paint_count = u16le(&paint_dir, 0)? as usize;
+        if paint_count != 27 {
+            return Err("Unsupported PSP vehicle paint directory".into());
+        }
+        for k in 0..paint_count {
+            let tid = u16le(&paint_dir, 2 + k * 2)?;
+            textures.insert(
+                tid,
+                texture::decode(tid as usize, &pak.read(disc, tid as usize)?.0)?,
+            );
+        }
+        let mut models = HashMap::new();
+        for s in &SPECS {
+            if !s.is_land_vehicle() || models.contains_key(&s.model_id) {
+                continue;
+            }
+            if let Ok((raw, _)) = pak.read(disc, s.model_id as usize) {
+                if let Ok(m) = model::parse(&raw) {
+                    for &id in &m.texture_ids {
+                        if !textures.contains_key(&id) {
+                            if let Ok((traw, _)) = pak.read(disc, id as usize) {
+                                if let Ok(t) = texture::decode(id as usize, &traw) {
+                                    textures.insert(id, t);
+                                }
+                            }
+                        }
+                    }
+                    models.insert(s.model_id, m);
+                }
+            }
+        }
+        let mesh = model::parse(&pak.read(disc, 30)?.0)?;
+        let p = [xy[0], xy[1], -mesh.declared_bounds[0][2]];
+        let h = SPECS[0].half_extents();
+        if h.iter().any(|v| *v <= 0. || *v > 10.) {
+            return Err("Invalid car dimensions".into());
+        }
+        let shape = BoxShape {
+            c: [p[0], p[1], p[2] + h[2]],
+            h,
+            angle,
+            flags: 0,
+        };
+        Ok(Self {
+            mesh,
+            models,
+            textures,
+            p,
+            angle,
+            shape,
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn psp_vehicle_specs_and_paint_masks_match_pak29_reference() {
+        let admiral = spec(0);
+        assert_eq!(admiral.model_id, 30);
+        assert_eq!(admiral.name, "ADMIRAL");
+        let h = admiral.half_extents();
+        assert!((h[0] - 1.2158203).abs() < 1e-4);
+        assert!((h[1] - 3.3659668).abs() < 1e-4);
+        assert!((h[2] - 0.8208008).abs() < 1e-4);
+        assert!((admiral.mass() - 1.0).abs() < 1e-4);
+        assert!((admiral.max_torque() - 35.0).abs() < 1e-4);
+
+        let nrg = spec(89);
+        assert!(nrg.is_bike() && nrg.is_land_vehicle());
+        assert_eq!(nrg.name, "NRG900");
+        assert!((nrg.mass() - 0.5).abs() < 1e-4);
+        assert!((nrg.max_torque() - 70.0).abs() < 1e-4);
+        assert!((nrg.visual_scale() - BIKE_SCALE).abs() < 1e-5);
+
+        let rhino = spec(7);
+        assert!(rhino.kind == 5 && rhino.is_land_vehicle());
+        assert_eq!(rhino.name, "RHINO");
+        assert!((rhino.mass() - 5.0).abs() < 1e-4);
+
+        let speeder = spec(11);
+        assert!(!speeder.is_land_vehicle());
+
+        let mut rng = Rng::new(42);
+        for _ in 0..32 {
+            let c = choose_paint(0, 25, &mut rng);
+            assert!((admiral.colour_mask >> c) & 1 != 0);
+        }
+        assert_eq!(choose_paint(0, 3, &mut rng), 3);
+        assert_eq!(choose_paint(18, 25, &mut rng), 0);
+    }
+}

@@ -600,12 +600,20 @@ body {{
 
 
 def build_thumbnail_html() -> str:
-    """Builds 1280x720 YouTube Thumbnail using transparent logo."""
+    """Builds 1280x720 YouTube Thumbnail using transparent logo and custom or reference gameplay background."""
     logo_trans_uri = LOGO_TRANSPARENT_PATH.resolve().as_uri()
-    # Extract background frame from v2 gameplay at 25s for real action background
     bg_frame = TEMP_DIR / "thumb_bg.jpg"
+    
+    custom_clip = OUTPUT_DIR / "custom_gameplay.mp4"
+    if custom_clip.exists() and custom_clip.stat().st_size > 1024:
+        bg_source = custom_clip
+        bg_seek = "45"  # 45s in custom recording is the Sanchez motorcycle cruising down the avenue
+    else:
+        bg_source = GAMEPLAY_V2
+        bg_seek = "25"
+
     subprocess.run([
-        FFMPEG_EXE, "-ss", "25", "-i", str(GAMEPLAY_V2),
+        FFMPEG_EXE, "-ss", bg_seek, "-i", str(bg_source),
         "-vframes", "1", "-q:v", "2", str(bg_frame), "-y"
     ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     bg_uri = bg_frame.resolve().as_uri() if bg_frame.exists() else ""

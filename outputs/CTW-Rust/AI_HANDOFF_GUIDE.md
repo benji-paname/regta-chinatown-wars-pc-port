@@ -15,8 +15,8 @@ L'entrée `outputs/CTW-Rust/Compiler.ps1 -Test` reste compatible. Les sources ac
 
 ## État exact
 
-- Dernière compilation : **119 tests réussis, 0 échec, 0 ignoré, 0 avertissement**, avec `-D warnings`.
-- Git local initialisé : 5 commits sur `main`, état propre. Dernier commit `2bbe60e` : règle de transition météo BLEZ conforme à l'adresse PSP `0x08a8e930`.
+- Dernière compilation : **127 tests réussis, 0 échec, 0 ignoré, 0 avertissement**, avec `-D warnings`.
+- Git local initialisé : 6 commits sur `main`, état propre. Dernier commit `f5cebd9` : système de deal de drogue (6 commodities, 81 dealers) et 21 planques de Liberty City.
 - Exécutable : `outputs/CTW-Rust/CTW-Rust.exe`.
 - Cache actif unique : `target/`. Rapports courants : `target/validation/build-report.json`.
 - Nouvelles références intégrées dans `references/` :

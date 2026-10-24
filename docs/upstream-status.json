@@ -1,0 +1,67 @@
+{
+  "checked_at": "2026-10-24T23:15:32+00:00",
+  "task": "verification-and-progress-audit",
+  "repositories": [
+    {
+      "id": "ctw-native",
+      "url": "https://github.com/official-kryo-to/ctw-native.git",
+      "platform": "Android 4.4.243 / C++",
+      "use": "Gameplay algorithms, class names and porting methodology; verify PSP Europe differences.",
+      "status": "checked",
+      "revision": "b0506abc786fea229101c56e0a64726aa8b4ac97",
+      "previous_revision": null,
+      "changed_files": null,
+      "local_changes_present": false,
+      "recent_commits": [
+        {
+          "sha": "b0506abc786fea229101c56e0a64726aa8b4ac97",
+          "date": "2026-10-22T20:22:55+01:00",
+          "subject": "wip"
+        },
+        {
+          "sha": "a31e94b4b56f7f9ce5ac3c2fa5571c03bcd14ad4",
+          "date": "2026-10-22T16:37:03+01:00",
+          "subject": "Release Porter 0.3.0"
+        },
+        {
+          "sha": "48f20b5a04663f7a667601b36a048f6ab2b17990",
+          "date": "2026-10-22T16:26:08+01:00",
+          "subject": "Port the death app: the shattering screen, the Wasted jingle and WASTED! text"
+        },
+        {
+          "sha": "9642011785c49bd4ab23b98e154353e376ae3fd0",
+          "date": "2026-10-22T16:04:34+01:00",
+          "subject": "Add sirens: the toggle in siren vehicles and their looping sound"
+        },
+        {
+          "sha": "17e51d98d1cb1386fa700f3e6d2109f721daa617",
+          "date": "2026-10-22T15:52:45+01:00",
+          "subject": "Hold thrown peds' sprites until they land; add the landing thud and pain comments"
+        },
+        {
+          "sha": "ed733635d00522f0f221f538acccecb520e93354",
+          "date": "2026-10-22T15:45:48+01:00",
+          "subject": "Get in by the nearer door: port the player's seat plans"
+        }
+      ]
+    },
+    {
+      "id": "psp-recomp",
+      "url": "https://github.com/highcmd/chinatown-wars-psp-recomp.git",
+      "platform": "PSP USA ULUS-10490 1.01 / C++ + PSP HLE",
+      "use": "Overlay analysis, original control flow and rendering/audio research; validate against ULES-01347 1.01.",
+      "status": "checked",
+      "revision": "6562163b6f504a1db93e1be5ce580d8cd6f024a7",
+      "previous_revision": null,
+      "changed_files": null,
+      "local_changes_present": false,
+      "recent_commits": [
+        {
+          "sha": "6562163b6f504a1db93e1be5ce580d8cd6f024a7",
+          "date": "2026-10-24T00:54:05+02:00",
+          "subject": "Launcher 0.1.5 (rebuilds the game: HUD size on F3)"
+        }
+      ]
+    }
+  ]
+}

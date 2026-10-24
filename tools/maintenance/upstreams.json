@@ -1,0 +1,6 @@
+{
+  "repositories": [
+    {"id":"ctw-native","url":"https://github.com/official-kryo-to/ctw-native.git","path":"references/ctw-native","branch":"main","platform":"Android 4.4.243 / C++","use":"Gameplay algorithms, class names and porting methodology; verify PSP Europe differences."},
+    {"id":"psp-recomp","url":"https://github.com/highcmd/chinatown-wars-psp-recomp.git","path":"references/chinatown-wars-psp-recomp","branch":"master","platform":"PSP USA ULUS-10490 1.01 / C++ + PSP HLE","use":"Overlay analysis, original control flow and rendering/audio research; validate against ULES-01347 1.01."}
+  ]
+}

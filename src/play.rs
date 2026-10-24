@@ -477,8 +477,9 @@ pub fn run(
         }
         // Preserve taps whose down and up events arrived in one window update.
         let pressed = std::mem::take(&mut events.borrow_mut().pressed);
+        let pda_active = scene.as_ref().is_some_and(|s| s.pda.open);
         let escape = pressed.contains(&Key::Escape);
-        if escape && !map_ui.open {
+        if escape && !map_ui.open && !pda_active {
             break;
         }
         let pad = if target_frames.is_none() {
@@ -487,11 +488,16 @@ pub fn run(
             crate::gamepad::Input::default()
         };
         pad_connected = pad.connected;
-        if !map_ui.open && pad.chord(crate::gamepad::START | crate::gamepad::B) {
+        if !map_ui.open && !pda_active && pad.chord(crate::gamepad::START | crate::gamepad::B) {
             break;
         }
         let capture_pressed = pressed.contains(&Key::F12) || pad.pressed(crate::gamepad::DPAD_LEFT);
-        if !map_ui.open && (pressed.contains(&Key::P) || pad.pressed(crate::gamepad::START)) {
+        if pressed.contains(&Key::I) || (pad.pressed(crate::gamepad::START) && pad.held(crate::gamepad::LB)) {
+            if let Some(s) = scene.as_mut() {
+                s.pda.toggle();
+            }
+        }
+        if !map_ui.open && !pda_active && (pressed.contains(&Key::P) || (pad.pressed(crate::gamepad::START) && !pad.held(crate::gamepad::LB))) {
             paused = !paused;
             accumulator = 0.;
             vault_pending = false;
@@ -604,7 +610,7 @@ pub fn run(
             previous_mouse = None;
             map_drag = None;
         }
-        let map_consumes = was_map_open || map_ui.open;
+        let map_consumes = was_map_open || map_ui.open || pda_active;
         let mut gps_changed = false;
         if map_ui.open && window.is_active() {
             let key_axis = |positive: Key, negative: Key| {
@@ -679,6 +685,58 @@ pub fn run(
                 || (pad.pressed(crate::gamepad::LB) && !pad.held(crate::gamepad::RSTICK))
             {
                 map_ui.view.zoom(1.25, map_ui.cursor);
+            }
+        }
+        if pda_active && window.is_active() {
+            if let Some(s) = scene.as_mut() {
+                if pressed.contains(&Key::Up) || pad.pressed(crate::gamepad::DPAD_UP) {
+                    s.pda.navigate(-1);
+                }
+                if pressed.contains(&Key::Down) || pad.pressed(crate::gamepad::DPAD_DOWN) {
+                    s.pda.navigate(1);
+                }
+                if (pressed.contains(&Key::Enter) && !alt_enter) || pad.pressed(crate::gamepad::A) {
+                    match s.pda.current_view {
+                        crate::pda::PdaView::Home => {
+                            match s.pda.selected_index {
+                                0 => { s.pda.current_view = crate::pda::PdaView::EmailInbox; s.pda.selected_index = 0; }
+                                1 => { s.pda.current_view = crate::pda::PdaView::AmmuNationStore; s.pda.selected_index = 0; }
+                                2 => { s.pda.current_view = crate::pda::PdaView::TradeStats; }
+                                _ => { s.pda.current_view = crate::pda::PdaView::SystemSettings; }
+                            }
+                        }
+                        crate::pda::PdaView::EmailInbox => {
+                            s.pda.open_selected_email();
+                        }
+                        crate::pda::PdaView::EmailDetail(idx) => {
+                            if let Some(email) = s.pda.emails.get(idx) {
+                                if let Some(wp) = email.waypoint {
+                                    gps.select([wp[0], wp[1]], player.p);
+                                    s.banner = Some(("DESTINATION GPS AJOUTEE DEPUIS L'EMAIL".to_string(), 3.5));
+                                }
+                            }
+                            s.pda.current_view = crate::pda::PdaView::EmailInbox;
+                        }
+                        crate::pda::PdaView::AmmuNationStore => {
+                            let prev_cash = s.cash;
+                            if let Ok(name) = s.pda.purchase_store_item(s.pda.selected_index, &mut s.cash, s.weapons.as_mut(), &mut s.armour) {
+                                s.stats.add_spent_on_weapons(prev_cash.saturating_sub(s.cash));
+                                s.banner = Some((format!("COMMANDE AMMU-NATION: {} RECUE !", name), 4.0));
+                            } else {
+                                s.banner = Some(("FONDS INSUFFISANTS POUR CET ARTICLE".to_string(), 3.0));
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                if escape || pressed.contains(&Key::Backspace) || pad.pressed(crate::gamepad::B) {
+                    if s.pda.current_view != crate::pda::PdaView::Home {
+                        s.pda.current_view = crate::pda::PdaView::Home;
+                        s.pda.selected_index = 0;
+                    } else {
+                        s.pda.open = false;
+                    }
+                }
             }
         }
         if gps_changed && !options.headless && options.frames.is_none() {

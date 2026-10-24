@@ -107,6 +107,16 @@ impl WeaponTables {
     }
 }
 
+impl Default for WeaponTables {
+    fn default() -> Self {
+        Self {
+            records: vec![WeaponRecord::default(); NUM_WEAPONS],
+            default_ammo: [0; NUM_WEAPONS],
+            trace_lifetimes: [0; 3],
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum WeaponState {
     Ready = 0,

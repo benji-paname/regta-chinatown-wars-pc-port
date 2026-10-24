@@ -1326,6 +1326,9 @@ impl Renderer {
                     self.psp_text(W as f32 / 2. - 45., 300., "PAUSE", 2.5, [0.95; 3]);
                     pair(W as f32 / 2. - 48., 345., "P", "START");
                 }
+                if let Some(scene) = scene.filter(|s| s.pda.open && !paused) {
+                    self.draw_pda(&scene.pda, scene.cash, ticks);
+                }
                 if scene.is_some_and(|s| s.health <= 0.) {
                     rounded([W as f32 / 2. - 200., 245., 400., 96.], 4., ink);
                     self.psp_text(
@@ -1682,6 +1685,133 @@ impl Renderer {
                 [1.; 4],
             );
         }
+    }
+    unsafe fn draw_pda(&self, pda: &crate::pda::PdaEngine, cash: u32, ticks: usize) {
+        let px = W as f32 / 2. - 250.;
+        let py = H as f32 / 2. - 240.;
+        let pw = 500.;
+        let ph = 480.;
+
+        // 1. Outer PDA Shell and Inner Glass Screen
+        rounded([px - 10., py - 10., pw + 20., ph + 20.], 8., [0.08, 0.09, 0.11]);
+        rounded([px, py, pw, ph], 6., [0.03, 0.04, 0.05]);
+
+        // 2. Status Bar Header
+        rounded([px + 8., py + 8., pw - 16., 34.], 4., [0.12, 0.15, 0.20]);
+        self.psp_text(px + 16., py + 14., "PDA - LIBERTY CITY OS", 2.0, [0.95, 0.90, 0.70]);
+        let minutes = (8 * 60 + ticks / 30) % 1440;
+        let time_str = format!("MAR {:02}:{:02}", minutes / 60, minutes % 60);
+        self.psp_text(px + pw - 130., py + 14., &time_str, 2.0, [0.85, 0.92, 0.88]);
+
+        // 3. App Views
+        match pda.current_view {
+            crate::pda::PdaView::Home => {
+                self.psp_text(px + 20., py + 55., "MENU PRINCIPAL", 2.2, [1.0, 0.85, 0.20]);
+
+                let apps = [
+                    ("1. MESSAGERIE ELECTRONIQUE", format!("{} message(s) non lu(s)", pda.unread_count)),
+                    ("2. BOUTIQUE AMMU-NATION", "Commandez vos armes en ligne".to_string()),
+                    ("3. COURS DES DROGUES (STATISTIQUES)", "Alertes penuries et surplus".to_string()),
+                    ("4. SYSTEME ET PARAMETRES", "Options d'affichage et son".to_string()),
+                ];
+
+                for (idx, (title, sub)) in apps.iter().enumerate() {
+                    let ay = py + 95. + idx as f32 * 75.;
+                    let selected = pda.selected_index == idx;
+                    let bg = if selected { [0.22, 0.26, 0.35] } else { [0.07, 0.09, 0.12] };
+                    rounded([px + 20., ay, pw - 40., 65.], 4., bg);
+                    let title_col = if selected { [1.0, 0.92, 0.35] } else { [0.90, 0.92, 0.94] };
+                    self.psp_text(px + 32., ay + 12., title, 2.0, title_col);
+                    self.psp_text(px + 32., ay + 36., sub, 1.7, [0.65, 0.70, 0.75]);
+                }
+            }
+            crate::pda::PdaView::EmailInbox => {
+                self.psp_text(px + 20., py + 55., "BOITE DE RECEPTION", 2.2, [1.0, 0.85, 0.20]);
+                for (idx, email) in pda.emails.iter().enumerate().take(5) {
+                    let ey = py + 95. + idx as f32 * 68.;
+                    let selected = pda.selected_index == idx;
+                    let bg = if selected { [0.22, 0.26, 0.35] } else { [0.07, 0.09, 0.12] };
+                    rounded([px + 20., ey, pw - 40., 60.], 4., bg);
+                    let prefix = if !email.read { "[NOUVEAU] " } else { "" };
+                    let title = format!("{}{}: {}", prefix, email.sender, email.subject);
+                    let col = if !email.read { [0.98, 0.85, 0.25] } else { [0.85, 0.88, 0.90] };
+                    self.psp_text(px + 28., ey + 10., &title, 1.8, col);
+                    self.psp_text(px + 28., ey + 32., email.timestamp_str, 1.6, [0.60, 0.65, 0.70]);
+                }
+            }
+            crate::pda::PdaView::EmailDetail(idx) => {
+                if let Some(email) = pda.emails.get(idx) {
+                    self.psp_text(px + 20., py + 55., email.subject, 2.1, [1.0, 0.85, 0.20]);
+                    self.psp_text(px + 20., py + 85., &format!("De: {}", email.sender), 1.9, [0.85, 0.90, 0.95]);
+
+                    rounded([px + 20., py + 115., pw - 40., 270.], 4., [0.06, 0.08, 0.10]);
+                    let words = email.body.split_whitespace().collect::<Vec<_>>();
+                    let mut line = String::new();
+                    let mut ly = py + 130.;
+                    for word in words {
+                        if line.len() + word.len() > 38 {
+                            self.psp_text(px + 32., ly, &line, 1.8, [0.92, 0.92, 0.94]);
+                            ly += 24.;
+                            line.clear();
+                        }
+                        if !line.is_empty() { line.push(' '); }
+                        line.push_str(word);
+                    }
+                    if !line.is_empty() {
+                        self.psp_text(px + 32., ly, &line, 1.8, [0.92, 0.92, 0.94]);
+                    }
+                }
+            }
+            crate::pda::PdaView::AmmuNationStore => {
+                self.psp_text(px + 20., py + 55., "AMMU-NATION ONLINE", 2.2, [0.95, 0.25, 0.20]);
+                let cash_msg = format!("FONDS: ${}", cash);
+                self.psp_text(px + pw - 200., py + 58., &cash_msg, 1.8, [0.28, 0.88, 0.38]);
+
+                for (idx, item) in crate::pda::AMMUNATION_CATALOG.iter().enumerate().take(5) {
+                    let iy = py + 95. + idx as f32 * 68.;
+                    let selected = pda.selected_index == idx;
+                    let bg = if selected { [0.22, 0.26, 0.35] } else { [0.07, 0.09, 0.12] };
+                    rounded([px + 20., iy, pw - 40., 60.], 4., bg);
+                    let title = format!("{} (${})", item.name, item.price);
+                    let title_col = if selected { [1.0, 0.92, 0.35] } else { [0.90, 0.92, 0.94] };
+                    self.psp_text(px + 28., iy + 10., &title, 1.9, title_col);
+                    let sub = format!("Munitions: +{} | {}", item.rounds_per_purchase, item.category);
+                    self.psp_text(px + 28., iy + 32., &sub, 1.6, [0.65, 0.70, 0.75]);
+                }
+            }
+            crate::pda::PdaView::TradeStats => {
+                self.psp_text(px + 20., py + 55., "COURS DU MARCHE DES DROGUES", 2.2, [0.30, 0.85, 0.40]);
+                let drugs = [
+                    (crate::drugs::DrugType::Acid, "Acide (LSD)", "Triads (Vente) / Yardies (Achat)"),
+                    (crate::drugs::DrugType::Coke, "Coke", "Spanish Lords (Vente) / Mobsters (Achat)"),
+                    (crate::drugs::DrugType::Downers, "Downers", "Angels of Death (Vente) / Midtown (Achat)"),
+                    (crate::drugs::DrugType::Ecstasy, "Extasy", "Mobsters (Vente) / Spanish Lords (Achat)"),
+                    (crate::drugs::DrugType::Heroin, "Heroine", "Midtown (Vente) / Triads (Achat)"),
+                    (crate::drugs::DrugType::Weed, "Weed", "Hustlers (Vente) / Angels of Death (Achat)"),
+                ];
+                for (idx, (drug, name, spec)) in drugs.iter().enumerate() {
+                    let dy = py + 95. + idx as f32 * 54.;
+                    rounded([px + 20., dy, pw - 40., 48.], 3., [0.07, 0.09, 0.12]);
+                    let (min_p, max_p) = drug.price_range();
+                    let info = format!("{}: Base ${} (${}-${})", name, drug.base_price(), min_p, max_p);
+                    self.psp_text(px + 28., dy + 8., &info, 1.8, [0.95, 0.92, 0.80]);
+                    self.psp_text(px + 28., dy + 26., spec, 1.5, [0.60, 0.75, 0.65]);
+                }
+            }
+            crate::pda::PdaView::SystemSettings => {
+                self.psp_text(px + 20., py + 55., "PARAMETRES SYSTEME", 2.2, [1.0, 0.85, 0.20]);
+                rounded([px + 20., py + 95., pw - 40., 280.], 4., [0.06, 0.08, 0.10]);
+                self.psp_text(px + 32., py + 120., "ReGTA CTW PSP Recomp - v0.1.3-alpha", 2.0, [0.95, 0.90, 0.70]);
+                self.psp_text(px + 32., py + 155., "Moteur : Rust pur natif (Allegrex MIPS recomp)", 1.8, [0.75, 0.80, 0.85]);
+                self.psp_text(px + 32., py + 185., "Rendu : OpenGL direct (GeForce RTX 5070 Ti)", 1.8, [0.75, 0.80, 0.85]);
+                self.psp_text(px + 32., py + 215., "Resolution : 1280x720 60 FPS", 1.8, [0.75, 0.80, 0.85]);
+                self.psp_text(px + 32., py + 245., "Par Benji Paname (Paris, France)", 1.9, [1.0, 0.85, 0.20]);
+            }
+        }
+
+        // 4. Footer navigation hint
+        rounded([px + 8., py + ph - 42., pw - 16., 34.], 4., [0.10, 0.12, 0.15]);
+        self.psp_text(px + 16., py + ph - 34., "HAUT/BAS: CHOISIR | ENTREE: OUVRIR | RETOUR/I: RETOUR", 1.6, [0.80, 0.85, 0.88]);
     }
     pub fn set_fullscreen(&mut self, enable: bool) {
         if enable == self.fullscreen || self.window.is_null() {

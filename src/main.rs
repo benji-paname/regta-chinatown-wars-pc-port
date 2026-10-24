@@ -16,6 +16,7 @@ mod model;
 mod overlays;
 mod pak;
 mod pavement;
+mod pda;
 mod ped;
 mod ped_paths;
 mod play;

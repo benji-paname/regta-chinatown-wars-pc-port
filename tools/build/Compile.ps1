@@ -34,7 +34,10 @@ try {
     $steps = @('build')
     if ($Test) { $steps += 'test' }
     foreach ($step in $steps) {
+        $prevEAP = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
         $lines = @(& $cargo $step @common 2>&1)
+        $ErrorActionPreference = $prevEAP
         $code = $LASTEXITCODE
         $lines | ForEach-Object { Write-Host $_ }
         $text = ($lines | ForEach-Object { "$_" }) -join "`n"

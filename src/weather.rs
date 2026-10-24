@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! Chinatown Wars PSP authentic Dynamic Weather and Lightning System (cTimeCycle, weather.cpp).
+//! Experimental weather manager; transition selection checked against PSP 0x08a8e930.
 //! Exact binary layout from data/tables/weather_tables.bin (CTWWTHR1, 8x8 chance matrix, 5 thunder samples).
-//! Simulates authentic hourly weather transitions, circadian lighting (day/night cycle),
-//! rain precipitation, and thunderstorm lightning strikes with realistic sound delays.
+//! RNG scheduling, lighting, rain and lightning remain prototype implementations.
 
 #![allow(dead_code)]
 
@@ -88,17 +87,19 @@ impl WeatherTables {
         })
     }
 
-    /// Rolls the next weather type given the current weather using CTW cumulative percentages.
+    /// PSP ULES01347 1.01, 0x08a8e930: subtract each weight, accept on BLEZ.
+    /// Zero and exact cumulative boundaries belong to the earlier slot.
+    /// The caller supplies the draw; this does not reproduce the PSP RNG state.
     pub fn roll_next(&self, current: WeatherKind, roll_val: u8) -> WeatherKind {
         let row = &self.chance[current as usize];
-        let mut accum = 0u16;
+        let mut remaining = i32::from(roll_val);
         for (idx, &prob) in row.iter().enumerate() {
-            accum += prob as u16;
-            if (roll_val as u16) < accum {
+            remaining -= i32::from(prob);
+            if remaining <= 0 {
                 return WeatherKind::from_u8(idx as u8);
             }
         }
-        WeatherKind::Sunny
+        WeatherKind::from_u8(6)
     }
 }
 
@@ -242,7 +243,8 @@ mod tests {
         let parsed = WeatherTables::parse(&data).unwrap();
         assert_eq!(parsed.thunder_samples[0], 1234);
         assert_eq!(parsed.roll_next(WeatherKind::Sunny, 24), WeatherKind::Sunny);
-        assert_eq!(parsed.roll_next(WeatherKind::Sunny, 25), WeatherKind::ExtraSunny);
+        assert_eq!(parsed.roll_next(WeatherKind::Sunny, 25), WeatherKind::Sunny);
+        assert_eq!(parsed.roll_next(WeatherKind::Sunny, 26), WeatherKind::ExtraSunny);
         assert!(WeatherTables::parse(&data[..91]).is_err());
         data[0] = 0;
         assert!(WeatherTables::parse(&data).is_err());

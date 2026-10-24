@@ -25,6 +25,16 @@ Support helps sustain Benji Paname's reverse engineering, native development and
 
 [Project website source](docs/index.html) · [Implementation status](docs/STATUS.md) · [Changelog](CHANGELOG.md) · [Publish with GitHub Pages](docs/PUBLISHING.md) · [YouTube Creator Kit](docs/YOUTUBE_CREATOR_KIT.md)
 
+<!-- BEGIN STATUS SECTION -->
+## Status
+
+[![original code ported](docs/assets/badge-overall.svg)](docs/progress.html) [![routines](docs/assets/badge-routines.svg)](docs/progress.html)
+
+[![progress map](docs/assets/progress.svg)](docs/progress.html)
+
+<sub>Share of the original game's code, by size, whose routines the port implements. Green is the ported part of each class. Updated on every push to main; see [how it is measured](docs/progress.html).</sub>
+<!-- END STATUS SECTION -->
+
 ## Next milestones
 
 - Review the English-first presentation and four horizontal/vertical, black/transparent logo variants; see [branding provenance](docs/BRANDING.md) for the outstanding Bruce Mikita license documentation.

@@ -1,4 +1,4 @@
-param([switch]$Test, [string]$ToolchainRoot = $env:CTW_RUST_TOOLCHAIN, [switch]$Offline)
+param([switch]$Test, [string]$ToolchainRoot = $env:CTW_RUST_TOOLCHAIN, [switch]$Offline, [switch]$Progress)
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $delivery = Join-Path $repoRoot 'outputs/CTW-Rust'
@@ -61,6 +61,13 @@ try {
     }
     $json = $report | ConvertTo-Json -Depth 5
     [IO.File]::WriteAllText((Join-Path $reportDir 'build-report.json'), $json, [Text.UTF8Encoding]::new($false))
+    if ($Progress) {
+        Write-Host 'Synchronizing port progress treemap, badges and dashboards...'
+        $progressScript = Join-Path $repoRoot 'tools/progress/progress.py'
+        if (Test-Path -LiteralPath $progressScript) {
+            & python $progressScript
+        }
+    }
     Write-Host 'ReGTA CTW PC Recomp compiled and delivered to outputs/CTW-Rust/CTW-Rust.exe (0 warnings).'
 } finally {
     foreach ($name in $savedEnvironment.Keys) {

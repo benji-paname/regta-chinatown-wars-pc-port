@@ -15,6 +15,7 @@
 <header><nav class="wrap nav" aria-label="Main navigation">
 <a class="brand" href="#main"><img src="assets/favicon.svg" alt="" width="38" height="38">ReGTA CTW</a><div class="nav-links">
 <a href="#project" data-en="The project" data-fr="Le projet" data-es="El proyecto">The project</a>
+<a href="#status" data-en="Status" data-fr="Statut" data-es="Estado">Status</a>
 <a href="#roadmap" data-en="Roadmap" data-fr="Feuille de route" data-es="Hoja de ruta">Roadmap</a>
 <a href="#support" data-en="Support" data-fr="Soutenir" data-es="Apoyar">Support</a>
 <a class="repo-link" hidden>GitHub</a><div class="languages" role="group" aria-label="Language / Langue / Idioma" hidden><button type="button" data-language="en" aria-pressed="true" lang="en">EN</button><button type="button" data-language="fr" aria-pressed="false" lang="fr">FR</button><button type="button" data-language="es" aria-pressed="false" lang="es">ES</button></div></div></nav></header>
@@ -78,7 +79,57 @@
 <h3  data-en="Build toward the full game" data-fr="Construire le jeu complet" data-es="Avanzar hacia el juego completo">Build toward the full game</h3>
 <p  data-en="Mission systems, mini-games and side activities are under development. The campaign, save compatibility and full-game parity are not complete." data-fr="Missions, mini-jeux et activités annexes sont en développement. Campagne, sauvegardes compatibles et fidélité complète ne sont pas terminées." data-es="Los sistemas de misiones, minijuegos y actividades secundarias están en desarrollo. La campaña, compatibilidad de guardado y paridad total no están terminadas.">Mission systems, mini-games and side activities are under development. The campaign, save compatibility and full-game parity are not complete.</p>
 </article>
-</div></section><section id="roadmap" class="content wrap"><div class="section-top">
+</div></section><!-- BEGIN STATUS SECTION -->
+<section id="status" class="content wrap">
+<div class="section-top">
+<h2 data-en="Port progress &amp; code coverage" data-fr="Avancement du port &amp; couverture du code" data-es="Progreso del port y cobertura de código">Port progress &amp; code coverage</h2>
+<p data-en="Squarified treemap tracking implemented subsystems and routines from original GTA: Chinatown Wars." data-fr="Treemap suivant les sous-systèmes et routines implémentés depuis GTA: Chinatown Wars original." data-es="Treemap que sigue los subsistemas y rutinas implementados del GTA: Chinatown Wars original.">Squarified treemap tracking implemented subsystems and routines from original GTA: Chinatown Wars.</p>
+</div>
+
+<div class="status-badges">
+  <a href="progress.html" title="View Port Progress Dashboard"><img src="assets/badge-overall.svg" alt="original code ported"></a>
+  <a href="progress.html" title="View Port Progress Dashboard"><img src="assets/badge-routines.svg" alt="routines"></a>
+</div>
+
+<div class="treemap-card">
+  <a href="progress.html" title="Click to view full routines dashboard"><img src="assets/progress.svg" alt="ReGTA CTW Port Progress Treemap" width="1000" height="560"></a>
+</div>
+
+<p class="metric-note" data-en="Share of the original game's code, by size, whose routines the port implements. Green is the ported part of each class. Updated on every push." data-fr="Part du code original, par taille, dont le port implémente les routines. Le vert indique la portion portée de chaque classe. Mis à jour à chaque push." data-es="Porcentaje del código original, por tamaño, cuyas rutinas implementa el port. El verde indica la parte portada de cada clase.">Share of the original game's code, by size, whose routines the port implements. Green is the ported part of each class. Updated on every push.</p>
+
+<div class="progress-table-wrap">
+  <table class="progress-table">
+    <thead>
+      <tr>
+        <th data-en="Subsystem" data-fr="Sous-système" data-es="Subsistema">Subsystem</th>
+        <th style="width: 140px;" data-en="Coverage" data-fr="Couverture" data-es="Cobertura">Coverage</th>
+        <th class="n" data-en="Code" data-fr="Code" data-es="Código">Code</th>
+        <th class="n" data-en="Routines" data-fr="Routines" data-es="Rutinas">Routines</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr><td><details><summary>Missions</summary><small>Top ported: none yet<br>Pending: <code>cIntro</code> 0/445, <code>cOutro</code> 0/364, <code>cMidtro</code> 0/204, <code>cMOB_B03</code> 0/94, <code>cKEN_A02</code> 0/118, <code>cZHO_C01</code> 0/75, <code>cCutscene_Outro</code> 0/108, <code>cJAO_B03</code> 0/67</small></details></td><td><div class="bar"><i style="width:0.0%"></i></div></td><td class="n">0.00%</td><td class="n">0 / 7690</td></tr>
+        <tr><td><details><summary>Other</summary><small>Top ported: <code>(free functions)</code> 34/407, <code>cAISpline</code> 15/24, <code>cGame</code> 4/27, <code>cFleeOnFoot</code> 3/10, <code>CTyre</code> 3/12, <code>cBucketManager</code> 2/4, <code>cDeathArrestWatcher</code> 2/8, <code>cSeats</code> 2/27<br>Pending: <code>(free functions)</code> 34/407, <code>cBombTruck</code> 0/41, <code>cChineseDelivery</code> 0/38, <code>Ped</code> 0/136, <code>cParamedic</code> 0/35, <code>cFrontEnd</code> 0/14, <code>cEncounter</code> 0/41, <code>cListBox</code> 0/51</small></details></td><td><div class="bar"><i style="width:2.7%"></i></div></td><td class="n">2.73%</td><td class="n">119 / 7504</td></tr>
+        <tr><td><details><summary>Minigames</summary><small>Top ported: <code>cRadioApp</code> 5/47, <code>cHudApp</code> 1/39, <code>cPdaApp</code> 1/36, <code>cDeathArrestApp</code> 2/6, <code>(free functions)</code> 2/3<br>Pending: <code>cMapApp</code> 0/69, <code>cAmmozoneApp</code> 0/75, <code>cEmailApp</code> 0/66, <code>cBaseTradeApp</code> 0/74, <code>cPauseStatsApp</code> 0/71, <code>cShootingRange</code> 0/66, <code>cHotWiringApp</code> 0/43, <code>cMolotovApp</code> 0/41</small></details></td><td><div class="bar"><i style="width:0.6%"></i></div></td><td class="n">0.59%</td><td class="n">11 / 2639</td></tr>
+        <tr><td><details><summary>World and engine</summary><small>Top ported: <code>cPhysicalIntegrator</code> 14/21, <code>CCollision</code> 20/64, <code>cZoneManager</code> 3/4, <code>cTimeCycle</code> 9/24, <code>cPhysical</code> 12/54, <code>cDynamicProp</code> 8/57, <code>cBaseCam</code> 9/37, <code>cWorldSector</code> 6/16<br>Pending: <code>WorldImpl</code> 0/224, <code>cDynamicProp</code> 8/57, <code>CCollision</code> 20/64, <code>cGlInterface</code> 3/102, <code>cEntity</code> 8/126, <code>cAreaMonitor</code> 0/17, <code>cLocalAreaKnowledge</code> 2/24, <code>cAmmoZoneTruck</code> 0/22</small></details></td><td><div class="bar"><i style="width:20.8%"></i></div></td><td class="n">20.82%</td><td class="n">133 / 1888</td></tr>
+        <tr><td><details><summary>Vehicles</summary><small>Top ported: <code>cVehicle</code> 39/214, <code>cWheeledVehicle</code> 20/80, <code>cBike</code> 11/29, <code>cWanderRoads</code> 4/15, <code>cNewGetInVehicle</code> 4/42, <code>cWanderRoadsUnderPhysics</code> 1/12, <code>cCarGenManager</code> 2/6, <code>cCar</code> 1/14<br>Pending: <code>cVehicle</code> 39/214, <code>cWheeledVehicle</code> 20/80, <code>cNewGetInVehicle</code> 4/42, <code>cTankField</code> 0/41, <code>cBoat</code> 0/51, <code>cCarYard</code> 0/24, <code>cCarMonitor</code> 0/24, <code>Vehicle</code> 3/95</small></details></td><td><div class="bar"><i style="width:12.9%"></i></div></td><td class="n">12.88%</td><td class="n">101 / 1623</td></tr>
+        <tr><td><details><summary>HUD and PDA</summary><small>Top ported: <code>cIPhonePad</code> 4/53, <code>cSprite</code> 2/34, <code>cFontStripBuilder</code> 1/4, <code>cRadar</code> 2/39, <code>cMiniHud</code> 4/27, <code>cTexture</code> 1/12, <code>Gui</code> 1/46, <code>cPda</code> 2/55<br>Pending: <code>cPda</code> 2/55, <code>cIPhonePad</code> 4/53, <code>cGPS</code> 0/32, <code>cContextHelp</code> 0/43, <code>(free functions)</code> 5/75, <code>cTurfMap</code> 0/24, <code>cPdaHelpManager</code> 0/30, <code>cRadar</code> 2/39</small></details></td><td><div class="bar"><i style="width:5.5%"></i></div></td><td class="n">5.46%</td><td class="n">28 / 1552</td></tr>
+        <tr><td><details><summary>People</summary><small>Top ported: <code>cPed</code> 36/216, <code>cPlayer</code> 26/125, <code>cAnimation</code> 5/24, <code>cPopulationManager</code> 9/37, <code>cPedSprite</code> 4/16, <code>cPlayerOnFoot</code> 3/20, <code>cSimpleTrail</code> 3/4, <code>cOneShotAnimationTask</code> 2/11<br>Pending: <code>cPed</code> 36/216, <code>cTaskBar</code> 0/48, <code>cPlayer</code> 26/125, <code>cSimplePedBase</code> 0/39, <code>cPopulationManager</code> 9/37, <code>cGangTruck</code> 0/17, <code>iAITask</code> 1/44, <code>cSimpleMover</code> 5/56</small></details></td><td><div class="bar"><i style="width:24.5%"></i></div></td><td class="n">24.54%</td><td class="n">104 / 1125</td></tr>
+        <tr><td><details><summary>Weapons</summary><small>Top ported: <code>cWeaponManager</code> 15/38, <code>cBulletBasedWeapon</code> 8/17, <code>cPlayerSensorCone</code> 5/15, <code>cTazer</code> 5/11, <code>cBaseExplosion</code> 1/11, <code>cHudWeaponSelect</code> 1/31, <code>Explosion</code> 2/4, <code>cMeleeBasedWeapon</code> 2/6<br>Pending: <code>cHudWeaponSelect</code> 1/31, <code>cMolotovManager</code> 0/12, <code>cAIRocket</code> 0/22, <code>cRocketMan</code> 0/27, <code>cWeaponManager</code> 15/38, <code>cExplosionCamera</code> 0/16, <code>cRocketManScene</code> 0/12, <code>cAISensorCone</code> 0/16</small></details></td><td><div class="bar"><i style="width:31.2%"></i></div></td><td class="n">31.20%</td><td class="n">99 / 663</td></tr>
+        <tr><td><details><summary>Effects</summary><small>Top ported: <code>cFire</code> 5/14, <code>cGeneralParticleController</code> 6/13, <code>CWaterCannon</code> 4/6, <code>cParticleEmitterBase</code> 4/21, <code>cParticleEmitterComplexExplsn</code> 3/8, <code>cParticleEmitterWaterSplash</code> 5/9, <code>cTrailManager</code> 8/10, <code>cLightManager</code> 3/11<br>Pending: <code>cWaterGuard</code> 0/29, <code>cFireFighter</code> 0/22, <code>cKillWaterTarget</code> 0/20, <code>cFireEngine</code> 0/21, <code>immsprite3d</code> 5/23, <code>cParticleEmitterFireworks</code> 0/6, <code>cParticleEmitterSmashedSlats</code> 0/5, <code>cParticleEmitterFire</code> 1/10</small></details></td><td><div class="bar"><i style="width:23.1%"></i></div></td><td class="n">23.14%</td><td class="n">71 / 554</td></tr>
+        <tr><td><details><summary>Audio</summary><small>Top ported: <code>cAudioManager</code> 23/141, <code>cSoundEvents</code> 5/26, <code>cAudioBaseOAL</code> 1/44, <code>cSoundStream</code> 1/20<br>Pending: <code>cAudioManager</code> 23/141, <code>cAudioBaseOAL</code> 1/44, <code>cSoundEvents</code> 5/26, <code>cSoundStreamOAL</code> 0/26, <code>cAudioBase</code> 0/20, <code>cSoundStream</code> 1/20, <code>SoundImpl</code> 0/44, <code>cAudio</code> 0/7</small></details></td><td><div class="bar"><i style="width:22.5%"></i></div></td><td class="n">22.52%</td><td class="n">30 / 331</td></tr>
+        <tr><td><details><summary>Saves and wanted level</summary><small>Top ported: <code>cStatsManager</code> 101/101, <code>cWantedManager</code> 13/33, <code>cWantedRating</code> 3/20, <code>SaveGameImpl</code> 1/157, <code>cSaveGameMgr</code> 1/31<br>Pending: <code>SaveGameImpl</code> 1/157, <code>cSaveGameMgr</code> 1/31, <code>cPoliceChase</code> 0/16, <code>cWantedManager</code> 13/33, <code>cScreenSaver</code> 0/8, <code>cWantedRating</code> 3/20, <code>cMonitorWantedLevel</code> 0/8, <code>cWantedMonitor</code> 0/7</small></details></td><td><div class="bar"><i style="width:27.3%"></i></div></td><td class="n">27.34%</td><td class="n">119 / 419</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="actions" style="justify-content: flex-start; margin-top: 18px;">
+  <a class="button primary" href="progress.html" data-en="Open Full Progress Dashboard" data-fr="Ouvrir le tableau de bord complet" data-es="Abrir panel de progreso completo">Open Full Progress Dashboard &rarr;</a>
+  <a class="button" href="STATUS.md" data-en="View Verified Rust Metrics" data-fr="Voir les métriques Rust vérifiées" data-es="Ver métricas verificadas de Rust">View Verified Rust Metrics</a>
+</div>
+</section>
+<!-- END STATUS SECTION -->
+<section id="roadmap" class="content wrap"><div class="section-top">
 <h2  data-en="One verified step at a time." data-fr="Une étape vérifiée à la fois." data-es="Paso a paso, con verificación.">One verified step at a time.</h2>
 <p  data-en="Milestones guide the work. They are not release-date promises." data-fr="Les jalons guident le travail. Ils ne constituent pas des promesses de date de sortie." data-es="Los hitos guían el trabajo. No son promesas de fechas de lanzamiento.">Milestones guide the work. They are not release-date promises.</p>
 </div><div class="roadmap">

@@ -10,3 +10,25 @@ details{border-bottom:1px solid var(--line);padding:20px 0}summary{cursor:pointe
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important}}
 
 .languages[hidden]{display:none}
+
+/* Port Progress & Status Styles */
+.status-badges{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:18px 0}
+.status-badges a{display:inline-flex;transition:transform .15s}
+.status-badges a:hover{transform:scale(1.04)}
+.status-badges img{height:22px;display:block}
+.treemap-card{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#16191c;box-shadow:0 8px 24px rgba(0,0,0,.45);margin:20px 0 12px;transition:border-color .2s}
+.treemap-card:hover{border-color:var(--gold)}
+.treemap-card img{width:100%;height:auto;display:block}
+.progress-table-wrap{overflow-x:auto;margin:24px 0 16px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.progress-table{width:100%;border-collapse:collapse;text-align:left}
+.progress-table th,.progress-table td{padding:10px 14px;border-bottom:1px solid var(--line);font-size:14px}
+.progress-table th{background:#191d24;color:var(--ink);font-weight:750;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.progress-table td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.progress-table .bar{background:#3a3f47;height:8px;width:130px;border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle}
+.progress-table .bar i{background:#3fa34d;display:block;height:8px}
+.progress-table details{border:none;padding:0;margin:0}
+.progress-table summary{cursor:pointer;font-weight:650;color:var(--ink);outline:none}
+.progress-table summary:hover{color:var(--gold)}
+.progress-table small{color:var(--muted);font-size:12px;display:block;margin-top:4px;line-height:1.4}
+.progress-table code{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--gold)}
+@media(max-width:760px){.progress-table .bar{width:90px}}

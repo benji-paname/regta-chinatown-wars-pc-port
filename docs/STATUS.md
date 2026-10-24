@@ -1,4 +1,12 @@
-# Implementation status and evidence limits
+# Implementation status and code coverage
+
+[![original code ported](assets/badge-overall.svg)](progress.html) [![routines](assets/badge-routines.svg)](progress.html)
+
+[![progress map](assets/progress.svg)](progress.html)
+
+[Full Port Progress Dashboard](progress.html) · [Progress Data (JSON)](assets/progress.json)
+
+<sub>Share of the original game's code, by size, whose routines the port implements. Green is the ported part of each class. Updated on every push to main.</sub>
 
 Date: 2026-10-24. Release milestone: 0.1.4-alpha. Package/build metadata still reports 0.1.2-alpha; this documentation does not silently change the build version.
 

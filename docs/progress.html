@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReGTA CTW — Port Progress</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0b0d11;
+  --panel: #14171d;
+  --line: #2c3038;
+  --ink: #f3f1ea;
+  --muted: #b1b4bb;
+  --red: #ee4944;
+  --gold: #f2c35b;
+  --green: #3fa34d;
+}
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.55 system-ui, -apple-system, sans-serif;
+  margin: 0 auto;
+  max-width: 1040px;
+  padding: 24px 20px 60px;
+}
+header { margin-bottom: 24px; }
+h1 { font-size: 28px; margin: 0 0 12px; letter-spacing: -0.03em; }
+a { color: #7cc4ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.badges { margin: 16px 0 20px; display: flex; gap: 8px; flex-wrap: wrap; }
+.badges img { height: 20px; }
+.treemap-img { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; display: block; }
+.caption { color: var(--muted); font-size: 13px; margin: 12px 0 24px; }
+table { border-collapse: collapse; width: 100%; margin-top: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+th, td { border-bottom: 1px solid var(--line); padding: 8px 12px; text-align: left; font-size: 14px; }
+th { background: #1c2027; font-weight: 700; color: var(--ink); font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; }
+.bar { background: #4d5257; height: 8px; width: 140px; border-radius: 4px; overflow: hidden; display: inline-block; vertical-align: middle; }
+.bar i { background: var(--green); display: block; height: 8px; }
+details { margin: 2px 0; }
+summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+small { color: var(--muted); font-size: 12px; display: block; margin-top: 4px; }
+code { font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: var(--gold); }
+.back-link { display: inline-block; margin-bottom: 16px; font-size: 13px; }
+</style>
+</head>
+<body>
+<a href="index.html" class="back-link">&larr; Back to ReGTA CTW Home</a>
+<header>
+  <h1>ReGTA CTW — Port Progress Dashboard</h1>
+  <div class="badges">
+    <img src="assets/badge-overall.svg" alt="original code ported">
+    <img src="assets/badge-routines.svg" alt="routines">
+  </div>
+</header>
+
+<img src="assets/progress.svg" alt="ReGTA CTW Progress Map" class="treemap-img">
+
+<p class="caption">
+  Share of the original game's code, by size, whose routines the port implements. Green is the ported part of each class.
+  Reference: <code>Android 4.4.243 arm64, a4c441f4943abbcc72e8270ec18248e4358a89e2</code>. Raw data: <a href="assets/progress.json">progress.json</a>.
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Subsystem</th>
+      <th style="width: 150px;">Progress</th>
+      <th class="n">Code</th>
+      <th class="n">Routines</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><details><summary>Missions</summary><small>Top ported: none yet<br>Pending: <code>cIntro</code> 0/445, <code>cOutro</code> 0/364, <code>cMidtro</code> 0/204, <code>cMOB_B03</code> 0/94, <code>cKEN_A02</code> 0/118, <code>cZHO_C01</code> 0/75, <code>cCutscene_Outro</code> 0/108, <code>cJAO_B03</code> 0/67</small></details></td><td><div class="bar"><i style="width:0.0%"></i></div></td><td class="n">0.00%</td><td class="n">0 / 7690</td></tr>
+    <tr><td><details><summary>Other</summary><small>Top ported: <code>(free functions)</code> 34/407, <code>cAISpline</code> 15/24, <code>cGame</code> 4/27, <code>cFleeOnFoot</code> 3/10, <code>CTyre</code> 3/12, <code>cBucketManager</code> 2/4, <code>cDeathArrestWatcher</code> 2/8, <code>cSeats</code> 2/27<br>Pending: <code>(free functions)</code> 34/407, <code>cBombTruck</code> 0/41, <code>cChineseDelivery</code> 0/38, <code>Ped</code> 0/136, <code>cParamedic</code> 0/35, <code>cFrontEnd</code> 0/14, <code>cEncounter</code> 0/41, <code>cListBox</code> 0/51</small></details></td><td><div class="bar"><i style="width:2.7%"></i></div></td><td class="n">2.73%</td><td class="n">119 / 7504</td></tr>
+    <tr><td><details><summary>Minigames</summary><small>Top ported: <code>cRadioApp</code> 5/47, <code>cHudApp</code> 1/39, <code>cPdaApp</code> 1/36, <code>cDeathArrestApp</code> 2/6, <code>(free functions)</code> 2/3<br>Pending: <code>cMapApp</code> 0/69, <code>cAmmozoneApp</code> 0/75, <code>cEmailApp</code> 0/66, <code>cBaseTradeApp</code> 0/74, <code>cPauseStatsApp</code> 0/71, <code>cShootingRange</code> 0/66, <code>cHotWiringApp</code> 0/43, <code>cMolotovApp</code> 0/41</small></details></td><td><div class="bar"><i style="width:0.6%"></i></div></td><td class="n">0.59%</td><td class="n">11 / 2639</td></tr>
+    <tr><td><details><summary>World and engine</summary><small>Top ported: <code>cPhysicalIntegrator</code> 14/21, <code>CCollision</code> 20/64, <code>cZoneManager</code> 3/4, <code>cTimeCycle</code> 9/24, <code>cPhysical</code> 12/54, <code>cDynamicProp</code> 8/57, <code>cBaseCam</code> 9/37, <code>cWorldSector</code> 6/16<br>Pending: <code>WorldImpl</code> 0/224, <code>cDynamicProp</code> 8/57, <code>CCollision</code> 20/64, <code>cGlInterface</code> 3/102, <code>cEntity</code> 8/126, <code>cAreaMonitor</code> 0/17, <code>cLocalAreaKnowledge</code> 2/24, <code>cAmmoZoneTruck</code> 0/22</small></details></td><td><div class="bar"><i style="width:20.8%"></i></div></td><td class="n">20.82%</td><td class="n">133 / 1888</td></tr>
+    <tr><td><details><summary>Vehicles</summary><small>Top ported: <code>cVehicle</code> 39/214, <code>cWheeledVehicle</code> 20/80, <code>cBike</code> 11/29, <code>cWanderRoads</code> 4/15, <code>cNewGetInVehicle</code> 4/42, <code>cWanderRoadsUnderPhysics</code> 1/12, <code>cCarGenManager</code> 2/6, <code>cCar</code> 1/14<br>Pending: <code>cVehicle</code> 39/214, <code>cWheeledVehicle</code> 20/80, <code>cNewGetInVehicle</code> 4/42, <code>cTankField</code> 0/41, <code>cBoat</code> 0/51, <code>cCarYard</code> 0/24, <code>cCarMonitor</code> 0/24, <code>Vehicle</code> 3/95</small></details></td><td><div class="bar"><i style="width:12.9%"></i></div></td><td class="n">12.88%</td><td class="n">101 / 1623</td></tr>
+    <tr><td><details><summary>HUD and PDA</summary><small>Top ported: <code>cIPhonePad</code> 4/53, <code>cSprite</code> 2/34, <code>cFontStripBuilder</code> 1/4, <code>cRadar</code> 2/39, <code>cMiniHud</code> 4/27, <code>cTexture</code> 1/12, <code>Gui</code> 1/46, <code>cPda</code> 2/55<br>Pending: <code>cPda</code> 2/55, <code>cIPhonePad</code> 4/53, <code>cGPS</code> 0/32, <code>cContextHelp</code> 0/43, <code>(free functions)</code> 5/75, <code>cTurfMap</code> 0/24, <code>cPdaHelpManager</code> 0/30, <code>cRadar</code> 2/39</small></details></td><td><div class="bar"><i style="width:5.5%"></i></div></td><td class="n">5.46%</td><td class="n">28 / 1552</td></tr>
+    <tr><td><details><summary>People</summary><small>Top ported: <code>cPed</code> 36/216, <code>cPlayer</code> 26/125, <code>cAnimation</code> 5/24, <code>cPopulationManager</code> 9/37, <code>cPedSprite</code> 4/16, <code>cPlayerOnFoot</code> 3/20, <code>cSimpleTrail</code> 3/4, <code>cOneShotAnimationTask</code> 2/11<br>Pending: <code>cPed</code> 36/216, <code>cTaskBar</code> 0/48, <code>cPlayer</code> 26/125, <code>cSimplePedBase</code> 0/39, <code>cPopulationManager</code> 9/37, <code>cGangTruck</code> 0/17, <code>iAITask</code> 1/44, <code>cSimpleMover</code> 5/56</small></details></td><td><div class="bar"><i style="width:24.5%"></i></div></td><td class="n">24.54%</td><td class="n">104 / 1125</td></tr>
+    <tr><td><details><summary>Weapons</summary><small>Top ported: <code>cWeaponManager</code> 15/38, <code>cBulletBasedWeapon</code> 8/17, <code>cPlayerSensorCone</code> 5/15, <code>cTazer</code> 5/11, <code>cBaseExplosion</code> 1/11, <code>cHudWeaponSelect</code> 1/31, <code>Explosion</code> 2/4, <code>cMeleeBasedWeapon</code> 2/6<br>Pending: <code>cHudWeaponSelect</code> 1/31, <code>cMolotovManager</code> 0/12, <code>cAIRocket</code> 0/22, <code>cRocketMan</code> 0/27, <code>cWeaponManager</code> 15/38, <code>cExplosionCamera</code> 0/16, <code>cRocketManScene</code> 0/12, <code>cAISensorCone</code> 0/16</small></details></td><td><div class="bar"><i style="width:31.2%"></i></div></td><td class="n">31.20%</td><td class="n">99 / 663</td></tr>
+    <tr><td><details><summary>Effects</summary><small>Top ported: <code>cFire</code> 5/14, <code>cGeneralParticleController</code> 6/13, <code>CWaterCannon</code> 4/6, <code>cParticleEmitterBase</code> 4/21, <code>cParticleEmitterComplexExplsn</code> 3/8, <code>cParticleEmitterWaterSplash</code> 5/9, <code>cTrailManager</code> 8/10, <code>cLightManager</code> 3/11<br>Pending: <code>cWaterGuard</code> 0/29, <code>cFireFighter</code> 0/22, <code>cKillWaterTarget</code> 0/20, <code>cFireEngine</code> 0/21, <code>immsprite3d</code> 5/23, <code>cParticleEmitterFireworks</code> 0/6, <code>cParticleEmitterSmashedSlats</code> 0/5, <code>cParticleEmitterFire</code> 1/10</small></details></td><td><div class="bar"><i style="width:23.1%"></i></div></td><td class="n">23.14%</td><td class="n">71 / 554</td></tr>
+    <tr><td><details><summary>Audio</summary><small>Top ported: <code>cAudioManager</code> 23/141, <code>cSoundEvents</code> 5/26, <code>cAudioBaseOAL</code> 1/44, <code>cSoundStream</code> 1/20<br>Pending: <code>cAudioManager</code> 23/141, <code>cAudioBaseOAL</code> 1/44, <code>cSoundEvents</code> 5/26, <code>cSoundStreamOAL</code> 0/26, <code>cAudioBase</code> 0/20, <code>cSoundStream</code> 1/20, <code>SoundImpl</code> 0/44, <code>cAudio</code> 0/7</small></details></td><td><div class="bar"><i style="width:22.5%"></i></div></td><td class="n">22.52%</td><td class="n">30 / 331</td></tr>
+    <tr><td><details><summary>Saves and wanted level</summary><small>Top ported: <code>cStatsManager</code> 101/101, <code>cWantedManager</code> 13/33, <code>cWantedRating</code> 3/20, <code>SaveGameImpl</code> 1/157, <code>cSaveGameMgr</code> 1/31<br>Pending: <code>SaveGameImpl</code> 1/157, <code>cSaveGameMgr</code> 1/31, <code>cPoliceChase</code> 0/16, <code>cWantedManager</code> 13/33, <code>cScreenSaver</code> 0/8, <code>cWantedRating</code> 3/20, <code>cMonitorWantedLevel</code> 0/8, <code>cWantedMonitor</code> 0/7</small></details></td><td><div class="bar"><i style="width:27.3%"></i></div></td><td class="n">27.34%</td><td class="n">119 / 419</td></tr>
+  </tbody>
+</table>
+
+<p class="caption" style="margin-top: 24px;">
+  A routine counts once identified and implemented in native code (<code>Class::Method</code>).
+  Library code replaced by the native Windows x64 runtime (OpenGL, audio, input, filesystem) is excluded from the original baseline.
+</p>
+</body>
+</html>

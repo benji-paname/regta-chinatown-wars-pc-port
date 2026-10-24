@@ -1,16 +1,16 @@
 {
-  "build": "Android 4.4.243 arm64, a4c441f4943abbcc72e8270ec18248e4358a89e2",
+  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 888 Rust functions)",
   "bytes": 6469472,
-  "portedBytes": 364312,
+  "portedBytes": 155852,
   "routines": 25988,
-  "portedRoutines": 815,
+  "portedRoutines": 611,
   "subsystems": [
     {
       "name": "Missions",
       "bytes": 2100704,
-      "portedBytes": 0,
+      "portedBytes": 2968,
       "routines": 7690,
-      "portedRoutines": 0,
+      "portedRoutines": 19,
       "classes": [
         {
           "name": "(free functions)",
@@ -23,29 +23,29 @@
           "name": "CRampage",
           "bytes": 188,
           "routines": 3,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 188,
+          "portedRoutines": 3
         },
         {
           "name": "CScriptInit",
           "bytes": 44,
           "routines": 2,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 44,
+          "portedRoutines": 2
         },
         {
           "name": "CScriptMain",
           "bytes": 7428,
           "routines": 36,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 2548,
+          "portedRoutines": 11
         },
         {
           "name": "CTurretRampage",
           "bytes": 188,
           "routines": 3,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 188,
+          "portedRoutines": 3
         },
         {
           "name": "ScriptHnd",
@@ -1914,37 +1914,37 @@
     {
       "name": "Minigames",
       "bytes": 943456,
-      "portedBytes": 5536,
+      "portedBytes": 32800,
       "routines": 2639,
-      "portedRoutines": 11,
+      "portedRoutines": 82,
       "classes": [
         {
           "name": "(free functions)",
           "bytes": 656,
           "routines": 3,
-          "portedBytes": 292,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "CRaces_Algon",
           "bytes": 320,
           "routines": 3,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 320,
+          "portedRoutines": 3
         },
         {
           "name": "CRaces_East",
           "bytes": 320,
           "routines": 3,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 320,
+          "portedRoutines": 3
         },
         {
           "name": "CRaces_North",
           "bytes": 320,
           "routines": 3,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 320,
+          "portedRoutines": 3
         },
         {
           "name": "CScratchCards",
@@ -2062,8 +2062,8 @@
           "name": "cBaseTradeApp",
           "bytes": 34420,
           "routines": 74,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 10848,
+          "portedRoutines": 29
         },
         {
           "name": "cBombDisposalApp",
@@ -2132,8 +2132,8 @@
           "name": "cDeathArrestApp",
           "bytes": 964,
           "routines": 6,
-          "portedBytes": 516,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cDeedApp",
@@ -2181,8 +2181,8 @@
           "name": "cEmailApp",
           "bytes": 36628,
           "routines": 66,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 5960,
+          "portedRoutines": 12
         },
         {
           "name": "cEmptyTheBootApp",
@@ -2237,15 +2237,15 @@
           "name": "cHotWiringApp",
           "bytes": 23004,
           "routines": 43,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 10996,
+          "portedRoutines": 19
         },
         {
           "name": "cHudApp",
           "bytes": 12592,
           "routines": 39,
-          "portedBytes": 1080,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cKillShopTarget",
@@ -2370,8 +2370,8 @@
           "name": "cPdaApp",
           "bytes": 5836,
           "routines": 36,
-          "portedBytes": 524,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPlayerRacer",
@@ -2391,8 +2391,8 @@
           "name": "cRace",
           "bytes": 648,
           "routines": 3,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 648,
+          "portedRoutines": 3
         },
         {
           "name": "cRacer",
@@ -2433,8 +2433,8 @@
           "name": "cRadioApp",
           "bytes": 15548,
           "routines": 47,
-          "portedBytes": 3124,
-          "portedRoutines": 5
+          "portedBytes": 3388,
+          "portedRoutines": 10
         },
         {
           "name": "cRestartEngineApp",
@@ -2756,9 +2756,9 @@
     {
       "name": "Weapons",
       "bytes": 142532,
-      "portedBytes": 44464,
+      "portedBytes": 10932,
       "routines": 663,
-      "portedRoutines": 99,
+      "portedRoutines": 33,
       "classes": [
         {
           "name": "(free functions)",
@@ -2771,15 +2771,15 @@
           "name": "Explosion",
           "bytes": 2128,
           "routines": 4,
-          "portedBytes": 2020,
-          "portedRoutines": 2
+          "portedBytes": 2128,
+          "portedRoutines": 4
         },
         {
           "name": "FadeExplosion",
           "bytes": 1036,
           "routines": 6,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 1036,
+          "portedRoutines": 6
         },
         {
           "name": "cAIRocket",
@@ -2799,22 +2799,22 @@
           "name": "cAK47",
           "bytes": 560,
           "routines": 5,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 560,
+          "portedRoutines": 5
         },
         {
           "name": "cBaseExplosion",
           "bytes": 4136,
           "routines": 11,
-          "portedBytes": 2592,
-          "portedRoutines": 1
+          "portedBytes": 2680,
+          "portedRoutines": 2
         },
         {
           "name": "cBaseProjectile",
           "bytes": 2564,
           "routines": 13,
-          "portedBytes": 1684,
-          "portedRoutines": 4
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cBaseWeaponPickup",
@@ -2827,15 +2827,15 @@
           "name": "cBaseballBat",
           "bytes": 656,
           "routines": 7,
-          "portedBytes": 116,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cBulletBasedWeapon",
           "bytes": 4684,
           "routines": 17,
-          "portedBytes": 3540,
-          "portedRoutines": 8
+          "portedBytes": 4528,
+          "portedRoutines": 16
         },
         {
           "name": "cBulletTrace",
@@ -2848,15 +2848,15 @@
           "name": "cBulletTraces",
           "bytes": 1088,
           "routines": 5,
-          "portedBytes": 464,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cChainsaw",
           "bytes": 1396,
           "routines": 9,
-          "portedBytes": 624,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cColt",
@@ -2890,8 +2890,8 @@
           "name": "cExplosionBigVehicle",
           "bytes": 1076,
           "routines": 4,
-          "portedBytes": 1004,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cExplosionBlim",
@@ -2918,22 +2918,22 @@
           "name": "cExplosionGeneric",
           "bytes": 948,
           "routines": 5,
-          "portedBytes": 748,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cExplosionHotDog",
           "bytes": 968,
           "routines": 3,
-          "portedBytes": 904,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cExplosionMolotov",
           "bytes": 1040,
           "routines": 3,
-          "portedBytes": 976,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cExplosionWaterExplosion",
@@ -2946,15 +2946,15 @@
           "name": "cExplosionWaterSplashPed",
           "bytes": 1160,
           "routines": 5,
-          "portedBytes": 728,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cFistWeapon",
           "bytes": 608,
           "routines": 7,
-          "portedBytes": 116,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cFlamePed",
@@ -2967,15 +2967,15 @@
           "name": "cFlameThrower",
           "bytes": 3704,
           "routines": 11,
-          "portedBytes": 1400,
-          "portedRoutines": 4
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cGrenade",
           "bytes": 1500,
           "routines": 8,
-          "portedBytes": 312,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cGrenadeAreaMonitor",
@@ -3009,15 +3009,15 @@
           "name": "cHudWeaponSelect",
           "bytes": 16352,
           "routines": 31,
-          "portedBytes": 2184,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cMeleeBasedWeapon",
           "bytes": 2360,
           "routines": 6,
-          "portedBytes": 1856,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cMine",
@@ -3030,8 +3030,8 @@
           "name": "cMineLauncher",
           "bytes": 600,
           "routines": 7,
-          "portedBytes": 244,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cMineSpawner",
@@ -3044,15 +3044,15 @@
           "name": "cMinigun",
           "bytes": 1424,
           "routines": 10,
-          "portedBytes": 548,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cMolotov",
           "bytes": 1184,
           "routines": 7,
-          "portedBytes": 276,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cMolotovLauncher",
@@ -3079,8 +3079,8 @@
           "name": "cMuzzleFlashes",
           "bytes": 1036,
           "routines": 4,
-          "portedBytes": 468,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cMyExplosion",
@@ -3121,8 +3121,8 @@
           "name": "cParticleEmitterExplosionDebris",
           "bytes": 1692,
           "routines": 7,
-          "portedBytes": 132,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cParticleEmitterExplosionFlash",
@@ -3135,22 +3135,22 @@
           "name": "cParticleEmitterExplosionTwirls",
           "bytes": 1056,
           "routines": 6,
-          "portedBytes": 992,
-          "portedRoutines": 4
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cParticleEmitterFlameThrower",
           "bytes": 2392,
           "routines": 7,
-          "portedBytes": 1392,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cParticleEmitterPetrolFlame",
           "bytes": 680,
           "routines": 5,
-          "portedBytes": 268,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPickupBat",
@@ -3296,22 +3296,22 @@
           "name": "cPlayerAsSniper",
           "bytes": 944,
           "routines": 6,
-          "portedBytes": 612,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPlayerSensorCone",
           "bytes": 5252,
           "routines": 15,
-          "portedBytes": 2804,
-          "portedRoutines": 5
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cProximityMine",
           "bytes": 1364,
           "routines": 9,
-          "portedBytes": 344,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cRocket",
@@ -3324,8 +3324,8 @@
           "name": "cRocketLauncher",
           "bytes": 956,
           "routines": 6,
-          "portedBytes": 632,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cRocketLockOnHelp",
@@ -3366,8 +3366,8 @@
           "name": "cSensorCone",
           "bytes": 2852,
           "routines": 13,
-          "portedBytes": 1736,
-          "portedRoutines": 6
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cShotgun",
@@ -3380,8 +3380,8 @@
           "name": "cSniperCam",
           "bytes": 1808,
           "routines": 9,
-          "portedBytes": 1296,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cSniperHelp",
@@ -3394,29 +3394,29 @@
           "name": "cSniperRifle",
           "bytes": 864,
           "routines": 5,
-          "portedBytes": 588,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cSword",
           "bytes": 532,
           "routines": 7,
-          "portedBytes": 204,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cTazer",
           "bytes": 3204,
           "routines": 11,
-          "portedBytes": 2684,
-          "portedRoutines": 5
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cTazerCartridge",
           "bytes": 1196,
           "routines": 5,
-          "portedBytes": 1020,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cUzi",
@@ -3429,8 +3429,8 @@
           "name": "cWeapon",
           "bytes": 720,
           "routines": 6,
-          "portedBytes": 688,
-          "portedRoutines": 4
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cWeaponEffects",
@@ -3450,8 +3450,8 @@
           "name": "cWeaponManager",
           "bytes": 9792,
           "routines": 38,
-          "portedBytes": 6152,
-          "portedRoutines": 15
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cWeaponSlotIcon",
@@ -3464,17 +3464,17 @@
           "name": "sWeaponYoke",
           "bytes": 176,
           "routines": 3,
-          "portedBytes": 116,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         }
       ]
     },
     {
       "name": "People",
       "bytes": 255716,
-      "portedBytes": 62760,
+      "portedBytes": 25636,
       "routines": 1125,
-      "portedRoutines": 104,
+      "portedRoutines": 98,
       "classes": [
         {
           "name": "(free functions)",
@@ -3501,15 +3501,15 @@
           "name": "cAIGang",
           "bytes": 1508,
           "routines": 8,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 1508,
+          "portedRoutines": 8
         },
         {
           "name": "cAITaskHub",
           "bytes": 2400,
           "routines": 23,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 2400,
+          "portedRoutines": 23
         },
         {
           "name": "cAITaskPool",
@@ -3550,8 +3550,8 @@
           "name": "cAnimation",
           "bytes": 10564,
           "routines": 24,
-          "portedBytes": 6396,
-          "portedRoutines": 5
+          "portedBytes": 10564,
+          "portedRoutines": 24
         },
         {
           "name": "cCop",
@@ -3641,8 +3641,8 @@
           "name": "cOneShotAnimationTask",
           "bytes": 1516,
           "routines": 11,
-          "portedBytes": 988,
-          "portedRoutines": 2
+          "portedBytes": 1516,
+          "portedRoutines": 11
         },
         {
           "name": "cPdaTransLoadingAnimation",
@@ -3655,29 +3655,29 @@
           "name": "cPed",
           "bytes": 53404,
           "routines": 216,
-          "portedBytes": 29568,
-          "portedRoutines": 36
+          "portedBytes": 68,
+          "portedRoutines": 1
         },
         {
           "name": "cPedBucketRenderer",
           "bytes": 1436,
           "routines": 7,
-          "portedBytes": 672,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPedCollisionData",
           "bytes": 848,
           "routines": 5,
-          "portedBytes": 700,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPedComment",
           "bytes": 2740,
           "routines": 9,
-          "portedBytes": 924,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPedCoverCam",
@@ -3690,8 +3690,8 @@
           "name": "cPedInfoManager",
           "bytes": 6320,
           "routines": 27,
-          "portedBytes": 864,
-          "portedRoutines": 5
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPedListener",
@@ -3711,15 +3711,15 @@
           "name": "cPedSprite",
           "bytes": 5992,
           "routines": 16,
-          "portedBytes": 2964,
-          "portedRoutines": 4
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPlayer",
           "bytes": 19160,
           "routines": 125,
-          "portedBytes": 9324,
-          "portedRoutines": 26
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPlayerBoat",
@@ -3802,8 +3802,8 @@
           "name": "cPlayerOnFoot",
           "bytes": 7628,
           "routines": 20,
-          "portedBytes": 2388,
-          "portedRoutines": 3
+          "portedBytes": 7628,
+          "portedRoutines": 20
         },
         {
           "name": "cPlayerOutOfVehicle",
@@ -3830,15 +3830,15 @@
           "name": "cPopulationManager",
           "bytes": 14172,
           "routines": 37,
-          "portedBytes": 5928,
-          "portedRoutines": 9
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPopulationZones",
           "bytes": 1460,
           "routines": 11,
-          "portedBytes": 176,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cSimpleBombPed",
@@ -3858,8 +3858,8 @@
           "name": "cSimpleMover",
           "bytes": 6892,
           "routines": 56,
-          "portedBytes": 496,
-          "portedRoutines": 5
+          "portedBytes": 548,
+          "portedRoutines": 7
         },
         {
           "name": "cSimpleMoverEffectRenderable",
@@ -3893,8 +3893,8 @@
           "name": "cSimpleTrail",
           "bytes": 1404,
           "routines": 4,
-          "portedBytes": 1172,
-          "portedRoutines": 3
+          "portedBytes": 1404,
+          "portedRoutines": 4
         },
         {
           "name": "cTaskBar",
@@ -3914,24 +3914,24 @@
           "name": "iAITask",
           "bytes": 7008,
           "routines": 44,
-          "portedBytes": 200,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         }
       ]
     },
     {
       "name": "Vehicles",
       "bytes": 396136,
-      "portedBytes": 51024,
+      "portedBytes": 3068,
       "routines": 1623,
-      "portedRoutines": 101,
+      "portedRoutines": 24,
       "classes": [
         {
           "name": "(free functions)",
           "bytes": 1504,
           "routines": 8,
-          "portedBytes": 396,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "BikePap",
@@ -3951,8 +3951,8 @@
           "name": "Vehicle",
           "bytes": 9860,
           "routines": 95,
-          "portedBytes": 216,
-          "portedRoutines": 3
+          "portedBytes": 3068,
+          "portedRoutines": 24
         },
         {
           "name": "VehicleType",
@@ -4028,8 +4028,8 @@
           "name": "cBike",
           "bytes": 9088,
           "routines": 29,
-          "portedBytes": 5488,
-          "portedRoutines": 11
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cBikerEnemy",
@@ -4091,8 +4091,8 @@
           "name": "cCar",
           "bytes": 4512,
           "routines": 14,
-          "portedBytes": 732,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cCarCamera",
@@ -4133,8 +4133,8 @@
           "name": "cCarGenManager",
           "bytes": 1764,
           "routines": 6,
-          "portedBytes": 920,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cCarInWater",
@@ -4280,8 +4280,8 @@
           "name": "cGotoTargetInVehicleStraightLine",
           "bytes": 916,
           "routines": 10,
-          "portedBytes": 172,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cGunsOnHeli",
@@ -4371,8 +4371,8 @@
           "name": "cNewGetInVehicle",
           "bytes": 16308,
           "routines": 42,
-          "portedBytes": 1476,
-          "portedRoutines": 4
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cOutOfTankTooLong",
@@ -4399,8 +4399,8 @@
           "name": "cParticleEmitterSkidSmoke",
           "bytes": 604,
           "routines": 3,
-          "portedBytes": 336,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPatrolBoat",
@@ -4469,15 +4469,15 @@
           "name": "cSkidmark",
           "bytes": 1000,
           "routines": 7,
-          "portedBytes": 716,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cSkidmarkManager",
           "bytes": 1524,
           "routines": 6,
-          "portedBytes": 704,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cTTBeachedBoat",
@@ -4532,8 +4532,8 @@
           "name": "cTrafficLightManager",
           "bytes": 452,
           "routines": 8,
-          "portedBytes": 160,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cTrafficManager",
@@ -4574,8 +4574,8 @@
           "name": "cVehicle",
           "bytes": 45928,
           "routines": 214,
-          "portedBytes": 20368,
-          "portedRoutines": 39
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cVehicleBomb",
@@ -4595,8 +4595,8 @@
           "name": "cVehicleDoor",
           "bytes": 340,
           "routines": 1,
-          "portedBytes": 340,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cVehicleDressing",
@@ -4616,15 +4616,15 @@
           "name": "cVehicleInfo",
           "bytes": 244,
           "routines": 15,
-          "portedBytes": 76,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cVehicleInfoManager",
           "bytes": 3620,
           "routines": 17,
-          "portedBytes": 672,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cVehicleListener",
@@ -4658,8 +4658,8 @@
           "name": "cVehicleModelInstance",
           "bytes": 1436,
           "routines": 16,
-          "portedBytes": 192,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cVigVehicle",
@@ -4672,22 +4672,22 @@
           "name": "cWanderRoads",
           "bytes": 4600,
           "routines": 15,
-          "portedBytes": 3596,
-          "portedRoutines": 4
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cWanderRoadsUnderPhysics",
           "bytes": 2812,
           "routines": 12,
-          "portedBytes": 1196,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cWheeledVehicle",
           "bytes": 28608,
           "routines": 80,
-          "portedBytes": 12940,
-          "portedRoutines": 20
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cXinTrainingDummy",
@@ -4714,17 +4714,17 @@
           "name": "sVehicleDrivingInfo",
           "bytes": 684,
           "routines": 2,
-          "portedBytes": 328,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         }
       ]
     },
     {
       "name": "Saves and wanted level",
       "bytes": 45700,
-      "portedBytes": 12496,
+      "portedBytes": 7520,
       "routines": 419,
-      "portedRoutines": 119,
+      "portedRoutines": 117,
       "classes": [
         {
           "name": "(free functions)",
@@ -4737,29 +4737,29 @@
           "name": "PopulationProfile",
           "bytes": 116,
           "routines": 1,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 116,
+          "portedRoutines": 1
         },
         {
           "name": "SaveGameImpl",
           "bytes": 9608,
           "routines": 157,
-          "portedBytes": 56,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "StatsImpl",
           "bytes": 108,
           "routines": 9,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 108,
+          "portedRoutines": 9
         },
         {
           "name": "cMonitorWantedLevel",
           "bytes": 980,
           "routines": 8,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 836,
+          "portedRoutines": 6
         },
         {
           "name": "cPhysicalStats",
@@ -4786,8 +4786,8 @@
           "name": "cSaveGameMgr",
           "bytes": 7444,
           "routines": 31,
-          "portedBytes": 16,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cScreenSaver",
@@ -4821,8 +4821,8 @@
           "name": "cWantedManager",
           "bytes": 7412,
           "routines": 33,
-          "portedBytes": 5280,
-          "portedRoutines": 13
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cWantedMonitor",
@@ -4835,8 +4835,8 @@
           "name": "cWantedRating",
           "bytes": 1876,
           "routines": 20,
-          "portedBytes": 684,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "sPopStats",
@@ -4864,16 +4864,16 @@
     {
       "name": "HUD and PDA",
       "bytes": 340436,
-      "portedBytes": 18576,
+      "portedBytes": 19076,
       "routines": 1552,
-      "portedRoutines": 28,
+      "portedRoutines": 53,
       "classes": [
         {
           "name": "(free functions)",
           "bytes": 16104,
           "routines": 75,
-          "portedBytes": 132,
-          "portedRoutines": 5
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "DigitButton",
@@ -4886,15 +4886,15 @@
           "name": "Gui",
           "bytes": 5840,
           "routines": 46,
-          "portedBytes": 904,
-          "portedRoutines": 1
+          "portedBytes": 524,
+          "portedRoutines": 7
         },
         {
           "name": "HUDText",
           "bytes": 11976,
           "routines": 63,
-          "portedBytes": 640,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "PDAImpl",
@@ -5103,8 +5103,8 @@
           "name": "cFontManager",
           "bytes": 4340,
           "routines": 15,
-          "portedBytes": 408,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cFontString",
@@ -5124,15 +5124,15 @@
           "name": "cFontStripBuilder",
           "bytes": 4272,
           "routines": 4,
-          "portedBytes": 2332,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cGPS",
           "bytes": 16528,
           "routines": 32,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 16528,
+          "portedRoutines": 32
         },
         {
           "name": "cGPSChecker",
@@ -5236,8 +5236,8 @@
           "name": "cIPhonePad",
           "bytes": 20924,
           "routines": 53,
-          "portedBytes": 4288,
-          "portedRoutines": 4
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cInWaterHelpText",
@@ -5313,8 +5313,8 @@
           "name": "cMiniHud",
           "bytes": 5828,
           "routines": 27,
-          "portedBytes": 2084,
-          "portedRoutines": 4
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cMoveBlip",
@@ -5348,15 +5348,15 @@
           "name": "cPad",
           "bytes": 2072,
           "routines": 10,
-          "portedBytes": 416,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPda",
           "bytes": 20776,
           "routines": 55,
-          "portedBytes": 848,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPdaHelpManager",
@@ -5439,8 +5439,8 @@
           "name": "cRadar",
           "bytes": 16292,
           "routines": 39,
-          "portedBytes": 2116,
-          "portedRoutines": 2
+          "portedBytes": 2024,
+          "portedRoutines": 14
         },
         {
           "name": "cRectButtonRegion",
@@ -5474,8 +5474,8 @@
           "name": "cScreenFade",
           "bytes": 980,
           "routines": 9,
-          "portedBytes": 76,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cScrollMenu",
@@ -5516,8 +5516,8 @@
           "name": "cSprite",
           "bytes": 5656,
           "routines": 34,
-          "portedBytes": 3136,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cSpriteBlock",
@@ -5614,8 +5614,8 @@
           "name": "cTexture",
           "bytes": 1752,
           "routines": 12,
-          "portedBytes": 1196,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cTextureManager",
@@ -5706,16 +5706,16 @@
     {
       "name": "Effects",
       "bytes": 122680,
-      "portedBytes": 28384,
+      "portedBytes": 808,
       "routines": 554,
-      "portedRoutines": 71,
+      "portedRoutines": 12,
       "classes": [
         {
           "name": "(free functions)",
           "bytes": 684,
           "routines": 5,
-          "portedBytes": 68,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "CFireFighter",
@@ -5728,22 +5728,22 @@
           "name": "CWaterCannon",
           "bytes": 3048,
           "routines": 6,
-          "portedBytes": 2812,
-          "portedRoutines": 4
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "CWaterCannons",
           "bytes": 1940,
           "routines": 8,
-          "portedBytes": 164,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "Fire",
           "bytes": 300,
           "routines": 6,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 300,
+          "portedRoutines": 6
         },
         {
           "name": "cBadgerParticle",
@@ -5756,8 +5756,8 @@
           "name": "cCityEmitters",
           "bytes": 312,
           "routines": 1,
-          "portedBytes": 312,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cContrailEffectRenderable",
@@ -5784,8 +5784,8 @@
           "name": "cDebris",
           "bytes": 556,
           "routines": 5,
-          "portedBytes": 344,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cDebrisManager",
@@ -5798,8 +5798,8 @@
           "name": "cEffectManager",
           "bytes": 1600,
           "routines": 6,
-          "portedBytes": 660,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cEffectRenderable",
@@ -5819,8 +5819,8 @@
           "name": "cFire",
           "bytes": 3804,
           "routines": 14,
-          "portedBytes": 3372,
-          "portedRoutines": 5
+          "portedBytes": 508,
+          "portedRoutines": 6
         },
         {
           "name": "cFireEffectRenderable",
@@ -5889,8 +5889,8 @@
           "name": "cGeneralParticleController",
           "bytes": 4236,
           "routines": 13,
-          "portedBytes": 3064,
-          "portedRoutines": 6
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cKillWaterTarget",
@@ -5910,15 +5910,15 @@
           "name": "cLight",
           "bytes": 1184,
           "routines": 8,
-          "portedBytes": 1036,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cLightManager",
           "bytes": 2840,
           "routines": 11,
-          "portedBytes": 1636,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cLightWeightCombatant",
@@ -5959,15 +5959,15 @@
           "name": "cParticleEmitterBase",
           "bytes": 3812,
           "routines": 21,
-          "portedBytes": 1868,
-          "portedRoutines": 4
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cParticleEmitterBlood",
           "bytes": 768,
           "routines": 3,
-          "portedBytes": 608,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cParticleEmitterBloodSpray",
@@ -5994,8 +5994,8 @@
           "name": "cParticleEmitterComplexExplsn",
           "bytes": 2660,
           "routines": 8,
-          "portedBytes": 1852,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cParticleEmitterEnergy",
@@ -6008,8 +6008,8 @@
           "name": "cParticleEmitterFire",
           "bytes": 2912,
           "routines": 10,
-          "portedBytes": 84,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cParticleEmitterFireworks",
@@ -6022,8 +6022,8 @@
           "name": "cParticleEmitterGarbage",
           "bytes": 1144,
           "routines": 6,
-          "portedBytes": 268,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cParticleEmitterPaper",
@@ -6043,8 +6043,8 @@
           "name": "cParticleEmitterRain",
           "bytes": 1236,
           "routines": 6,
-          "portedBytes": 1068,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cParticleEmitterResprayDamp",
@@ -6099,8 +6099,8 @@
           "name": "cParticleEmitterSmoke",
           "bytes": 1472,
           "routines": 7,
-          "portedBytes": 1064,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cParticleEmitterSmokeTrail",
@@ -6113,8 +6113,8 @@
           "name": "cParticleEmitterSparks",
           "bytes": 1500,
           "routines": 6,
-          "portedBytes": 712,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cParticleEmitterSplat",
@@ -6127,15 +6127,15 @@
           "name": "cParticleEmitterSteam",
           "bytes": 1228,
           "routines": 7,
-          "portedBytes": 848,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cParticleEmitterWaterSplash",
           "bytes": 1816,
           "routines": 9,
-          "portedBytes": 1704,
-          "portedRoutines": 5
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPickupEffectRenderable",
@@ -6169,8 +6169,8 @@
           "name": "cSmoke",
           "bytes": 1028,
           "routines": 9,
-          "portedBytes": 236,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cSprunkParticle",
@@ -6190,8 +6190,8 @@
           "name": "cTrailManager",
           "bytes": 1944,
           "routines": 10,
-          "portedBytes": 1656,
-          "portedRoutines": 8
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cTwatParticle",
@@ -6225,8 +6225,8 @@
           "name": "cWaterRenderBlock",
           "bytes": 1396,
           "routines": 5,
-          "portedBytes": 1340,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cWaterSpray",
@@ -6246,17 +6246,17 @@
           "name": "immsprite3d",
           "bytes": 6308,
           "routines": 23,
-          "portedBytes": 1608,
-          "portedRoutines": 5
+          "portedBytes": 0,
+          "portedRoutines": 0
         }
       ]
     },
     {
       "name": "Audio",
       "bytes": 55744,
-      "portedBytes": 12556,
+      "portedBytes": 1148,
       "routines": 331,
-      "portedRoutines": 30,
+      "portedRoutines": 40,
       "classes": [
         {
           "name": "(free functions)",
@@ -6276,8 +6276,8 @@
           "name": "SoundImpl",
           "bytes": 1284,
           "routines": 44,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 1148,
+          "portedRoutines": 40
         },
         {
           "name": "cAudio",
@@ -6297,29 +6297,29 @@
           "name": "cAudioBaseOAL",
           "bytes": 12864,
           "routines": 44,
-          "portedBytes": 432,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cAudioManager",
           "bytes": 20364,
           "routines": 141,
-          "portedBytes": 7672,
-          "portedRoutines": 23
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cSoundEvents",
           "bytes": 10640,
           "routines": 26,
-          "portedBytes": 4432,
-          "portedRoutines": 5
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cSoundStream",
           "bytes": 2200,
           "routines": 20,
-          "portedBytes": 20,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cSoundStreamOAL",
@@ -6333,30 +6333,30 @@
     {
       "name": "World and engine",
       "bytes": 398740,
-      "portedBytes": 83008,
+      "portedBytes": 39124,
       "routines": 1888,
-      "portedRoutines": 133,
+      "portedRoutines": 100,
       "classes": [
         {
           "name": "(free functions)",
           "bytes": 4108,
           "routines": 27,
-          "portedBytes": 324,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "Area",
           "bytes": 2360,
           "routines": 16,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 772,
+          "portedRoutines": 6
         },
         {
           "name": "CCollision",
           "bytes": 32760,
           "routines": 64,
-          "portedBytes": 17064,
-          "portedRoutines": 20
+          "portedBytes": 16836,
+          "portedRoutines": 34
         },
         {
           "name": "CCollisionBox",
@@ -6376,8 +6376,8 @@
           "name": "CCollisionMesh",
           "bytes": 2260,
           "routines": 11,
-          "portedBytes": 104,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "CCollisionPrimitiveIterator",
@@ -6390,8 +6390,8 @@
           "name": "CMatrix43",
           "bytes": 2852,
           "routines": 21,
-          "portedBytes": 220,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "CMeshListIterator",
@@ -6516,15 +6516,15 @@
           "name": "cAssetManager",
           "bytes": 1064,
           "routines": 5,
-          "portedBytes": 552,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cBaseCam",
           "bytes": 9316,
           "routines": 37,
-          "portedBytes": 2908,
-          "portedRoutines": 9
+          "portedBytes": 8820,
+          "portedRoutines": 30
         },
         {
           "name": "cBubbleArea",
@@ -6572,8 +6572,8 @@
           "name": "cCamera",
           "bytes": 4744,
           "routines": 28,
-          "portedBytes": 468,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cCameraManager",
@@ -6649,8 +6649,8 @@
           "name": "cDynamicProp",
           "bytes": 20432,
           "routines": 57,
-          "portedBytes": 3396,
-          "portedRoutines": 8
+          "portedBytes": 1412,
+          "portedRoutines": 9
         },
         {
           "name": "cDynamicPropBuoy",
@@ -6663,8 +6663,8 @@
           "name": "cDynamicPropManager",
           "bytes": 8804,
           "routines": 19,
-          "portedBytes": 736,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cDynamicPropSecurityCam",
@@ -6684,8 +6684,8 @@
           "name": "cEntity",
           "bytes": 13008,
           "routines": 126,
-          "portedBytes": 1412,
-          "portedRoutines": 8
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cEntityEventCollector",
@@ -6726,15 +6726,15 @@
           "name": "cFollowCarCam2",
           "bytes": 3616,
           "routines": 5,
-          "portedBytes": 396,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cFollowPedCam",
           "bytes": 3932,
           "routines": 9,
-          "portedBytes": 2428,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cForceCam",
@@ -6761,8 +6761,8 @@
           "name": "cGlInterface",
           "bytes": 14348,
           "routines": 102,
-          "portedBytes": 436,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cGlMesh",
@@ -6789,8 +6789,8 @@
           "name": "cGlobalPopulationManager",
           "bytes": 1600,
           "routines": 16,
-          "portedBytes": 328,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cGlobe",
@@ -6852,8 +6852,8 @@
           "name": "cLocalAreaKnowledge",
           "bytes": 11696,
           "routines": 24,
-          "portedBytes": 2432,
-          "portedRoutines": 2
+          "portedBytes": 11284,
+          "portedRoutines": 21
         },
         {
           "name": "cMatrixCam",
@@ -6887,15 +6887,15 @@
           "name": "cModel",
           "bytes": 1236,
           "routines": 12,
-          "portedBytes": 212,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cModelInstance",
           "bytes": 2656,
           "routines": 16,
-          "portedBytes": 876,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cModelInstanceBase",
@@ -6929,8 +6929,8 @@
           "name": "cObject",
           "bytes": 500,
           "routines": 7,
-          "portedBytes": 132,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cObjectMonitor",
@@ -6950,15 +6950,15 @@
           "name": "cPhysical",
           "bytes": 7920,
           "routines": 54,
-          "portedBytes": 4212,
-          "portedRoutines": 12
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPhysicalIntegrator",
           "bytes": 22744,
           "routines": 21,
-          "portedBytes": 17576,
-          "portedRoutines": 14
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPool",
@@ -7006,8 +7006,8 @@
           "name": "cRenderWorldSector",
           "bytes": 4380,
           "routines": 11,
-          "portedBytes": 444,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cRenderWorldStreamingBlock",
@@ -7020,8 +7020,8 @@
           "name": "cRenderer",
           "bytes": 1868,
           "routines": 19,
-          "portedBytes": 80,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cResHandle",
@@ -7048,8 +7048,8 @@
           "name": "cResourceManager",
           "bytes": 5808,
           "routines": 24,
-          "portedBytes": 1704,
-          "portedRoutines": 4
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cResourceManagerThread",
@@ -7090,8 +7090,8 @@
           "name": "cSectorNodeData",
           "bytes": 3304,
           "routines": 8,
-          "portedBytes": 2016,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cSequenceEaseCamera",
@@ -7167,8 +7167,8 @@
           "name": "cTimeCycle",
           "bytes": 7584,
           "routines": 24,
-          "portedBytes": 5612,
-          "portedRoutines": 9
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cTruckCam",
@@ -7202,8 +7202,8 @@
           "name": "cWorld",
           "bytes": 6636,
           "routines": 39,
-          "portedBytes": 1220,
-          "portedRoutines": 6
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cWorldEntityIterator",
@@ -7216,22 +7216,22 @@
           "name": "cWorldIterator",
           "bytes": 432,
           "routines": 2,
-          "portedBytes": 276,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cWorldModelInstance",
           "bytes": 2620,
           "routines": 11,
-          "portedBytes": 804,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cWorldNodeData",
           "bytes": 3064,
           "routines": 4,
-          "portedBytes": 796,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cWorldNodePathControl",
@@ -7244,22 +7244,22 @@
           "name": "cWorldSector",
           "bytes": 4352,
           "routines": 16,
-          "portedBytes": 2620,
-          "portedRoutines": 6
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cZoneManager",
           "bytes": 10824,
           "routines": 4,
-          "portedBytes": 10776,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cZoneMgr",
           "bytes": 1464,
           "routines": 12,
-          "portedBytes": 448,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "nAreaPrivelaged",
@@ -7294,16 +7294,16 @@
     {
       "name": "Other",
       "bytes": 1667628,
-      "portedBytes": 45508,
+      "portedBytes": 12772,
       "routines": 7504,
-      "portedRoutines": 119,
+      "portedRoutines": 33,
       "classes": [
         {
           "name": "(free functions)",
           "bytes": 79096,
           "routines": 407,
-          "portedBytes": 6880,
-          "portedRoutines": 34
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "AIInfo",
@@ -7414,8 +7414,8 @@
           "name": "CEngine",
           "bytes": 2116,
           "routines": 10,
-          "portedBytes": 1536,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "CEnvSetupHandler",
@@ -7939,8 +7939,8 @@
           "name": "CTyre",
           "bytes": 2956,
           "routines": 12,
-          "portedBytes": 2404,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "CVigilante",
@@ -8191,8 +8191,8 @@
           "name": "Quat",
           "bytes": 840,
           "routines": 4,
-          "portedBytes": 200,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "SlashStroke",
@@ -8303,8 +8303,8 @@
           "name": "cAIHub",
           "bytes": 444,
           "routines": 3,
-          "portedBytes": 376,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cAIKamikaze",
@@ -8338,8 +8338,8 @@
           "name": "cAISpline",
           "bytes": 7112,
           "routines": 24,
-          "portedBytes": 5908,
-          "portedRoutines": 15
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cAITriad",
@@ -8513,8 +8513,8 @@
           "name": "cArrestOnFoot",
           "bytes": 5432,
           "routines": 13,
-          "portedBytes": 300,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cAssaultTeam",
@@ -8639,8 +8639,8 @@
           "name": "cBaseNode",
           "bytes": 340,
           "routines": 7,
-          "portedBytes": 236,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cBaseNub",
@@ -8828,8 +8828,8 @@
           "name": "cBucketManager",
           "bytes": 2364,
           "routines": 4,
-          "portedBytes": 2060,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cBulldozer",
@@ -9003,8 +9003,8 @@
           "name": "cCheckpointTT",
           "bytes": 12480,
           "routines": 36,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 2552,
+          "portedRoutines": 10
         },
         {
           "name": "cChineseDelivery",
@@ -9157,8 +9157,8 @@
           "name": "cControlWrapper",
           "bytes": 1336,
           "routines": 11,
-          "portedBytes": 48,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cConvexRegion",
@@ -9297,8 +9297,8 @@
           "name": "cCycleElement",
           "bytes": 1016,
           "routines": 1,
-          "portedBytes": 1016,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cCycleElementColour",
@@ -9353,8 +9353,8 @@
           "name": "cDeathArrestWatcher",
           "bytes": 2260,
           "routines": 8,
-          "portedBytes": 1916,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cDebugConsole",
@@ -9710,8 +9710,8 @@
           "name": "cFileManager",
           "bytes": 2916,
           "routines": 15,
-          "portedBytes": 600,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cFindCover",
@@ -9738,8 +9738,8 @@
           "name": "cFlashBangLauncher",
           "bytes": 760,
           "routines": 5,
-          "portedBytes": 552,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cFlatlineTimer",
@@ -9752,8 +9752,8 @@
           "name": "cFleeOnFoot",
           "bytes": 3336,
           "routines": 10,
-          "portedBytes": 2568,
-          "portedRoutines": 3
+          "portedBytes": 3336,
+          "portedRoutines": 10
         },
         {
           "name": "cFleePed",
@@ -9815,22 +9815,22 @@
           "name": "cFountainStream",
           "bytes": 1876,
           "routines": 7,
-          "portedBytes": 1160,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cFrameSchedule",
           "bytes": 708,
           "routines": 4,
-          "portedBytes": 504,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cFrameTimerScheduler",
           "bytes": 1124,
           "routines": 6,
-          "portedBytes": 788,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cFriend",
@@ -9864,8 +9864,8 @@
           "name": "cGame",
           "bytes": 9220,
           "routines": 27,
-          "portedBytes": 4380,
-          "portedRoutines": 4
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cGate",
@@ -10081,8 +10081,8 @@
           "name": "cHorn",
           "bytes": 1564,
           "routines": 7,
-          "portedBytes": 1376,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cHotWire",
@@ -10494,8 +10494,8 @@
           "name": "cNodeId",
           "bytes": 5020,
           "routines": 14,
-          "portedBytes": 1152,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cNumericSpinnerContainer",
@@ -10683,8 +10683,8 @@
           "name": "cParamedic",
           "bytes": 13404,
           "routines": 35,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 6884,
+          "portedRoutines": 13
         },
         {
           "name": "cParkGuard",
@@ -10844,15 +10844,15 @@
           "name": "cPopInfoManager",
           "bytes": 2120,
           "routines": 7,
-          "portedBytes": 1560,
-          "portedRoutines": 4
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPositionConstraints",
           "bytes": 508,
           "routines": 3,
-          "portedBytes": 420,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cPositionList",
@@ -11257,8 +11257,8 @@
           "name": "cSeats",
           "bytes": 4412,
           "routines": 27,
-          "portedBytes": 1896,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cSegregatedLimb",
@@ -11607,8 +11607,8 @@
           "name": "cTarget",
           "bytes": 5336,
           "routines": 32,
-          "portedBytes": 1596,
-          "portedRoutines": 5
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cTargetCar",
@@ -11936,15 +11936,15 @@
           "name": "cWanderPath",
           "bytes": 5172,
           "routines": 17,
-          "portedBytes": 1188,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cWavStream",
           "bytes": 5980,
           "routines": 51,
-          "portedBytes": 672,
-          "portedRoutines": 2
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cWeakProxy",
@@ -12111,8 +12111,8 @@
           "name": "maths",
           "bytes": 2948,
           "routines": 13,
-          "portedBytes": 1580,
-          "portedRoutines": 7
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "nLimbs",
@@ -12167,8 +12167,8 @@
           "name": "sDrivingData",
           "bytes": 1400,
           "routines": 8,
-          "portedBytes": 436,
-          "portedRoutines": 5
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "sFileInfo",
@@ -12314,8 +12314,8 @@
           "name": "sVirtYoke",
           "bytes": 388,
           "routines": 7,
-          "portedBytes": 100,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "tCarData",
@@ -12328,8 +12328,8 @@
           "name": "wv2d",
           "bytes": 100,
           "routines": 1,
-          "portedBytes": 100,
-          "portedRoutines": 1
+          "portedBytes": 0,
+          "portedRoutines": 0
         }
       ]
     }

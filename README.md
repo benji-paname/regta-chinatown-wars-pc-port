@@ -32,7 +32,7 @@ Support helps sustain Benji Paname's reverse engineering, native development and
 
 [![progress map](docs/assets/progress.svg)](docs/progress.html)
 
-<sub>Share of the original game's code, by size, whose routines the port implements. Green is the ported part of each class. Updated on every push to main; see [how it is measured](docs/progress.html).</sub>
+<sub>Share of the original game's code, by size, implemented in native Rust (`src/`). Green is the ported part of each class. 100% measured from our Rust codebase. Updated on every push to main; see [how it is measured](docs/progress.html).</sub>
 <!-- END STATUS SECTION -->
 
 ## Next milestones

@@ -20,7 +20,7 @@ You can double-click and open the `.mp4` file right now in VLC or Windows Media 
 ## 🎯 2. High-CTR YouTube Titles (English)
 
 - **Option 1 (Recommended — High curiosity & algorithm reach)**:  
-  `GTA Chinatown Wars is FINALLY on PC in 60 FPS! (Native Rust Recompilation)`
+  `GTA Chinatown Wars is FINALLY on PC with Uncapped FPS! (Native Rust Recompilation)`
 - **Option 2 (Tech & Decomp Focus)**:  
   `We Rebuilt GTA Chinatown Wars in Rust for PC — No Emulator Needed!`
 - **Option 3 (Gaming Community)**:  
@@ -37,7 +37,7 @@ For over 15 years, Chinatown Wars was locked on PSP and Nintendo DS, forcing PC 
 
 ⚡ Features:
 - 100% Native x86_64 machine code (Zero CPU emulation overhead)
-- Silky smooth 60+ FPS & unconstrained 4K ultra-widescreen resolutions
+- Silky smooth uncapped framerates (144Hz+) & unconstrained 4K ultra-widescreen resolutions
 - 16 Street Races & Time Trials with dynamic AI rival racers
 - Complete Drug Wars wholesale economy with 81 dealers and 7 gangs
 - Tactile minigames: Tattoo parlor, car-bomb rigging, safe cracking, hotwiring
@@ -78,7 +78,7 @@ GTA Chinatown Wars, GTA Chinatown Wars PC, GTA Chinatown Wars PC Port, ReGTA, Re
 - **Option 1 (Recommandée — Fort impact de curiosité)** :  
   `J'ai recréé GTA Chinatown Wars sur PC en RUST ! (Sans Émulateur)`
 - **Option 2 (Technique & Passionné)** :  
-  `GTA Chinatown Wars en 60 FPS Natif sur PC : Le Projet ReGTA`
+  `GTA Chinatown Wars en FPS Illimités sur PC : Le Projet ReGTA`
 - **Option 3 (Communauté GTA)** :  
   `Ce jeu culte de la PSP tourne enfin nativement sur PC ! (ReGTA Chinatown Wars)`
 
@@ -91,7 +91,7 @@ Une bonne miniature YouTube doit être lisible en petit format sur smartphone :
 2. **Élément Central / Droit** : Le logo officiel transparent [`logo-transparent.png`](assets/logo-transparent.png) ou [`logo-ctw-transparent.png`](assets/logo-ctw-transparent.png) avec un léger contour blanc/doré ou lueur rouge.
 3. **Texte Court & Massif (3 mots max)** :
    - `SUR PC !` (en jaune or Chinatown Wars `#FFD700`)
-   - `60 FPS RUST` (en badge rouge ou blanc)
+   - `FPS ILLIMITÉS RUST` (en badge rouge ou blanc)
 4. Les fichiers PNG haute définition (1800×1000 et 1920×520) sont disponibles dans :
    [`outputs/CTW-Rust/branding/`](../outputs/CTW-Rust/branding/) et [`docs/assets/`](assets/).
 
@@ -102,10 +102,10 @@ Une bonne miniature YouTube doit être lisible en petit format sur smartphone :
 ### [0:00 - 0:35] L'Accroche Visuelle (Hook)
 - **Visuel** : Écran noir pendant 2 secondes avec le carillon audio du PDA (`play_pda_notification`). Soudain, cut direct sur du gameplay ultra fluide en plein écran : Huang qui sprinte, fait une roulade évasive par-dessus un muret, vole une voiture et démarre en trombe.
 - **Voix off (Benjamin)** :  
-  > *« Vous vous souvenez de GTA Chinatown Wars sur PSP et Nintendo DS ? Ce chef-d'œuvre en vue du dessus avec ses guerres de triades et son ambiance de bande dessinée. Pendant plus de 15 ans, il est resté coincé sur consoles portables. Aujourd'hui, je vous présente ReGTA : le portage PC natif de Chinatown Wars, développé de zéro en Rust, qui tourne à 60 FPS sans aucun émulateur ! »*
+  > *« Vous vous souvenez de GTA Chinatown Wars sur PSP et Nintendo DS ? Ce chef-d'œuvre en vue du dessus avec ses guerres de triades et son ambiance de bande dessinée. Pendant plus de 15 ans, il est resté coincé sur consoles portables. Aujourd'hui, je vous présente ReGTA : le portage PC natif de Chinatown Wars, développé de zéro en Rust, qui tourne avec des FPS illimités sans aucun émulateur ! »*
 
 ### [0:35 - 1:20] Pourquoi Rust et pas un Émulateur ?
-- **Visuel** : Comparaison côte à côte : à gauche un émulateur PSP avec ses saccades et ses bandes noires, à droite le projet ReGTA en plein écran 1080p/4K 60 FPS avec contrôles clavier/souris et manette Xbox réactifs.
+- **Visuel** : Comparaison côte à côte : à gauche un émulateur PSP avec ses saccades et ses bandes noires, à droite le projet ReGTA en plein écran 1080p/4K avec framerate illimité et contrôles clavier/souris réactifs.
 - **Voix off** :  
   > *« Pourquoi ne pas simplement utiliser un émulateur ? Parce qu'un émulateur gaspille de la puissance CPU pour imiter l'architecture de la PSP. Ici, nous faisons de l'ingénierie inverse et de la recompilation statique : le code du jeu est reconstruit en Rust natif. Le moteur lit directement les textures, les modèles 3D et la géométrie de votre propre ISO de PSP originale, pour une fluidité absolue et une consommation minimale. »*
 

@@ -1883,10 +1883,10 @@ impl Renderer {
             crate::pda::PdaView::SystemSettings => {
                 self.psp_text(px + 20., py + 55., "PARAMETRES SYSTEME", 2.2, [1.0, 0.85, 0.20]);
                 rounded([px + 20., py + 95., pw - 40., 280.], 4., [0.06, 0.08, 0.10]);
-                self.psp_text(px + 32., py + 120., "ReGTA CTW PSP Recomp - v0.1.3-alpha", 2.0, [0.95, 0.90, 0.70]);
+                self.psp_text(px + 32., py + 120., "ReGTA CTW PSP Recomp - v0.1.4-alpha", 2.0, [0.95, 0.90, 0.70]);
                 self.psp_text(px + 32., py + 155., "Moteur : Rust pur natif (Allegrex MIPS recomp)", 1.8, [0.75, 0.80, 0.85]);
                 self.psp_text(px + 32., py + 185., "Rendu : OpenGL direct (GeForce RTX 5070 Ti)", 1.8, [0.75, 0.80, 0.85]);
-                self.psp_text(px + 32., py + 215., "Resolution : 1280x720 60 FPS", 1.8, [0.75, 0.80, 0.85]);
+                self.psp_text(px + 32., py + 215., "Resolution : Dynamique (FPS Illimités / Uncapped)", 1.8, [0.75, 0.80, 0.85]);
                 self.psp_text(px + 32., py + 245., "Par Benji Paname (Paris, France)", 1.9, [1.0, 0.85, 0.20]);
             }
         }

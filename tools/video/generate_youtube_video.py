@@ -47,7 +47,7 @@ SCENES = [
         "voice": (
             "This is ReGTA Chinatown Wars, an independent, clean-room native reverse engineering and PC port written entirely from scratch in Rust. "
             "Instead of emulating the PSP hardware, it runs natively on modern Windows systems, reading game data straight from your personal disc "
-            "with zero input latency, full ultra-widescreen support, and a rock-solid sixty frames per second."
+            "with zero input latency, full ultra-widescreen support, and uncapped high-refresh rate framerates."
         ),
     },
     {
@@ -254,9 +254,9 @@ body {{
     <div class="top-pill">FIRST CLEAN-ROOM PC RECOMPILATION • DEVLOG #1</div>
     <div class="center-logo-box">
         <img src="{logo_trans_uri}" alt="ReGTA Logo">
-        <div class="intro-sub">NATIVE PC PORT IN RUST • 60 FPS</div>
+        <div class="intro-sub">NATIVE PC PORT IN RUST • UNCAPPED FPS</div>
     </div>
-    <div class="bottom-bar">15 YEARS OF EMULATION IS OVER • REAL IN-GAME GAMEPLAY FOOTAGE</div>
+    <div class="bottom-bar">15 YEARS OF EMULATION IS OVER • UNCAPPED HIGH-REFRESH RATE FRAMERATES</div>
 </body>
 </html>"""
 
@@ -334,7 +334,7 @@ body {{
             </div>
             <div class="comp-col col-good">
                 <div class="col-title">⚡ ReGTA NATIVE PC PORT (RUST)</div>
-                <div class="col-body">100% Native x86_64 machine code • Silky smooth 60+ FPS & 4K • Zero CPU emulation overhead • Ultra-low input latency</div>
+                <div class="col-body">100% Native x86_64 machine code • Uncapped Framerates (144Hz+) & 4K • Zero CPU emulation overhead • Ultra-low input latency</div>
             </div>
         </div>
     </div>
@@ -676,7 +676,7 @@ body {{
             NATIVE PC RECOMPILATION • RUST
         </div>
         <div class="badge-row">
-            <div class="thumb-badge highlight-badge">⚡ 60 FPS • NATIVE 4K</div>
+            <div class="thumb-badge highlight-badge">⚡ UNCAPPED FPS • NATIVE 4K</div>
             <div class="thumb-badge">🏎️ 16 STREET RACES</div>
             <div class="thumb-badge">💊 DRUG WARS PLAYABLE</div>
             <div class="thumb-badge">🛡️ NO EMULATOR</div>
@@ -711,6 +711,26 @@ def assemble_gameplay_base(total_duration: float) -> Path:
     """Concatenates and scales real gameplay clips into a continuous 1080p 60 FPS background."""
     print("\n--- Assembling Base 1080p 60 FPS Gameplay Track ---")
     base_gameplay = TEMP_DIR / "base_gameplay.mp4"
+
+    custom_clip = OUTPUT_DIR / "custom_gameplay.mp4"
+    if custom_clip.exists() and custom_clip.stat().st_size > 1024:
+        print(f"Detected custom Rust gameplay video recorded by user: {custom_clip.name}!")
+        cmd = [
+            FFMPEG_EXE,
+            "-stream_loop", "-1",
+            "-i", str(custom_clip),
+            "-vf", "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,fps=60",
+            "-t", f"{total_duration:.2f}",
+            "-c:v", "libx264",
+            "-preset", "veryfast",
+            "-crf", "18",
+            "-pix_fmt", "yuv420p",
+            "-y",
+            str(base_gameplay),
+        ]
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        print(f"Base Gameplay Video Assembled from custom recording: {base_gameplay.name} ({total_duration:.1f}s)")
+        return base_gameplay
 
     if base_gameplay.exists() and base_gameplay.stat().st_size > 10 * 1024 * 1024:
         print(f"Base Gameplay Video already assembled: {base_gameplay.name} ({base_gameplay.stat().st_size / (1024*1024):.1f} MB)")

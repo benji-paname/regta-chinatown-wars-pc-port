@@ -11,6 +11,7 @@ mod gpu;
 mod hud;
 mod iso;
 mod locale;
+mod minigames;
 mod missions;
 mod model;
 mod overlays;

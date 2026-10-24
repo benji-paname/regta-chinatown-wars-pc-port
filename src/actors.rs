@@ -275,6 +275,7 @@ pub struct Scene {
     pub stats: crate::stats::Stats,
     pub save_progress: crate::stats::SaveProgress,
     pub pda: crate::pda::PdaEngine,
+    pub minigame: Option<crate::minigames::MinigameSession>,
     pub cash: u32,
     pub prompt: Option<String>,
     pub banner: Option<(String, f32)>,
@@ -526,6 +527,7 @@ impl Scene {
             stats: crate::stats::Stats::new(),
             save_progress: crate::stats::SaveProgress::default(),
             pda: crate::pda::PdaEngine::new(),
+            minigame: None,
             cash: 500,
             prompt: None,
             banner: None,
@@ -1045,6 +1047,22 @@ impl Scene {
 
     /// Handles world interaction on foot with Story Mission contacts, Safehouses, and Drug Dealers.
     pub fn interact(&mut self, player_pos: [f32; 3]) -> bool {
+        // 0. Active Minigame action trigger (strike glass, twist wire, pump fuel, scratch)
+        if let Some(minigame) = &mut self.minigame {
+            let done = minigame.trigger_action();
+            if let Some(msg) = &minigame.reward_message {
+                self.banner = Some((msg.clone(), 3.5));
+            }
+            if done {
+                self.cash = self.cash.saturating_add(minigame.reward_cash);
+                self.minigame = None;
+                if let crate::missions::MissionState::InProgress { objective: crate::missions::MissionObjective::CompleteMinigame { .. }, .. } = &self.missions.state {
+                    self.missions.advance_objective(&mut self.cash);
+                }
+            }
+            return true;
+        }
+
         // 1. Story Mission Contacts
         for &contact in &[
             crate::missions::Contact::UncleKenny,
@@ -1063,6 +1081,13 @@ impl Scene {
                     let m_title = m.title;
                     if self.missions.start_mission(m_id).is_ok() {
                         let _ = self.missions.begin_gameplay();
+                        if let crate::missions::MissionState::InProgress { objective: crate::missions::MissionObjective::CompleteMinigame { overlay_name }, .. } = &self.missions.state {
+                            if *overlay_name == "sinkingcarapp" {
+                                self.minigame = Some(crate::minigames::MinigameSession::new_sinking_car());
+                            } else if *overlay_name == "hotwiringapp" {
+                                self.minigame = Some(crate::minigames::MinigameSession::new_hotwire(crate::minigames::HotwireMethod::WiresTwist));
+                            }
+                        }
                         self.banner = Some((format!("MISSION: {} ({})", m_title, contact.name()), 4.0));
                         return true;
                     }
@@ -2155,7 +2180,33 @@ impl Scene {
 
         // Update interaction prompt based on world proximity
         self.prompt = None;
-        if self.driving.is_none() {
+        if let Some(m) = &self.minigame {
+            let action_hint = match &m.kind {
+                crate::minigames::MinigameKind::SinkingCar { hits_done, hits_required, .. } => {
+                    format!("[ E / Y ] FRAPPER LE PARE-BRISE ({}/{})", hits_done, hits_required)
+                }
+                crate::minigames::MinigameKind::Hotwire { method: _, progress } => {
+                    format!("[ E / Y ] DEMARRER AUX FILS ({}%)", (progress * 100.0) as u32)
+                }
+                crate::minigames::MinigameKind::MolotovFilling { bottles_filled, is_pumping, .. } => {
+                    if *is_pumping {
+                        format!("[ E / Y ] POMPER LE CARBURANT (BOUTEILLES: {}/3)", bottles_filled)
+                    } else {
+                        format!("[ E / Y ] COMMENCER LE REMPLISSAGE (BOUTEILLES: {}/3)", bottles_filled)
+                    }
+                }
+                crate::minigames::MinigameKind::ScratchCard { card_name, .. } => {
+                    format!("[ E / Y ] GRATTER UNE CASE DU TICKET ({})", card_name)
+                }
+                crate::minigames::MinigameKind::SafeCracking { unlocked_tumblers, .. } => {
+                    format!("[ E / Y ] VERIFIER LA COMBINAISON ({}/3)", unlocked_tumblers)
+                }
+                crate::minigames::MinigameKind::DumpsterSearch { .. } => {
+                    "[ E / Y ] FOUILLER LA BENNE".to_string()
+                }
+            };
+            self.prompt = Some(action_hint);
+        } else if self.driving.is_none() {
             // Check story contacts
             for &contact in &[
                 crate::missions::Contact::UncleKenny,
@@ -2217,6 +2268,22 @@ impl Scene {
                         advance_mission = true;
                     } else {
                         *frames_left -= 1;
+                    }
+                }
+                crate::missions::MissionObjective::CompleteMinigame { overlay_name } => {
+                    if self.minigame.is_none() {
+                        if *overlay_name == "sinkingcarapp" {
+                            self.minigame = Some(crate::minigames::MinigameSession::new_sinking_car());
+                        } else if *overlay_name == "hotwiringapp" {
+                            self.minigame = Some(crate::minigames::MinigameSession::new_hotwire(crate::minigames::HotwireMethod::WiresTwist));
+                        }
+                    }
+                    if let Some(m) = &mut self.minigame {
+                        m.tick(dt);
+                        if m.completed {
+                            advance_mission = true;
+                            self.minigame = None;
+                        }
                     }
                 }
                 _ => {}
@@ -2588,6 +2655,7 @@ mod tests {
             stats: crate::stats::Stats::new(),
             save_progress: crate::stats::SaveProgress::default(),
             pda: crate::pda::PdaEngine::new(),
+            minigame: None,
             cash: 500,
             prompt: None,
             banner: None,
@@ -3262,6 +3330,12 @@ mod tests {
         assert!(s.missions.current_mission_idx.is_some(), "mission active");
         assert!(matches!(s.missions.state, crate::missions::MissionState::InProgress { .. }));
         assert!(s.banner.is_some(), "mission announcement banner displayed");
+
+        // Complete prologue sinking car escape minigame
+        for _ in 0..4 {
+            s.interact(ken_pos);
+        }
+        assert!(s.minigame.is_none(), "sinking car escape completed");
 
         // 2. Safehouse interaction: sleep in bed restores health and records save
         s.health = 45.0;

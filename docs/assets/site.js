@@ -5,8 +5,9 @@
     const lang = supported.includes(language) ? language : 'en';
     document.documentElement.lang = lang;
     document.querySelectorAll('[data-en]').forEach((element) => {
-      if (element.dataset[lang]) {
-        element.textContent = element.dataset[lang];
+      const text = element.dataset[lang] || element.getAttribute('data-' + lang) || element.dataset.en;
+      if (text) {
+        element.textContent = text;
       }
     });
     document.querySelectorAll('[data-language]').forEach((button) => {
@@ -15,7 +16,10 @@
     try { localStorage.setItem('regta-language', lang); } catch (_) { /* Private browsing. */ }
   };
   document.querySelectorAll('[data-language]').forEach((button) => {
-    button.addEventListener('click', () => applyLanguage(button.dataset.language));
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
+      applyLanguage(button.dataset.language || button.getAttribute('data-language'));
+    });
   });
   let language = 'en';
   try { language = localStorage.getItem('regta-language') || 'en'; } catch (_) { /* English fallback. */ }

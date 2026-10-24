@@ -1,3 +1,6 @@
+<!-- Jalon 2026-10-24 10:42 +02:00 -->
+Sources actives dans src/ a la racine. Workspace Cargo racine, manifeste compatible outputs/CTW-Rust/Cargo.toml. Un cache target/. Compile avec -D warnings : 119 tests passes, 0 echec, 0 avertissement. Commande de reprise : .\Compiler.ps1 -Test depuis la racine. Nettoyage pas encore execute. Prochain travail : tests sans tables privees, docs publiques, nettoyage verifie. Premier commit 7d3d173.
+
 <!-- Restructuration en cours, 2026-10-24 10:38 +02:00 -->
 Baseline confirmee : 119 tests reussis, 0 echec, aucun avertissement dans work/restructure-baseline.log. Aucune restructuration du code effectuee a ce jalon. Reprise : depuis la racine, lancer .\outputs\CTW-Rust\Compiler.ps1 -Test. Prochaine etape : creer le commit initial, puis migrer les sources et rendre les tests independants des tables locales Android. Ne pas confondre ces tables avec des donnees PSP validees.
 

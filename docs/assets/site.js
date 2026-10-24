@@ -1,10 +1,13 @@
 // Local-only preferences; no analytics, network calls or tracking cookies.
 (() => {
+  const supported = ['en', 'fr', 'es'];
   const applyLanguage = (language) => {
-    const lang = language === 'fr' ? 'fr' : 'en';
+    const lang = supported.includes(language) ? language : 'en';
     document.documentElement.lang = lang;
-    document.querySelectorAll('[data-fr][data-en]').forEach((element) => {
-      element.textContent = element.dataset[lang];
+    document.querySelectorAll('[data-en]').forEach((element) => {
+      if (element.dataset[lang]) {
+        element.textContent = element.dataset[lang];
+      }
     });
     document.querySelectorAll('[data-language]').forEach((button) => {
       button.setAttribute('aria-pressed', String(button.dataset.language === lang));

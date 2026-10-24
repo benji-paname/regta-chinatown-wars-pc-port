@@ -21,6 +21,8 @@ Owner explicitly requested removal of old logo/video versions and their supersed
 
 ## Verification
 - Compiler.ps1 -Test after runtime string changes: 160 passed, 0 failed, 0 warnings. Log target/promo-final-validation.log.
+- Visual port progress treemap (`docs/assets/progress.svg`) and SVG badges synchronized automatically with pure Rust data.
+- **BENJAMIN'S CORE MANDATE**: All AI models must keep the visual status and treemap up to date after every significant code advance (`.\Compiler.ps1 -Test` or `python tools/progress/progress.py`). Strictly 100% Rust code.
 - Complete final MP4 decode successful; final video contact sheet visually checked. Audio peak -3.6 dBFS, no sample clipping observed; automated audio checks are not a full listening review.
 - All four logo variants visually inspected, PNG alpha/background checked and SVG XML parsed. New video/thumbnail/end-card graphics inspected.
 - Website browser preview was not performed. Existing browser restrictions remain; no headless browser workaround used. Logos are rasterized with Sharp, video with FFmpeg/Pillow.

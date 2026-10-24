@@ -61,8 +61,8 @@ try {
     }
     $json = $report | ConvertTo-Json -Depth 5
     [IO.File]::WriteAllText((Join-Path $reportDir 'build-report.json'), $json, [Text.UTF8Encoding]::new($false))
-    if ($Progress) {
-        Write-Host 'Synchronizing port progress treemap, badges and dashboards...'
+    if ($Progress -or $Test) {
+        Write-Host 'Synchronizing port progress treemap, badges and dashboards (100% native Rust)...'
         $progressScript = Join-Path $repoRoot 'tools/progress/progress.py'
         if (Test-Path -LiteralPath $progressScript) {
             & python $progressScript

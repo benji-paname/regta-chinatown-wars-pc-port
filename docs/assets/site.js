@@ -1,7 +1,7 @@
 // Local-only preferences; no analytics, network calls or tracking cookies.
 (() => {
   const applyLanguage = (language) => {
-    const lang = language === 'en' ? 'en' : 'fr';
+    const lang = language === 'fr' ? 'fr' : 'en';
     document.documentElement.lang = lang;
     document.querySelectorAll('[data-fr][data-en]').forEach((element) => {
       element.textContent = element.dataset[lang];
@@ -14,9 +14,10 @@
   document.querySelectorAll('[data-language]').forEach((button) => {
     button.addEventListener('click', () => applyLanguage(button.dataset.language));
   });
-  let language = 'fr';
-  try { language = localStorage.getItem('regta-language') || 'fr'; } catch (_) { /* French fallback. */ }
+  let language = 'en';
+  try { language = localStorage.getItem('regta-language') || 'en'; } catch (_) { /* English fallback. */ }
   applyLanguage(language);
+  document.querySelectorAll('.languages').forEach((group) => { group.hidden = false; });
 
   // GitHub Pages supplies the real account and repository; no invented username.
   const host = location.hostname;

@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
 """
-Generates the authentic, simple, and modern ReGTA CTW official logo:
-- 'GTA' in authentic Pricedown Grand Theft Auto font typography with thick black contour and drop shadow.
-- 'CHINATOWN WARS' in authentic Chinese Rocks chisel-brush cover font in vibrant golden yellow.
+Generates the draft, simple, and modern ReGTA CTW logo draft:
+- 'GTA' in draft Pricedown Grand Theft Auto font typography with thick black contour and drop shadow.
+- 'CHINATOWN WARS' in draft unverified angular lettering (not the cover font) in vibrant golden yellow.
 - Sleek modern 'PSP RECOMP' minimalist subtitle.
 - Pure transparent/obsidian modern aesthetic, no clutter.
 """
@@ -10,7 +10,7 @@ Generates the authentic, simple, and modern ReGTA CTW official logo:
 def generate_logo_svg():
     svg = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" width="100%" height="100%">
   <defs>
-    <!-- Filters for authentic GTA & Chinatown Wars outlines and shadows -->
+    <!-- Filters for draft GTA & Chinatown Wars outlines and shadows -->
     <filter id="gtaShadow" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="7" dy="9" stdDeviation="0" flood-color="#000000" flood-opacity="1.0" />
       <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="rgba(0,0,0,0.8)" />
@@ -52,7 +52,7 @@ def generate_logo_svg():
   <!-- 1. "GTA" - AUTHENTIC PRICEDOWN GRAND THEFT AUTO TYPOGRAPHY       -->
   <!-- ================================================================= -->
   <g id="GTA_Pricedown" filter="url(#gtaShadow)" transform="translate(81, 0)">
-    <!-- Letter 'G' in authentic Pricedown -->
+    <!-- Letter 'G' in draft Pricedown -->
     <path d="M 235,160 
              C 175,160 145,130 145,86 
              C 145,42 175,12 235,12 
@@ -74,7 +74,7 @@ def generate_logo_svg():
           stroke-linejoin="round" 
           paint-order="stroke fill" />
 
-    <!-- Letter 'T' in authentic Pricedown -->
+    <!-- Letter 'T' in draft Pricedown -->
     <path d="M 326,12 
              L 458,12 
              L 458,42 
@@ -89,7 +89,7 @@ def generate_logo_svg():
           stroke-linejoin="round" 
           paint-order="stroke fill" />
 
-    <!-- Letter 'A' in authentic Pricedown (Iconic rounded arch top & low crossbar) -->
+    <!-- Letter 'A' in draft Pricedown (Iconic rounded arch top & low crossbar) -->
     <path d="M 522,12 
              C 555,12 580,26 592,48 
              L 592,156 
@@ -206,7 +206,4 @@ def generate_logo_svg():
     return svg
 
 if __name__ == '__main__':
-    content = generate_logo_svg()
-    with open('docs/assets/logo.svg', 'w', encoding='utf-8') as f:
-        f.write(content)
-    print("Authentic GTA Pricedown + Chinatown Wars SVG logo generated in docs/assets/logo.svg")
+    raise SystemExit("Historical hand-drawn draft only. See docs/BRANDING.md; this script no longer overwrites public logos.")

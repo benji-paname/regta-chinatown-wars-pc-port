@@ -1,6 +1,6 @@
 # Implementation status and evidence limits
 
-Date: 2026-10-24. Version: 0.1.2-alpha.
+Date: 2026-10-24. Release milestone: 0.1.4-alpha. Package/build metadata still reports 0.1.2-alpha; this documentation does not silently change the build version.
 
 The goal is native PSP behaviour in Rust, with no emulated CPU in the runtime. The current implementation contains both PSP-verified resource interpretation and experimental gameplay. It is not a complete automated static translation of the MIPS program, and no full-game equivalence proof exists.
 
@@ -28,8 +28,12 @@ This corrects older statements that called those files “authentic PSP” or sa
 ## What this release validates
 
 - A compilable monorepo with zero emitted compiler warnings.
-- 119 passing unit tests independent of proprietary files.
+- 152 passing unit tests independent of proprietary files.
 - Optional private table integration checks, original-ISO graph checks and a short native rendering smoke test, recorded separately.
 - Source-only Git tracking and preservation of private research.
 
 No full playthrough, physical-controller regression, complete sound audit or 1:1 PSP gameplay certification is implied.
+
+## Presentation update — 24 October 2026
+
+English-first website and README, optional French website text, donation links and GitHub Pages publishing instructions prepared locally. Logos now use actual Pricedown Black and Bruce Mikita outlines; Bruce Mikita public-use terms still need documentation. See [branding provenance](BRANDING.md). Logo raster previews were inspected. Browser visual verification has not been completed because local preview access was blocked.

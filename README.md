@@ -1,37 +1,35 @@
 <p align="center">
-  <img src="docs/assets/logo.svg" alt="ReGTA CTW Official Logo" width="720"/>
+  <img src="docs/assets/logo.svg" alt="ReGTA CTW — PSP Recomp" width="720"/>
 </p>
 
-# ReGTA CTW — ReGTA CTW PSP Recomp
+# ReGTA CTW — PSP Recomp
 
-[![Version](https://img.shields.io/badge/version-0.1.4--alpha-orange)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-152%20passed%20%7C%200%20warnings-brightgreen)](docs/STATUS.md)
-[![Platform](https://img.shields.io/badge/platform-Windows%20x64-blue)](#build-and-run)
+**A native PC future for Chinatown Wars PSP.**
+**by Benji Paname**
+
+[![Version](https://img.shields.io/badge/milestone-0.1.4--alpha-orange)](CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/local_tests-152_passed-brightgreen)](docs/STATUS.md)
+[![Warnings](https://img.shields.io/badge/compiler_warnings-0-brightgreen)](docs/STATUS.md)
+[![Platform](https://img.shields.io/badge/platform-Windows_x64-blue)](#build-and-run)
 [![Language](https://img.shields.io/badge/runtime-Rust-dea584)](#repository-layout)
 [![License](https://img.shields.io/badge/license-GPL--3.0--only-blue)](LICENSE)
-[![Donate Tipeee](https://img.shields.io/badge/Tipeee-Soutenir%20le%20Projet-red?logo=tipeee)](https://fr.tipeee.com/benji-paname/)
-[![Donate PayPal](https://img.shields.io/badge/PayPal.Me-Faire%20un%20Don-blue?logo=paypal)](https://paypal.me/BenjiLsg)
 
-**ReGTA CTW PSP Recomp** — portage et recompilation statique native en pur Rust de *Grand Theft Auto: Chinatown Wars* PSP (version Europe **ULES-01347, version 1.01**).
+ReGTA CTW is an independent reverse-engineering and native-port project for **Grand Theft Auto: Chinatown Wars**, targeting the European PSP release **ULES-01347, version 1.01**. The goal is to rebuild the PSP experience in Rust for Windows x64, reading game data from the user's own disc image without a PSP CPU emulator in the runtime.
 
-**par Benji Paname**
+> **Pre-alpha — no public playable download.** No game executable, ROM, ISO or proprietary game assets are offered for download. The local prototype is unfinished; no release date or complete gameplay parity is promised. Building from source requires the tools and personal game copy described below.
 
-> 🛑 **Note importante de distribution** : Ce projet est actuellement en phase de développement fermé (Pré-Alpha v0.1.4). **Aucun fichier binaire exécutable, aucune ROM ni aucun asset propriétaire n'est téléchargeable pour le moment.** Le code source de recherche est documenté en toute transparence. Vous pouvez soutenir activement l'accélération du développement via les liens de don ci-dessous !
+The city, player movement, cameras, navigation, vehicles and combat already have prototype implementations. The work ahead is to verify their behaviour against the PSP original and connect them into a complete game. **152 passing tests and 166 indexed code overlays are progress measurements, not proof of full-game equivalence.**
 
----
+**[Support on Tipeee](https://fr.tipeee.com/benji-paname/)** · [Support via PayPal](https://paypal.me/BenjiLsg)
+Support helps sustain Benji Paname's reverse engineering, native development and documentation. It does not buy the game, game assets or early access, and does not guarantee completion or a release date.
 
-## 💛 Soutenir le Projet & Accélérer le Développement
+[Project website source](docs/index.html) · [Implementation status](docs/STATUS.md) · [Changelog](CHANGELOG.md) · [Publish with GitHub Pages](docs/PUBLISHING.md)
 
-Pour permettre à **Benji Paname** de consacrer un maximum de temps au reverse engineering, à l'analyse du code Allegrex MIPS et à l'acquisition du matériel de test :
+## Next milestones
 
-- 🧡 **[Faire un don ou s'abonner sur Tipeee (Mensuel / Suivi)](https://fr.tipeee.com/benji-paname/)**
-- 💙 **[Don direct immédiat via PayPal.Me](https://paypal.me/BenjiLsg)**
-
----
-
-ReGTA CTW vise à reconstruire le comportement du jeu PSP en code natif Windows x64 pur. Il lit les données du jeu directement depuis l'ISO originale de l'utilisateur sans émuler le CPU PSP (0% d'overhead d'émulation). Le projet s'appuie sur les recherches d'ingénierie inverse et la décompression des 166 code overlays du conteneur `OVERLAYS.PAK`.
-
-🌐 **Site vitrine officiel (GitHub Pages)** : Consultez [`docs/index.html`](docs/index.html) pour la vitrine interactive complète avec le logo officiel, la matrice des systèmes et la feuille de route.
+- Review the English-first presentation and font-based logos; see [branding provenance](docs/BRANDING.md) for the outstanding Bruce Mikita license documentation.
+- Investigate precision tattooing (`tattoominigame`, PSP overlay 142) and street races (`streetrace`, overlay 140), then implement from verified findings.
+- Continue PSP behaviour comparisons, progression and save work before considering a public playable release.
 
 ## Build and run
 
@@ -44,7 +42,7 @@ From the repository root, in PowerShell:
 .\outputs\CTW-Rust\CTW-Rust.exe --iso "D:\Games\Chinatown-Wars-PSP.iso" --slice
 ```
 
-The compiler runs with warnings treated as errors, tests the workspace, and updates the executable only after success. Unit tests use generated synthetic fixtures and do not require an ISO or extracted game tables. Local validation on **24 October 2026: 119 passed, 0 failed, 0 ignored, 0 compiler warnings**. This is a local result, not a hosted CI badge.
+The compiler runs with warnings treated as errors, tests the workspace, and updates the executable only after success. Unit tests use generated synthetic fixtures and do not require an ISO or extracted game tables. Local validation on **24 October 2026: 152 passed, 0 failed, 0 ignored, 0 compiler warnings**. This is a local result, not a hosted CI badge.
 
 For desktop launchers, set `CTW_ISO` in the launching environment or pass `--iso` to a launcher:
 

@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
 """
-Generates compact ReGTA CTW official logo:
-- 'GTA' in authentic Pricedown Grand Theft Auto font.
-- 'CTW' in authentic Chinese Rocks chisel-brush font.
+Generates compact ReGTA CTW logo draft:
+- 'GTA' in draft Pricedown Grand Theft Auto font.
+- 'CTW' in unverified angular draft lettering (not the cover font).
 - Clean, modern, high-contrast, scalable.
 """
 
@@ -146,7 +146,4 @@ def generate_compact_logo_svg():
     return svg
 
 if __name__ == '__main__':
-    content = generate_compact_logo_svg()
-    with open('docs/assets/logo-ctw.svg', 'w', encoding='utf-8') as f:
-        f.write(content)
-    print("Compact GTA : CTW SVG logo generated in docs/assets/logo-ctw.svg")
+    raise SystemExit("Historical hand-drawn draft only. See docs/BRANDING.md; this script no longer overwrites public logos.")

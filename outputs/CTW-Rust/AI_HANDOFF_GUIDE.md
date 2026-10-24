@@ -1,42 +1,40 @@
-# PAUSED — resume checkpoint (2026-10-24 19:55 Europe/Paris)
+# ReGTA CTW — presentation checkpoint
 
-User explicitly requested a pause. Do not resume development until asked.
+Updated: 2026-10-24 22:36 Europe/Paris. User resumed work after the earlier pause.
 
-## Latest user decisions (override older presentation plans)
-- Website default and primary language: ENGLISH. French may remain optional.
-- GitHub README / public repository presentation: ENGLISH.
-- Logo: GTA must use the official cover typography; Chinatown Wars and CTW must use the corresponding cover lettering. Existing hand-drawn SVG paths are NOT verified authentic fonts despite their comments. Verify font sources and licensing before claiming an exact match. Do not use an image generator to approximate the lettering.
+## Completed this session
 
-## Exact stopping point
-- HEAD before this checkpoint: a25ce02 on main; no Git remote configured.
-- Only new website scaffolding exists: docs/assets/site.css, site.js, favicon.svg, and docs/.nojekyll. These are not yet connected to docs/index.html.
-- Existing docs/index.html, README.md, logo.svg and logo-ctw.svg have NOT been revised in this session.
-- site.js currently defaults to French: change this to English when resuming, alongside English HTML fallback content. No code change made after the pause request.
-- Last activity was research into authentic logo fonts (Pricedown and possible Chinese Rocks). Search output was truncated; no font identification, license check or download has been confirmed. Check Windows font folders and Python fontTools availability again as needed.
-- No Rust/gameplay source modified. Mandatory Compiler.ps1 -Test completed successfully during this session: 152 passed, 0 failed, 0 ignored, 0 compiler warnings. Evidence: target/site-baseline-tests.log and target/validation/build-report.json. Tests were not rerun for this documentation-only checkpoint.
-- README and version metadata need consistency review: Cargo/build report still say 0.1.2-alpha while release documentation says 0.1.4-alpha. Root handoff previously contained stale 131-test information; use this checkpoint first.
+- English-first `docs/index.html` and README. Optional French website switch, saved locally; English fallback works without JavaScript/storage.
+- Responsive CSS, accessible skip link/focus, visible by Benji Paname, prominent pre-alpha/no playable download notice, Tipeee and PayPal links. Honest distinction between prototype systems and verified PSP parity.
+- Actual font-outline logos replace the hand-drawn drafts: user supplied Downloads/pricedown.zip and Downloads/bruce-mikita.zip. Pricedown Black 5.200 + Bruce Mikita Regular v1.0. Main 900x480; compact 900x260. Generator: tools/research/generate_brand_logos.py. Old generators disabled from overwriting public assets.
+- Font files remain private in target/private-fonts; local fontTools 4.67.0 in target/fonttoolslib. No fonts committed. Pricedown fixed artwork terms checked; Bruce archive contains no explicit license. Public-use permission for that historical version is NOT established: see docs/BRANDING.md before publishing.
+- docs/PUBLISHING.md gives two-line GitHub setup for empty public regta-ctw and Pages main /docs. No remote/account guessed, no remote configured, no push/deployment done.
+- No Rust source or gameplay changed. Package/build metadata still says 0.1.2-alpha while release milestone is 0.1.4-alpha; discrepancy explicitly documented, not silently changed.
 
-## Resume in ten seconds
-From repository root:
+## Verification
+
+- Mandatory `powershell -ExecutionPolicy Bypass -File .\Compiler.ps1 -Test`: 152 passed, 0 failed, 0 ignored, 0 compiler warnings. Latest log: target/presentation-tests.log.
+- HTML static checks: English root, 69 bilingual elements, existing local references, unique anchors, valid SVG XML.
+- JavaScript syntax and VM behaviour checks passed: English default, stored French, invalid/blocked storage, switching, exact GitHub Pages repo links.
+- Both logos rasterized with Sharp and visually inspected: target/logo-preview.png and target/logo-ctw-preview.png. These are actual vector renders, not browser screenshots.
+- Full website browser visual verification is still unavailable. Earlier file:// browser navigation was explicitly denied; do not circumvent through other browser surfaces, data URLs or headless browsers. Local preview network access was unavailable. No browser layout certification is claimed.
+
+## Next steps
+
+1. Show/obtain user review of presentation and logos. Resolve Bruce Mikita public-use terms before public distribution. The site is still local.
+2. User creates GitHub repo; exact two-line instructions in docs/PUBLISHING.md. If resuming publication, inspect remote first and avoid copying private data/font files.
+3. Once presentation stage is validated, investigate precision tattooing (overlay 142) and street races (overlay 140) from original evidence; no implementation started and no arbitrary gameplay values authorized.
+4. Review package/release metadata separately when preparing the next actual release.
+
+Resume from repository root:
 ```powershell
-Get-Content .\outputs\CTW-Rust\AI_HANDOFF_GUIDE.md -TotalCount 65
+Get-Content .\outputs\CTW-Rust\AI_HANDOFF_GUIDE.md -TotalCount 45
+git status --short
 ```
-Then inspect git status and the four scaffolding files. Finish typography research, then English-first website and README. Preserve prominent pre-alpha / no playable download notice, visible "by Benji Paname", Tipeee https://fr.tipeee.com/benji-paname/ and PayPal https://paypal.me/BenjiLsg. Avoid unsupported claims of guaranteed 60 FPS, full fidelity or complete missions. 166 indexed overlays do not mean 166 implemented missions.
 
-## Pending deliverables
-1. Authentic-font-based main and compact SVG logos, with provenance/licensing verified; update or retire old generators tools/research/generate_authentic_logo.py and generate_compact_logo.py so they do not overwrite the result.
-2. Complete docs/index.html using responsive scaffold, English first with optional French, accessible navigation and honest progress/donation copy.
-3. English README and publishing instructions for public empty repo regta-ctw. User requested exactly two concise instruction lines for github.com/new and first git push; username is not yet known. GitHub Pages should use main /docs. Do not invent an account URL or publish without authorization.
-4. Static checks and visual review where permitted; commit coherent changes and update handoff. Gameplay (tattoo Overlay 142 and streetrace Overlay 140) only after presentation stage validation; no new gameplay work started.
-
-## Preview limitation / tooling state
-- Local browser preview failed. Explicit browser policy denied file:// navigation; do NOT bypass via alternate browser, data URLs, CDP or headless browser. Local network permission request was not granted. User was told visual browser verification is blocked.
-- A Python docs preview server was started on 127.0.0.1:8765 (exec session 22174); it may still exist. Do not terminate unrelated Python processes. It is not needed to resume file editing.
-- Browser CUA bindings may be stale; read/rewrite its documentation before any further permitted browser work.
-- Python paths: C:/Python314/python.exe and C:/Users/BENJAMIN/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe. PIL and reportlab available; fontTools not confirmed. No successful visual logo render this session.
-
+Historical project handoff follows; its old commit counts and fidelity claims may be stale.
 ---
-Previous project handoff below is historical and may contain unverified fidelity claims or stale commit counts.
+
 # ReGTA CTW — guide de reprise
 
 Nom complet : **ReGTA CTW PSP Recomp**. Version **0.1.4-alpha**.

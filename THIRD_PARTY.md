@@ -45,3 +45,7 @@ The pinned dependencies retain their own licenses, including minifb (MIT/Apache-
 Grand Theft Auto, Chinatown Wars and their resources/marks remain with their respective rights holders. No ISO, ELF, game archive, extracted lookup table, texture, sound or video is part of the tracked repository. The independent project is not affiliated with Rockstar Games or Take-Two Interactive.
 
 The earlier provenance document is preserved verbatim in `docs/archive/THIRD_PARTY-before-restructure.md` for historical traceability; this document corrects its outdated claim about the absence of Android reference tables.
+
+## Presentation logo typefaces
+
+The project wordmarks in `docs/assets/logo.svg` and `logo-ctw.svg` use fixed outlines from user-supplied **Pricedown Black** (Typodermic Fonts) and **Bruce Mikita Regular** (Harold Lohner). Font software is not redistributed or covered by the source-code GPL declaration. The supplied Pricedown desktop terms permit fixed logo artwork. Public-use terms for the supplied historical Bruce Mikita copy remain undocumented; consult [BRANDING.md](docs/BRANDING.md) before public distribution. The wordmarks are independent project branding, not official Rockstar artwork or endorsement.

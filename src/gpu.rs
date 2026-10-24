@@ -1034,6 +1034,16 @@ impl Renderer {
                     2.3,
                     [0.96; 3],
                 );
+                if let Some(scene) = scene {
+                    let cash_str = format!("${}", scene.cash);
+                    self.psp_text(
+                        W as f32 - 180.,
+                        30. + top,
+                        &cash_str,
+                        2.2,
+                        [0.28, 0.88, 0.38],
+                    );
+                }
                 if let Some((scene, i)) = scene.and_then(|s| s.driving.map(|i| (s, i))) {
                     let vname = scene.cars[i].name;
                     let x = (W as f32 - 30. - vname.len() as f32 * 22.).min(W as f32 - 190.);
@@ -1143,6 +1153,37 @@ impl Renderer {
                         glVertex2f(W as f32, H as f32);
                         glVertex2f(0.0, H as f32);
                         glEnd();
+                    }
+
+                    // Contextual World Interaction Prompt
+                    if let Some(prompt_text) = &scene.prompt {
+                        let px = W as f32 / 2. - (prompt_text.len() as f32 * 6.5);
+                        let py = if bands { 540. } else { 660. };
+                        rounded([px - 14., py - 6., prompt_text.len() as f32 * 13. + 28., 34.], 3., [0.08, 0.10, 0.12]);
+                        self.psp_text(px, py, prompt_text, 1.9, [1.0, 0.92, 0.35]);
+                    }
+
+                    // Authentic Chinatown Wars Announcement Banner
+                    if let Some((banner_text, _)) = &scene.banner {
+                        let bx = W as f32 / 2. - (banner_text.len() as f32 * 7.5);
+                        let by = 90. + top;
+                        rounded([bx - 16., by - 6., banner_text.len() as f32 * 15. + 32., 38.], 3., [0.12, 0.08, 0.06]);
+                        self.psp_text(bx, by, banner_text, 2.1, [1.0, 0.85, 0.20]);
+                    }
+
+                    // Active Mission Objective Banner
+                    if let crate::missions::MissionState::InProgress { objective, .. } = &scene.missions.state {
+                        let desc = match objective {
+                            crate::missions::MissionObjective::GoToLocation { description, .. } => *description,
+                            crate::missions::MissionObjective::KillTargets { description, .. } => *description,
+                            crate::missions::MissionObjective::LoseWantedLevel { .. } => "Semez la police !",
+                            crate::missions::MissionObjective::SurviveFrames { .. } => "Survivez aux assaillants !",
+                            crate::missions::MissionObjective::CompleteMinigame { .. } => "Terminez le mini-jeu !",
+                        };
+                        let ox = 24.;
+                        let oy = 60. + top;
+                        rounded([ox - 6., oy - 4., desc.len() as f32 * 13. + 20., 32.], 3., [0.08, 0.10, 0.14]);
+                        self.psp_text(ox, oy, desc, 1.8, [0.98, 0.92, 0.72]);
                     }
                 }
                 let mini = crate::gps::MapView {
@@ -1504,6 +1545,97 @@ impl Renderer {
                         glVertex2f(p[0] + v[0], p[1] + v[1]);
                     }
                     glEnd();
+                }
+            }
+        }
+        if let Some(s) = _scene {
+            // Safehouse markers
+            for sh in &s.safehouses.properties {
+                if sh.owned || large {
+                    let mut sp = view.screen(sh.pos);
+                    if !large {
+                        sp = view.edge_marker(sp, 8.);
+                    }
+                    if view.contains(sp) {
+                        let c = if sh.owned { [0.22, 0.85, 0.35] } else { [0.85, 0.85, 0.25] };
+                        for k in 0..2 {
+                            let r = if k == 0 { 5. } else { 3.5 };
+                            glColor3f(if k == 0 { 0.05 } else { c[0] }, if k == 0 { 0.05 } else { c[1] }, if k == 0 { 0.05 } else { c[2] });
+                            glBegin(7);
+                            for v in [[-r, -r], [r, -r], [r, r], [-r, r]] {
+                                glVertex2f(sp[0] + v[0], sp[1] + v[1]);
+                            }
+                            glEnd();
+                        }
+                    }
+                }
+            }
+
+            // Story Contact Golden Blips
+            for &contact in &[
+                crate::missions::Contact::UncleKenny,
+                crate::missions::Contact::ChanJaoming,
+                crate::missions::Contact::ZhouMing,
+                crate::missions::Contact::HsinJaoming,
+                crate::missions::Contact::WadeHeston,
+                crate::missions::Contact::LesterLeroc,
+                crate::missions::Contact::RudyDAvanzo,
+                crate::missions::Contact::XinShan,
+            ] {
+                let mut cp = view.screen(contact.meeting_pos());
+                if !large {
+                    cp = view.edge_marker(cp, 9.);
+                }
+                if view.contains(cp) {
+                    for k in 0..2 {
+                        let r = if k == 0 { 6.5 } else { 4.5 };
+                        glColor3f(if k == 0 { 0.05 } else { 1.0 }, if k == 0 { 0.05 } else { 0.85 }, if k == 0 { 0.05 } else { 0.15 });
+                        glBegin(7);
+                        for v in [[0., -r], [r, 0.], [0., r], [-r, 0.]] {
+                            glVertex2f(cp[0] + v[0], cp[1] + v[1]);
+                        }
+                        glEnd();
+                    }
+                }
+            }
+
+            // Discovered Drug Dealers (Cyan Blips)
+            for dealer in &s.drugs.dealers {
+                if dealer.discovered || large {
+                    let mut dp = view.screen(dealer.pos);
+                    if !large {
+                        dp = view.edge_marker(dp, 7.);
+                    }
+                    if view.contains(dp) {
+                        for k in 0..2 {
+                            let r = if k == 0 { 4.5 } else { 3. };
+                            glColor3f(if k == 0 { 0.05 } else { 0.2 }, if k == 0 { 0.05 } else { 0.65 }, if k == 0 { 0.05 } else { 0.95 });
+                            glBegin(7);
+                            for v in [[-r, -r], [r, -r], [r, r], [-r, r]] {
+                                glVertex2f(dp[0] + v[0], dp[1] + v[1]);
+                            }
+                            glEnd();
+                        }
+                    }
+                }
+            }
+
+            // Active Mission Objective Waypoint
+            if let crate::missions::MissionState::InProgress { objective: crate::missions::MissionObjective::GoToLocation { target, .. }, .. } = &s.missions.state {
+                let mut mp = view.screen(*target);
+                if !large {
+                    mp = view.edge_marker(mp, 10.);
+                }
+                if view.contains(mp) {
+                    for k in 0..2 {
+                        let r = if k == 0 { 8. } else { 5.5 };
+                        glColor3f(if k == 0 { 0.05 } else { 0.95 }, if k == 0 { 0.05 } else { 0.90 }, if k == 0 { 0.05 } else { 0.15 });
+                        glBegin(7);
+                        for v in [[0., -r], [r, 0.], [0., r], [-r, 0.]] {
+                            glVertex2f(mp[0] + v[0], mp[1] + v[1]);
+                        }
+                        glEnd();
+                    }
                 }
             }
         }

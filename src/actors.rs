@@ -269,6 +269,14 @@ pub struct Scene {
     pub explosions: crate::explosions::ExplosionManager,
     pub radio: crate::radio::RadioManager,
     pub weather: crate::weather::WeatherManager,
+    pub missions: crate::missions::MissionEngine,
+    pub drugs: crate::drugs::DrugEconomy,
+    pub safehouses: crate::safehouse::SafehouseManager,
+    pub stats: crate::stats::Stats,
+    pub save_progress: crate::stats::SaveProgress,
+    pub cash: u32,
+    pub prompt: Option<String>,
+    pub banner: Option<(String, f32)>,
     stream_timer: f32,
 }
 
@@ -511,6 +519,14 @@ impl Scene {
             explosions: crate::explosions::ExplosionManager::new(),
             radio: crate::radio::RadioManager::new(None),
             weather: crate::weather::WeatherManager::new(None),
+            missions: crate::missions::MissionEngine::new(),
+            drugs: crate::drugs::DrugEconomy::new(),
+            safehouses: crate::safehouse::SafehouseManager::new(),
+            stats: crate::stats::Stats::new(),
+            save_progress: crate::stats::SaveProgress::default(),
+            cash: 500,
+            prompt: None,
+            banner: None,
             driving: None,
             health: 127.,
             armour: 0,
@@ -1023,6 +1039,91 @@ impl Scene {
             }
         }
         true
+    }
+
+    /// Handles world interaction on foot with Story Mission contacts, Safehouses, and Drug Dealers.
+    pub fn interact(&mut self, player_pos: [f32; 3]) -> bool {
+        // 1. Story Mission Contacts
+        for &contact in &[
+            crate::missions::Contact::UncleKenny,
+            crate::missions::Contact::ChanJaoming,
+            crate::missions::Contact::ZhouMing,
+            crate::missions::Contact::HsinJaoming,
+            crate::missions::Contact::WadeHeston,
+            crate::missions::Contact::LesterLeroc,
+            crate::missions::Contact::RudyDAvanzo,
+            crate::missions::Contact::XinShan,
+        ] {
+            let m_pos = contact.meeting_pos();
+            if planar(player_pos, m_pos) < 6.0 {
+                if let Some(m) = self.missions.catalog.iter().find(|m| m.contact == contact) {
+                    let m_id = m.id;
+                    let m_title = m.title;
+                    if self.missions.start_mission(m_id).is_ok() {
+                        let _ = self.missions.begin_gameplay();
+                        self.banner = Some((format!("MISSION: {} ({})", m_title, contact.name()), 4.0));
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // 2. Safehouses (Sleep in bed to save game & restore health, or purchase unowned real estate)
+        for safehouse in &mut self.safehouses.properties {
+            if planar(player_pos, safehouse.pos) < 5.5 {
+                if safehouse.owned {
+                    self.health = 127.0;
+                    self.stats.inc_number_of_times_saved();
+                    self.banner = Some(("LIT DE SAUVEGARDE: SANTE RESTAUREE (+6H)".to_string(), 3.5));
+                    return true;
+                } else if self.cash >= safehouse.price {
+                    let price = safehouse.price;
+                    safehouse.owned = true;
+                    self.cash -= price;
+                    self.stats.add_spent_on_property(price);
+                    self.banner = Some((format!("PLANQUE ACHETEE: {} (-${})", safehouse.name, price), 4.0));
+                    return true;
+                } else {
+                    self.banner = Some((format!("FONDS INSUFFISANTS: {} COUTE ${}", safehouse.name, safehouse.price), 3.0));
+                    return true;
+                }
+            }
+        }
+
+        // 3. Drug Dealers (Trade wholesale commodities)
+        for idx in 0..self.drugs.dealers.len() {
+            let d_pos = self.drugs.dealers[idx].pos;
+            if planar(player_pos, d_pos) < 4.0 {
+                let dealer_gang = self.drugs.dealers[idx].gang;
+                let dealer_name = self.drugs.dealers[idx].name;
+                let want = dealer_gang.specialty_buy();
+                let sell = dealer_gang.specialty_sale();
+                if self.drugs.player_bag.get(want) > 0 {
+                    let qty = self.drugs.player_bag.get(want).min(10);
+                    if let Ok(earned) = self.drugs.player_sell(idx, want, qty, &mut self.cash) {
+                        self.stats.inc_trades_done();
+                        self.stats.add_units_of_goods_sold(qty);
+                        self.stats.add_value_of_goods_sold(earned);
+                        self.banner = Some((format!("VENTE {} x{}: +${} ({})", want.name(), qty, earned, dealer_name), 3.5));
+                        return true;
+                    }
+                }
+                if self.cash >= 200 && self.drugs.dealers[idx].stock.get(sell) > 0 {
+                    let qty = 5.min(self.drugs.dealers[idx].stock.get(sell));
+                    if let Ok(cost) = self.drugs.player_buy(idx, sell, qty, &mut self.cash) {
+                        self.stats.inc_trades_done();
+                        self.stats.add_units_of_goods_bought(qty);
+                        self.stats.add_value_of_goods_bought(cost);
+                        self.banner = Some((format!("ACHAT {} x{}: -${} ({})", sell.name(), qty, cost, dealer_name), 3.5));
+                        return true;
+                    }
+                }
+                self.banner = Some((format!("DEALER: {} ({}) - STOCK EPUISE", dealer_name, dealer_gang.name()), 2.5));
+                return true;
+            }
+        }
+
+        false
     }
 
     pub fn tick(
@@ -2042,6 +2143,103 @@ impl Scene {
         self.radio.update(dt, self.driving.is_some());
         self.weather.update(dt);
 
+        // Update banner message countdown timer
+        if let Some((_, timer)) = &mut self.banner {
+            *timer -= dt;
+            if *timer <= 0.0 {
+                self.banner = None;
+            }
+        }
+
+        // Update interaction prompt based on world proximity
+        self.prompt = None;
+        if self.driving.is_none() {
+            // Check story contacts
+            for &contact in &[
+                crate::missions::Contact::UncleKenny,
+                crate::missions::Contact::ChanJaoming,
+                crate::missions::Contact::ZhouMing,
+                crate::missions::Contact::HsinJaoming,
+                crate::missions::Contact::WadeHeston,
+                crate::missions::Contact::LesterLeroc,
+                crate::missions::Contact::RudyDAvanzo,
+                crate::missions::Contact::XinShan,
+            ] {
+                if planar(focus, contact.meeting_pos()) < 6.0 {
+                    self.prompt = Some(format!("[ E / Y ] MISSION : {}", contact.name()));
+                    break;
+                }
+            }
+
+            // Check safehouses
+            if self.prompt.is_none() {
+                for s in &self.safehouses.properties {
+                    if planar(focus, s.pos) < 5.5 {
+                        if s.owned {
+                            self.prompt = Some("[ E / Y ] PLANQUE : DORMIR / SAUVEGARDER".to_string());
+                        } else {
+                            self.prompt = Some(format!("[ E / Y ] ACHETER {} (${})", s.name, s.price));
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Check drug dealers
+            if self.prompt.is_none() {
+                for d in &self.drugs.dealers {
+                    if planar(focus, d.pos) < 4.0 {
+                        self.prompt = Some(format!("[ E / Y ] DEALER AVEC {} ({})", d.name, d.gang.name()));
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Check active story mission objective progress
+        let mut advance_mission = false;
+        if let crate::missions::MissionState::InProgress { objective, .. } = &mut self.missions.state {
+            match objective {
+                crate::missions::MissionObjective::GoToLocation { target, radius, .. } => {
+                    if planar(focus, *target) < *radius {
+                        advance_mission = true;
+                    }
+                }
+                crate::missions::MissionObjective::LoseWantedLevel { .. } => {
+                    if self.police.stars == 0 {
+                        advance_mission = true;
+                    }
+                }
+                crate::missions::MissionObjective::SurviveFrames { frames_left } => {
+                    if *frames_left <= 1 {
+                        advance_mission = true;
+                    } else {
+                        *frames_left -= 1;
+                    }
+                }
+                _ => {}
+            }
+        }
+        if advance_mission {
+            if self.missions.advance_objective(&mut self.cash) {
+                self.stats.inc_missions_passed();
+                self.banner = Some(("MISSION REUSSIE !".to_string(), 4.5));
+            } else {
+                self.banner = Some(("OBJECTIF ATTEINT !".to_string(), 3.0));
+            }
+        }
+
+        // Check drug dealer proximity discovery
+        for d in &mut self.drugs.dealers {
+            if !d.discovered && planar(focus, d.pos) < 25.0 {
+                d.discovered = true;
+                if (d.id as usize) < self.save_progress.dealer.len() {
+                    self.save_progress.dealer[d.id as usize] = true;
+                }
+                self.banner = Some((format!("DEALER DECOUVERT: {} ({})", d.name, d.district), 3.0));
+            }
+        }
+
         self.driving.map(|i| self.cars[i].p)
     }
 }
@@ -2382,6 +2580,14 @@ mod tests {
             explosions: crate::explosions::ExplosionManager::new(),
             radio: crate::radio::RadioManager::new(None),
             weather: crate::weather::WeatherManager::new(None),
+            missions: crate::missions::MissionEngine::new(),
+            drugs: crate::drugs::DrugEconomy::new(),
+            safehouses: crate::safehouse::SafehouseManager::new(),
+            stats: crate::stats::Stats::new(),
+            save_progress: crate::stats::SaveProgress::default(),
+            cash: 500,
+            prompt: None,
+            banner: None,
             driving: None,
             health: 127.,
             armour: 0,
@@ -3038,5 +3244,45 @@ mod tests {
         s_lethal.tick(&c, &roads, &assets, [50.0, 50.0, 0.0], 1.0 / 30.0, DriveInput::default());
         assert_eq!(s_lethal.peds[0].health, 0.0, "high-speed hit is lethal knockdown");
         assert_eq!(s_lethal.kills, 1, "kill counter incremented on lethal hit");
+    }
+
+    #[test]
+    fn world_interactions_missions_safehouses_and_drug_dealing() {
+        let mut s = empty();
+        let c = flat();
+        let roads = Roads { nodes: vec![] };
+        let assets = assets();
+
+        // 1. Mission trigger: Huang meets Uncle Kenny at restaurant
+        let ken_pos = crate::missions::Contact::UncleKenny.meeting_pos();
+        assert!(s.interact(ken_pos), "interaction with Kenny beacon starts mission");
+        assert!(s.missions.current_mission_idx.is_some(), "mission active");
+        assert!(matches!(s.missions.state, crate::missions::MissionState::InProgress { .. }));
+        assert!(s.banner.is_some(), "mission announcement banner displayed");
+
+        // 2. Safehouse interaction: sleep in bed restores health and records save
+        s.health = 45.0;
+        let safehouse_pos = s.safehouses.properties[0].pos; // Cerveza Heights Apartment (owned)
+        assert!(s.interact(safehouse_pos), "interaction with owned safehouse");
+        assert_eq!(s.health, 127.0, "bed sleep restores health to 127");
+
+        // 3. Safehouse purchase: buy BOABO warehouse
+        let unowned_pos = s.safehouses.properties[1].pos;
+        s.cash = 10000;
+        assert!(s.interact(unowned_pos), "purchasing unowned safehouse");
+        assert!(s.safehouses.properties[1].owned, "BOABO safehouse is now owned");
+        assert_eq!(s.cash, 5000, "safehouse price deducted from cash");
+
+        // 4. Drug dealer discovery and wholesale trade
+        let dealer_pos = s.drugs.dealers[0].pos;
+        assert!(!s.drugs.dealers[0].discovered);
+        s.tick(&c, &roads, &assets, dealer_pos, 1.0 / 30.0, DriveInput::default());
+        assert!(s.drugs.dealers[0].discovered, "dealer discovered upon proximity");
+        assert!(s.save_progress.dealer[0], "dealer recorded in save_progress");
+
+        // Trade with dealer
+        let prev_cash = s.cash;
+        assert!(s.interact(dealer_pos), "trade interaction executed");
+        assert!(s.cash != prev_cash || s.drugs.player_bag.total_units() > 0, "transaction took place");
     }
 }

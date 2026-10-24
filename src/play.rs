@@ -234,6 +234,26 @@ pub fn run(
     let weather_tables_bytes = reference_table("weather_tables.bin");
     let weather_tables = crate::weather::WeatherTables::parse(&weather_tables_bytes).ok();
 
+    let overlays_key = disc.entries.keys().find(|k| k.ends_with("OVERLAYS.PAK")).cloned();
+    let overlays_manager = if let Some(ref key) = overlays_key {
+        if let Ok(bytes) = disc.read(key) {
+            match crate::overlays::OverlayManager::parse(&bytes) {
+                Ok(mgr) => {
+                    println!("{} code overlays PSP indexes depuis {}.", mgr.overlays.len(), key);
+                    Some(mgr)
+                }
+                Err(e) => {
+                    eprintln!("Avertissement parseur overlays : {e}");
+                    None
+                }
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     let mut scene = slice_enabled.then(|| {
         let mut s = crate::actors::Scene::new(
             &collision,
@@ -891,14 +911,16 @@ pub fn run(
                         && player.vault.is_none()
                         && s.health > 0.
                     {
-                        if let Some(p) = s.toggle_vehicle(&collision, player.p) {
-                            let heading =
-                                s.driving.map(|i| s.cars[i].angle).unwrap_or(player.heading);
-                            player = Walker::new(&collision, [p[0], p[1]])?;
-                            player.p = p;
-                            player.set_heading(-heading.to_degrees());
-                            pose = Pose::default();
-                            vault_pending = false;
+                        if !s.interact(player.p) {
+                            if let Some(p) = s.toggle_vehicle(&collision, player.p) {
+                                let heading =
+                                    s.driving.map(|i| s.cars[i].angle).unwrap_or(player.heading);
+                                player = Walker::new(&collision, [p[0], p[1]])?;
+                                player.p = p;
+                                player.set_heading(-heading.to_degrees());
+                                pose = Pose::default();
+                                vault_pending = false;
+                            }
                         }
                     }
                     if (std::mem::take(&mut attack_pending) || options.attack_at == Some(ticks))
@@ -988,6 +1010,12 @@ pub fn run(
                             player.level = 0;
                             player.velocity = [0.; 3];
                             pose = Pose::default();
+                        }
+                    }
+                    if let crate::missions::MissionState::InProgress { objective: crate::missions::MissionObjective::GoToLocation { target, .. }, .. } = &s.missions.state {
+                        let t2 = [target[0], target[1]];
+                        if gps.target.map(|t| [t.p[0], t.p[1]]) != Some(t2) {
+                            gps.select(t2, player.p);
                         }
                     }
                 }
@@ -1183,6 +1211,19 @@ pub fn run(
     report["hud"]["fullscreen"] = serde_json::json!(renderer.fullscreen);
     report["hud"]["language"] =
         serde_json::json!(if crate::locale::english() { "en" } else { "fr" });
+    report["overlays"] = serde_json::json!({
+        "loaded": overlays_manager.is_some(),
+        "count": overlays_manager.as_ref().map(|o| o.overlays.len()).unwrap_or(0),
+        "source": overlays_key,
+    });
+    report["missions"] = scene.as_ref().map(|s| serde_json::json!({
+        "cash": s.cash,
+        "missions_passed": s.missions.passed_count,
+        "missions_failed": s.missions.failed_count,
+        "safehouses_owned": s.safehouses.owned_count(),
+        "dealers_discovered": s.drugs.discovered_count(),
+        "wanted_stars": s.police.stars,
+    })).unwrap_or(serde_json::Value::Null);
     report["slice"] = scene.as_ref().map(|s| serde_json::json!({
         "cars":s.cars.len(),"cargen_spawned":s.cars.iter().filter(|c|c.from_cargen).count(),"cargen_total":collision.cells.iter().map(|c|c.car_gens.len()).sum::<usize>(),
         "loaded_car_models":car.as_ref().map(|c|c.models.len()).unwrap_or(0),

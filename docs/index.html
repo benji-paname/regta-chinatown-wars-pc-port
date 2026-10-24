@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReGTA CTW — ReGTA CTW PSP Recomp</title>
+  <meta name="description" content="Projet de recompilation statique et portage natif pur Rust de Grand Theft Auto: Chinatown Wars PSP (ULES-01347 v1.01). Présentation, avancement et soutien.">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <style>
+    :root {
+      --bg-dark: #080a0e;
+      --bg-card: #11151f;
+      --bg-card-hover: #181e2b;
+      --border-color: #232a3a;
+      --primary-red: #e52521;
+      --primary-red-glow: rgba(229, 37, 33, 0.45);
+      --gold: #f5c518;
+      --gold-glow: rgba(245, 197, 24, 0.35);
+      --cyan: #38bdf8;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent-green: #22c55e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Top Glow Effect */
+    .top-glow {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 900px;
+      height: 380px;
+      background: radial-gradient(circle, rgba(229, 37, 33, 0.18) 0%, rgba(245, 197, 24, 0.08) 45%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header Navigation */
+    header {
+      padding: 24px 0;
+      border-bottom: 1px solid var(--border-color);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      background: rgba(8, 10, 14, 0.88);
+      z-index: 100;
+    }
+
+    .nav-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .nav-logo img {
+      height: 48px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: color 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--gold);
+    }
+
+    .btn-nav-donate {
+      background: linear-gradient(135deg, #ffd700, #f59e0b);
+      color: #0f172a !important;
+      font-weight: 800 !important;
+      padding: 10px 20px;
+      border-radius: 9999px;
+      box-shadow: 0 4px 14px var(--gold-glow);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-nav-donate:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(245, 197, 24, 0.55);
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      padding: 70px 0 50px;
+    }
+
+    .hero-logo-box {
+      max-width: 760px;
+      margin: 0 auto 30px;
+      filter: drop-shadow(0 15px 35px rgba(0, 0, 0, 0.6));
+    }
+
+    .hero-logo-box img {
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+    }
+
+    .hero h1 {
+      font-size: 2.8rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #ffffff 40%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p.tagline {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 820px;
+      margin: 0 auto 32px;
+    }
+
+    .badge-bar {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 9999px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      border: 1px solid var(--border-color);
+      background: rgba(17, 21, 31, 0.85);
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .badge-green { color: #4ade80; border-color: rgba(34, 197, 94, 0.4); }
+    .badge-green .badge-dot { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+
+    .badge-gold { color: #facc15; border-color: rgba(245, 197, 24, 0.4); }
+    .badge-gold .badge-dot { background: #eab308; box-shadow: 0 0 8px #eab308; }
+
+    .badge-cyan { color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); }
+    .badge-cyan .badge-dot { background: #38bdf8; box-shadow: 0 0 8px #38bdf8; }
+
+    /* Warning Alert Banner (No Downloads Yet) */
+    .alert-banner {
+      background: linear-gradient(90deg, rgba(229, 37, 33, 0.12), rgba(245, 197, 24, 0.08));
+      border: 1px solid rgba(229, 37, 33, 0.45);
+      border-left: 6px solid var(--primary-red);
+      border-radius: 12px;
+      padding: 22px 28px;
+      text-align: left;
+      margin-bottom: 50px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    .alert-banner h3 {
+      color: #ff5252;
+      font-size: 1.15rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .alert-banner p {
+      color: #cbd5e1;
+      font-size: 0.98rem;
+    }
+
+    /* Dual Action Buttons */
+    .cta-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 60px;
+    }
+
+    .btn-donate-tipeee {
+      background: linear-gradient(135deg, #e52521, #b91c1c);
+      color: #ffffff;
+      text-decoration: none;
+      padding: 18px 38px;
+      border-radius: 14px;
+      font-weight: 800;
+      font-size: 1.1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 8px 24px var(--primary-red-glow);
+      transition: all 0.25s ease;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-donate-tipeee:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 12px 32px rgba(229, 37, 33, 0.65);
+    }
+
+    .btn-donate-paypal {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #ffffff;
+      text-decoration: none;
+      padding: 18px 38px;
+      border-radius: 14px;
+      font-weight: 800;
+      font-size: 1.1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 8px 24px rgba(2, 132, 199, 0.4);
+      transition: all 0.25s ease;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-donate-paypal:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 12px 32px rgba(2, 132, 199, 0.6);
+    }
+
+    /* Grid Sections */
+    section {
+      padding: 60px 0;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .section-title {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .section-title h2 {
+      font-size: 2.2rem;
+      font-weight: 900;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #ffffff, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .section-title p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* Feature Cards Grid */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 28px;
+      transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(245, 197, 24, 0.45);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+      background: var(--bg-card-hover);
+    }
+
+    .card-icon {
+      font-size: 2.2rem;
+      margin-bottom: 18px;
+      display: inline-block;
+    }
+
+    .feature-card h3 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #ffffff;
+    }
+
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .feature-tag {
+      display: inline-block;
+      margin-top: 14px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Support Callout Box */
+    .support-box {
+      background: linear-gradient(135deg, #171b26 0%, #11141c 100%);
+      border: 2px solid var(--gold);
+      border-radius: 20px;
+      padding: 48px;
+      text-align: center;
+      box-shadow: 0 20px 45px rgba(245, 197, 24, 0.15);
+      margin-top: 40px;
+    }
+
+    .support-box h3 {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 16px;
+    }
+
+    .support-box p {
+      color: #cbd5e1;
+      font-size: 1.1rem;
+      max-width: 780px;
+      margin: 0 auto 36px;
+    }
+
+    .reasons-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      text-align: left;
+      margin-bottom: 40px;
+    }
+
+    .reason-item {
+      background: rgba(8, 10, 14, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .reason-item h4 {
+      color: var(--gold);
+      font-size: 1.05rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .reason-item p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin: 0;
+    }
+
+    /* Roadmap Timeline */
+    .timeline {
+      position: relative;
+      max-width: 860px;
+      margin: 0 auto;
+      padding-left: 36px;
+      border-left: 3px solid var(--border-color);
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 40px;
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -43px;
+      top: 6px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--bg-dark);
+      border: 3px solid var(--text-muted);
+    }
+
+    .timeline-item.completed::before {
+      border-color: var(--accent-green);
+      background: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green);
+    }
+
+    .timeline-item.current::before {
+      border-color: var(--gold);
+      background: var(--gold);
+      box-shadow: 0 0 12px var(--gold);
+    }
+
+    .timeline-badge {
+      font-size: 0.8rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 6px;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+
+    .badge-done { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+    .badge-curr { background: rgba(245, 197, 24, 0.2); color: #facc15; }
+    .badge-next { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+
+    .timeline-item h4 {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+
+    .timeline-item p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-color);
+      padding: 48px 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    footer p {
+      margin-bottom: 8px;
+    }
+
+    .legal-notice {
+      max-width: 780px;
+      margin: 20px auto 0;
+      font-size: 0.8rem;
+      color: #64748b;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2rem; }
+      .nav-links { display: none; }
+      .cta-buttons { flex-direction: column; }
+      .support-box { padding: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-glow"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="container nav-content">
+      <a href="#" class="nav-logo">
+        <img src="assets/logo.svg" alt="ReGTA CTW Logo">
+      </a>
+      <div class="nav-links">
+        <a href="#presentation">Présentation</a>
+        <a href="#systemes">Systèmes</a>
+        <a href="#roadmap">Feuille de Route</a>
+        <a href="#dons" class="btn-nav-donate">Faire un Don 💛</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-logo-box">
+        <img src="assets/logo.svg" alt="ReGTA CTW — ReGTA CTW PSP Recomp">
+      </div>
+      <h1>ReGTA CTW — ReGTA CTW PSP Recomp</h1>
+      <p class="tagline">
+        Portage et recompilation statique native en <strong>pur Rust</strong> de <em>Grand Theft Auto: Chinatown Wars</em> (PSP, ULES-01347 v1.01). Sans émulateur CPU, 100% fidèle au code machine PSP original, optimisé pour Windows x64 à 60 FPS constants.
+      </p>
+
+      <div class="badge-bar">
+        <span class="badge badge-gold"><span class="badge-dot"></span> Phase Alpha v0.1.4</span>
+        <span class="badge badge-green"><span class="badge-dot"></span> 152 / 152 Tests Unitaires Réussis</span>
+        <span class="badge badge-cyan"><span class="badge-dot"></span> 166 Code Overlays Indexés</span>
+        <span class="badge badge-green"><span class="badge-dot"></span> 0 Avertissement Compilateur</span>
+      </div>
+
+      <!-- Notice: No Downloads Yet -->
+      <div class="alert-banner">
+        <h3>🛑 Statut Public & Disponibilité des Fichiers</h3>
+        <p>
+          Ce projet est un projet de recherche indépendant en <strong>développement pré-alpha intensif</strong>. 
+          <strong>Aucun fichier binaire exécutable, aucune ROM ni aucun asset propriétaire n'est téléchargeable pour le moment.</strong> 
+          L'accès public complet sera rendu disponible dès que la parité binaire sera validée. Pour accélérer son aboutissement, vous pouvez soutenir directement le projet via les options de don ci-dessous !
+        </p>
+      </div>
+
+      <!-- Call to Action Buttons -->
+      <div class="cta-buttons" id="dons">
+        <a href="https://fr.tipeee.com/benji-paname/" target="_blank" rel="noopener noreferrer" class="btn-donate-tipeee">
+          🧡 Soutenir sur Tipeee (Mensuel / Suivi)
+        </a>
+        <a href="https://paypal.me/BenjiLsg" target="_blank" rel="noopener noreferrer" class="btn-donate-paypal">
+          💙 Faire un Don direct via PayPal.Me
+        </a>
+      </div>
+    </section>
+
+    <!-- Support Callout Box -->
+    <section>
+      <div class="support-box">
+        <h3>Pourquoi Soutenir le Projet ReGTA CTW ?</h3>
+        <p>
+          Développer une recompilation statique fidèle à 100% demande des centaines d'heures d'ingénierie inverse, d'analyse binaire Allegrex MIPS, et des outils matériels spécifiques. Votre soutien financier permet d'accélérer drastiquement la sortie du projet !
+        </p>
+
+        <div class="reasons-list">
+          <div class="reason-item">
+            <h4>⚡ Développement Accéléré</h4>
+            <p>Permet à Benji Paname de consacrer du temps plein à l'analyse et à l'implémentation du moteur en Rust.</p>
+          </div>
+          <div class="reason-item">
+            <h4>🖥️ Matériel de Test & Capture</h4>
+            <p>Financement de matériel de capture hardware PSP et de stations de validation graphique haute fidélité.</p>
+          </div>
+          <div class="reason-item">
+            <h4>🤖 Orchestration Multi-IA</h4>
+            <p>Accès aux meilleurs modèles d'IA de pointe pour vérifier chaque fonction mathématique et algorithme.</p>
+          </div>
+        </div>
+
+        <div class="cta-buttons" style="margin-bottom: 0;">
+          <a href="https://fr.tipeee.com/benji-paname/" target="_blank" rel="noopener noreferrer" class="btn-donate-tipeee">
+            Faire un don sur Tipeee
+          </a>
+          <a href="https://paypal.me/BenjiLsg" target="_blank" rel="noopener noreferrer" class="btn-donate-paypal">
+            Donner via PayPal.Me
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Project Systems & Features -->
+    <section id="systemes">
+      <div class="section-title">
+        <h2>Systèmes Développés & Avancement Technique</h2>
+        <p>Une architecture native purement écrite en Rust, garantissant une stabilité sans faille et une réactivité instantanée.</p>
+      </div>
+
+      <div class="cards-grid">
+        <div class="feature-card">
+          <span class="card-icon">⚡</span>
+          <h3>166 Code Overlays PSP Indexés</h3>
+          <p>Décompression et chargement automatique des 166 modules de code depuis l'archive <code>OVERLAYS.PAK</code> de l'ISO originale en seulement 1,18 seconde. Répartition en Slot 0 (114 missions) et Slot 1 (52 minijeux).</p>
+          <span class="feature-tag">Overlay 000 à 166</span>
+        </div>
+
+        <div class="feature-card">
+          <span class="card-icon">📜</span>
+          <h3>Missions d'Histoire & 8 Boss</h3>
+          <p>Gestionnaire d'objectifs et balises radar dorées pour l'Oncle Kenny, Chan Jaoming, Zhou Ming, le Grand Patriarche Hsin Jaoming, l'inspecteur Heston, Lester, Rudy et Xin Shan (PSP exclusif).</p>
+          <span class="feature-tag">Story Engine (src/missions.rs)</span>
+        </div>
+
+        <div class="feature-card">
+          <span class="card-icon">📱</span>
+          <h3>PDA Interactif v2.1 & GPS</h3>
+          <p>Interface de PDA avec boîtier de verre, carnet d'adresses complet (<code>contactsapp</code>), alertes e-mail de pénurie/surplus, boutique en ligne Ammu-Nation et cours du marché des drogues.</p>
+          <span class="feature-tag">PDA OS (src/pda.rs)</span>
+        </div>
+
+        <div class="feature-card">
+          <span class="card-icon">🚕</span>
+          <h3>Missions Secondaires & Urgences</h3>
+          <p>Service de Taxi avec pourboire vitesse et médaillon nitro, Autodéfense de police en 5 vagues (gilet doublé 200 AP), Pompiers avec lance à eau (Huang ignifugé), Ambulance et livraison de nouilles.</p>
+          <span class="feature-tag">Odd Jobs (src/jobs.rs)</span>
+        </div>
+
+        <div class="feature-card">
+          <span class="card-icon">🔧</span>
+          <h3>Moteur de Mini-Jeux PSP</h3>
+          <p>Évasion sous-marine du prologue (pare-brise brisé en 4 frappes), démarrage aux fils et tournevis, piégeage de voiture à la bombe sous capot (<code>carbombfittingapp</code>), loterie et coffres-forts.</p>
+          <span class="feature-tag">Minigames (src/minigames.rs)</span>
+        </div>
+
+        <div class="feature-card">
+          <span class="card-icon">🗺️</span>
+          <h3>Collectibles & Monde Ouvert</h3>
+          <p>100 caméras de sécurité LCPD destructibles (accordant jusqu'à 20% de remise chez les dealers), 30 sauts uniques USJ, 35 carnages Rampage à munitions infinies, 2 Lions de Fo et bennes à ordures fouillables.</p>
+          <span class="feature-tag">Collectibles (src/collectibles.rs)</span>
+        </div>
+
+        <div class="feature-card">
+          <span class="card-icon">💊</span>
+          <h3>Économie de Marché & 81 Dealers</h3>
+          <p>6 drogues authentiques, 7 gangs rivaux avec variations dynamiques des prix d'offre et de demande, sacoche de 100 unités et saisies douanières en cas d'arrestation par le LCPD.</p>
+          <span class="feature-tag">Drug Economy (src/drugs.rs)</span>
+        </div>
+
+        <div class="feature-card">
+          <span class="card-icon">🔊</span>
+          <h3>Audio & Synthèse Sonore Dédiée</h3>
+          <p>Synthétiseur audio 8-bit PCM pour caisse enregistreuse, notification électronique du PDA, bris de vitre sous-marin, chirps radio de patrouille et fanfare de victoire.</p>
+          <span class="feature-tag">Audio Synth (src/audio.rs)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Roadmap Timeline -->
+    <section id="roadmap">
+      <div class="section-title">
+        <h2>Feuille de Route du Projet</h2>
+        <p>Un développement méthodique, rigoureux et vérifié étape par étape.</p>
+      </div>
+
+      <div class="timeline">
+        <div class="timeline-item completed">
+          <span class="timeline-badge badge-done">Jalon 1 — Terminé</span>
+          <h4>Restructuration Propre & Monorepo Git</h4>
+          <p>Création du dépôt Git source-only, exclusion des ISOs/ROMs et binaires propriétaires, validation de 119 tests unitaires avec 0 warning.</p>
+        </div>
+
+        <div class="timeline-item completed">
+          <span class="timeline-badge badge-done">Jalon 2 — Terminé</span>
+          <h4>Catalogue des 166 Code Overlays & Missions</h4>
+          <p>Décompression de <code>OVERLAYS.PAK</code> en 1,18s, implémentation des boss contacts, économie de drogue, planques et PDA v1.0 (139 tests valides).</p>
+        </div>
+
+        <div class="timeline-item completed">
+          <span class="timeline-badge badge-done">Jalon 3 — Terminé (v0.1.4-alpha)</span>
+          <h4>Jobs Secondaires, Collectibles, Piégeage & SFX</h4>
+          <p>Taxi, Vigilante, Pompiers, Ambulance, 100 caméras, 30 sauts uniques, 35 carnages, carnet de contacts PDA et piégeage de véhicule (152 tests valides).</p>
+        </div>
+
+        <div class="timeline-item current">
+          <span class="timeline-badge badge-curr">Jalon 4 — En Cours</span>
+          <h4>Minijeux de Tatouage, Courses de Rue & IA Piétonne</h4>
+          <p>Précision d'aiguille de tatouage, checkpoints de courses de rue avec chronomètre et comportement des piétons en foule.</p>
+        </div>
+
+        <div class="timeline-item">
+          <span class="timeline-badge badge-next">Jalon 5 — À Venir</span>
+          <h4>Beta Jouable & Campagne Complète</h4>
+          <p>Ouverture de la phase de test avec le dump UMD de l'utilisateur une fois la parité binaire certifiée à 100%.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p><strong>ReGTA CTW — ReGTA CTW PSP Recomp</strong> | Développé par <strong>Benji Paname</strong></p>
+      <p>Code source sous licence <strong>GPL-3.0-only</strong>. Recompilation statique native indépendante pour Windows x64.</p>
+      <div class="legal-notice">
+        Projet de recherche communautaire indépendant sans but lucratif. Ce projet n'est pas affilié, soutenu ni approuvé par Rockstar Games ou Take-Two Interactive. Aucun fichier de jeu protégé par copyright (ISO, ROM, texture, audio, binaire extrait) n'est hébergé ni distribué. Vous devez fournir votre propre copie légale de jeu PSP UMD.
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

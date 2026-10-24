@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 280" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0c10" />
+      <stop offset="50%" stop-color="#141820" />
+      <stop offset="100%" stop-color="#080a0d" />
+    </linearGradient>
+
+    <!-- Crimson Metallic Gradient -->
+    <linearGradient id="crimsonGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ff4a4a" />
+      <stop offset="35%" stop-color="#e52521" />
+      <stop offset="70%" stop-color="#b01210" />
+      <stop offset="100%" stop-color="#690a08" />
+    </linearGradient>
+
+    <!-- Gold Foil Gradient -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffd700" />
+      <stop offset="30%" stop-color="#ffb703" />
+      <stop offset="60%" stop-color="#fb8500" />
+      <stop offset="100%" stop-color="#ffd700" />
+    </linearGradient>
+
+    <!-- Katana Steel Gradient -->
+    <linearGradient id="steelGrad" x1="0%" y1="0%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="40%" stop-color="#cbd5e1" />
+      <stop offset="80%" stop-color="#64748b" />
+      <stop offset="100%" stop-color="#334155" />
+    </linearGradient>
+
+    <!-- Neon Glow Filter -->
+    <filter id="neonGlowRed" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="neonGlowGold" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Dark Shield Badge Background -->
+  <rect width="800" height="280" rx="16" fill="url(#bgGrad)" stroke="#222734" stroke-width="2"/>
+
+  <!-- Subtle Cyber Dragon Silhouette & Seal -->
+  <g opacity="0.12" transform="translate(560, 20) scale(1.1)">
+    <path d="M60,20 C10,40 30,100 80,80 C130,60 160,140 110,180 C60,220 180,240 190,160 C200,80 120,40 140,10 C100,5 80,10 60,20 Z" fill="#ffd700"/>
+  </g>
+
+  <!-- Red Chinese Stamp (印) Badge -->
+  <rect x="52" y="42" width="58" height="58" rx="8" fill="#b01210" stroke="#ff4a4a" stroke-width="2" opacity="0.9"/>
+  <text x="81" y="82" font-family="'Segoe UI', 'Noto Sans SC', sans-serif" font-size="34" font-weight="900" fill="#ffffff" text-anchor="middle">唐</text>
+
+  <!-- Katana Blade Slash Graphic -->
+  <path d="M 125,58 L 740,58 L 730,64 L 125,64 Z" fill="url(#steelGrad)" opacity="0.85"/>
+  <path d="M 125,60 L 745,60" stroke="#ff3b30" stroke-width="2" filter="url(#neonGlowRed)"/>
+
+  <!-- Main Title: ReGTA -->
+  <text x="125" y="132" font-family="'Impact', 'Arial Black', sans-serif" font-size="94" font-weight="900" font-style="italic" letter-spacing="2" fill="url(#crimsonGrad)" stroke="#1a0202" stroke-width="3" filter="url(#neonGlowRed)">ReGTA</text>
+
+  <!-- CTW Monogram / Star -->
+  <g transform="translate(485, 68)">
+    <rect x="0" y="0" width="80" height="42" rx="6" fill="#1e2433" stroke="url(#goldGrad)" stroke-width="2"/>
+    <text x="40" y="29" font-family="'Segoe UI', sans-serif" font-size="22" font-weight="900" fill="url(#goldGrad)" text-anchor="middle" letter-spacing="2">CTW</text>
+  </g>
+
+  <!-- Subtitle: CHINATOWN WARS -->
+  <text x="128" y="185" font-family="'Impact', 'Arial Black', sans-serif" font-size="44" font-weight="800" letter-spacing="7" fill="url(#goldGrad)" filter="url(#neonGlowGold)">CHINATOWN WARS</text>
+
+  <!-- Divider Line with Diamond -->
+  <line x1="128" y1="205" x2="740" y2="205" stroke="#334155" stroke-width="1.5"/>
+  <polygon points="434,200 440,205 434,210 428,205" fill="#ffd700"/>
+
+  <!-- Pill Badges Footer -->
+  <g transform="translate(128, 222)">
+    <!-- Engine Badge -->
+    <rect x="0" y="0" width="220" height="32" rx="16" fill="#141c2b" stroke="#38bdf8" stroke-width="1.5"/>
+    <circle cx="16" cy="16" r="5" fill="#38bdf8"/>
+    <text x="32" y="21" font-family="'Segoe UI', sans-serif" font-size="13" font-weight="700" fill="#e2e8f0" letter-spacing="1">PSP STATIC RECOMP</text>
+  </g>
+
+  <g transform="translate(362, 222)">
+    <!-- Language/Platform Badge -->
+    <rect x="0" y="0" width="135" height="32" rx="16" fill="#1c1917" stroke="#f97316" stroke-width="1.5"/>
+    <circle cx="16" cy="16" r="5" fill="#f97316"/>
+    <text x="32" y="21" font-family="'Segoe UI', sans-serif" font-size="13" font-weight="700" fill="#fdba74" letter-spacing="1">PURE RUST</text>
+  </g>
+
+  <g transform="translate(510, 222)">
+    <!-- Author Signature -->
+    <rect x="0" y="0" width="230" height="32" rx="16" fill="#1a1824" stroke="#eab308" stroke-width="1.5"/>
+    <circle cx="16" cy="16" r="5" fill="#eab308"/>
+    <text x="32" y="21" font-family="'Segoe UI', sans-serif" font-size="13" font-weight="700" fill="#fef08a" letter-spacing="1">BY BENJI PANAME</text>
+  </g>
+</svg>

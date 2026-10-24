@@ -1,20 +1,21 @@
 # Publish ReGTA CTW
 
-The intended repository name is **regta-ctw**. No GitHub account name or remote URL has been assumed. The website is static and lives in `docs/`; it needs no build service or dependency installation.
+The live repository name is **regta-chinatown-wars-pc-port** under account **benji-paname**. The website is static and lives in `docs/`; it needs no build service or dependency installation.
 
-## Two-line setup
+## Setup and URLs
 
-1. At https://github.com/new, create a **Public** repository named **regta-ctw**, leaving README, license and .gitignore initialization unchecked.
-2. From the local project root, run `git remote add origin https://github.com/YOUR_USERNAME/regta-ctw.git` then `git push -u origin main`; in **Settings → Pages**, choose **Deploy from a branch → main → /docs → Save**.
+1. **Repository URL**: `https://github.com/benji-paname/regta-chinatown-wars-pc-port`
+2. **Git Remote**: `git remote set-url origin https://github.com/benji-paname/regta-chinatown-wars-pc-port.git`
+3. **GitHub Pages Deployment**:
+   - Source: **Deploy from a branch**
+   - Branch: **`main`**
+   - Folder: **`/docs`**
+4. **Live Website URL**: **`https://benji-paname.github.io/regta-chinatown-wars-pc-port/`**
 
-Replace `YOUR_USERNAME` with your actual GitHub username. GitHub may ask you to sign in. If `origin` already exists, inspect it with `git remote -v` before changing it; do not add a duplicate or overwrite an unrelated remote.
+On that standard Pages address, the site's GitHub links automatically resolve to the actual account and repository.
 
-The expected site address is `https://YOUR_USERNAME.github.io/regta-ctw/`. This is a template, not a live deployment. On that standard Pages address, the site's GitHub links automatically resolve to the actual account and repository. A custom domain will need explicit repository links.
+## Safety and Scope
 
-## Before the first public push
+Only clean sources, vector assets and documentation are tracked in the repository. Private game ROMs, proprietary ISOs, and font software files remain strictly uncommitted and protected in `.gitignore`.
 
-Review `git ls-files` to ensure that only intended source, documentation and permitted assets are tracked. Private game files, decrypted executables, research data and fonts without redistribution permission must stay outside the repository. An ignore rule does not remove files already tracked in Git history.
-
-Finalize the font provenance described in [BRANDING.md](BRANDING.md) before presenting the logo as matching the original cover. Review the page on desktop and mobile; no browser visual verification has been completed in the current editing environment.
-
-No public playable release is being published by this workflow. The website is a presentation of work in progress. Keep donations clearly separate from game purchases or access promises.
+No public playable release is published by this workflow. The website is an independent showcase of work in progress with official community donation links (Tipeee and PayPal.Me).

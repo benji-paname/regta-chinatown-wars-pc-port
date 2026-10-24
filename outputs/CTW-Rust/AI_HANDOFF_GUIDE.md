@@ -27,8 +27,10 @@ Updated: 2026-10-24 23:00 Europe/Paris. Multi-AI autonomous handoff guide.
 
 ## Next Roadmap Priorities (Autonomous Continuation)
 
-1. **GitHub Pages Deployment**:
-   - User creates repository `regta-ctw` on GitHub, pushes `main`, and activates Settings → Pages → `main` → `/docs`.
+1. **GitHub Pages Deployment (Completed & Live)**:
+   - Live repository: `https://github.com/benji-paname/regta-chinatown-wars-pc-port`
+   - Live showcase website: `https://benji-paname.github.io/regta-chinatown-wars-pc-port/`
+   - Trilingual support active (EN, FR, ES). All logos and PNG assets published.
 2. **Priority A: Tattoo Parlor Precision Needle Minigame (`tattoominigame`, Overlay 142, Slot 1)**:
    - Precision tattoo needle tracing with stencil accuracy, pain/stability meter, ink replenishment.
 3. **Priority B: Street Races Engine (`streetrace`, Overlay 140, Slot 0)**:

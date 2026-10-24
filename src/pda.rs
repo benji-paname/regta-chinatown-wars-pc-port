@@ -16,9 +16,24 @@ pub enum PdaView {
     Home,
     EmailInbox,
     EmailDetail(usize),
+    ContactsList,
+    ContactDetail(usize),
     AmmuNationStore,
     TradeStats,
     SystemSettings,
+}
+
+/// An entry in Huang's PDA Address Book / Contacts list (Overlay 014 contactsapp).
+#[derive(Debug, Clone, PartialEq)]
+pub struct PdaContact {
+    pub id: usize,
+    pub name: &'static str,
+    pub title: &'static str,
+    pub organization: &'static str,
+    pub district: &'static str,
+    pub phone: &'static str,
+    pub meeting_pos: [f32; 3],
+    pub unlocked: bool,
 }
 
 /// An incoming email message in Huang's PDA inbox.
@@ -61,6 +76,7 @@ pub struct PdaEngine {
     pub open: bool,
     pub current_view: PdaView,
     pub emails: Vec<EmailMessage>,
+    pub contacts: Vec<PdaContact>,
     pub selected_index: usize,
     pub unread_count: usize,
 }
@@ -73,6 +89,89 @@ impl Default for PdaEngine {
 
 impl PdaEngine {
     pub fn new() -> Self {
+        let initial_contacts = vec![
+            PdaContact {
+                id: 0,
+                name: "Uncle Kenny",
+                title: "Sous-chef des Triades",
+                organization: "Triades de Liberty City",
+                district: "Cerveza Heights",
+                phone: "555-0182",
+                meeting_pos: [485.0, 275.0, 6.0],
+                unlocked: true,
+            },
+            PdaContact {
+                id: 1,
+                name: "Chan Jaoming",
+                title: "Fils du Grand Patriarche",
+                organization: "Triades de Liberty City",
+                district: "Easton",
+                phone: "555-0144",
+                meeting_pos: [230.0, 260.0, 5.0],
+                unlocked: true,
+            },
+            PdaContact {
+                id: 2,
+                name: "Zhou Ming",
+                title: "Chef de faction Triade",
+                organization: "Triades de Liberty City",
+                district: "Middle Park",
+                phone: "555-0199",
+                meeting_pos: [270.0, 510.0, 7.0],
+                unlocked: true,
+            },
+            PdaContact {
+                id: 3,
+                name: "Hsin Jaoming",
+                title: "Grand Patriarche",
+                organization: "Haut Conseil des Triades",
+                district: "Chinatown",
+                phone: "555-0100",
+                meeting_pos: [290.0, 80.0, 5.0],
+                unlocked: false,
+            },
+            PdaContact {
+                id: 4,
+                name: "Wade Heston",
+                title: "Inspecteur (Affaires Internes)",
+                organization: "LCPD (Police de Liberty City)",
+                district: "Northwood",
+                phone: "555-0155",
+                meeting_pos: [160.0, 690.0, 5.0],
+                unlocked: true,
+            },
+            PdaContact {
+                id: 5,
+                name: "Lester Leroc",
+                title: "Agent infiltré",
+                organization: "Angels of Death",
+                district: "Willis",
+                phone: "555-0122",
+                meeting_pos: [650.0, 190.0, 4.0],
+                unlocked: false,
+            },
+            PdaContact {
+                id: 6,
+                name: "Rudy D'Avanzo",
+                title: "Affilié Mafia Italienne",
+                organization: "Famille Messina",
+                district: "Little Italy",
+                phone: "555-0177",
+                meeting_pos: [200.0, 230.0, 5.0],
+                unlocked: false,
+            },
+            PdaContact {
+                id: 7,
+                name: "Xin Shan",
+                title: "Frère de Ling (Secret)",
+                organization: "Indépendant (Exclusif PSP)",
+                district: "Cerveza Heights",
+                phone: "555-0133",
+                meeting_pos: [490.0, 290.0, 6.0],
+                unlocked: false,
+            },
+        ];
+
         let initial_emails = vec![
             EmailMessage {
                 id: 1,
@@ -115,6 +214,7 @@ impl PdaEngine {
             open: false,
             current_view: PdaView::Home,
             emails: initial_emails,
+            contacts: initial_contacts,
             selected_index: 0,
             unread_count: 3,
         }
@@ -150,11 +250,23 @@ impl PdaEngine {
         }
     }
 
+    /// Selects a contact from the address book and retrieves GPS coordinates (Overlay 014 contactsapp).
+    pub fn select_contact_and_get_gps(&mut self, contact_idx: usize) -> Option<([f32; 3], &'static str)> {
+        if contact_idx < self.contacts.len() {
+            let contact = &self.contacts[contact_idx];
+            self.current_view = PdaView::ContactDetail(contact_idx);
+            Some((contact.meeting_pos, contact.name))
+        } else {
+            None
+        }
+    }
+
     /// Navigates selection up or down.
     pub fn navigate(&mut self, delta: i32) {
         let max = match self.current_view {
-            PdaView::Home => 4, // 4 main apps (Email, Ammu-Nation, Trade Stats, Settings)
+            PdaView::Home => 5, // 5 main apps (Email, Contacts, Ammu-Nation, Trade Stats, Settings)
             PdaView::EmailInbox => self.emails.len().saturating_sub(1),
+            PdaView::ContactsList => self.contacts.len().saturating_sub(1),
             PdaView::AmmuNationStore => AMMUNATION_CATALOG.len().saturating_sub(1),
             _ => 0,
         };
@@ -247,5 +359,25 @@ mod tests {
         // Insufficient cash
         let res_fail = pda.purchase_store_item(0, &mut cash, None, &mut armour);
         assert!(res_fail.is_err());
+    }
+
+    #[test]
+    fn pda_contacts_list_and_gps_routing() {
+        let mut pda = PdaEngine::new();
+        assert_eq!(pda.contacts.len(), 8);
+        assert_eq!(pda.contacts[0].name, "Uncle Kenny");
+
+        // Open Contacts view and navigate
+        pda.current_view = PdaView::ContactsList;
+        pda.navigate(1);
+        assert_eq!(pda.selected_index, 1);
+
+        // Select contact Chan Jaoming for GPS routing
+        let route = pda.select_contact_and_get_gps(1);
+        assert!(route.is_some());
+        let (pos, name) = route.unwrap();
+        assert_eq!(name, "Chan Jaoming");
+        assert_eq!(pos, [230.0, 260.0, 5.0]);
+        assert_eq!(pda.current_view, PdaView::ContactDetail(1));
     }
 }

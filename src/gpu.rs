@@ -1732,19 +1732,46 @@ impl Renderer {
 
                 let apps = [
                     ("1. MESSAGERIE ELECTRONIQUE", format!("{} message(s) non lu(s)", pda.unread_count)),
-                    ("2. BOUTIQUE AMMU-NATION", "Commandez vos armes en ligne".to_string()),
-                    ("3. COURS DES DROGUES (STATISTIQUES)", "Alertes penuries et surplus".to_string()),
-                    ("4. SYSTEME ET PARAMETRES", "Options d'affichage et son".to_string()),
+                    ("2. CARNET DE CONTACTS & GPS", format!("{} contacts enregistres", pda.contacts.len())),
+                    ("3. BOUTIQUE AMMU-NATION", "Commandez vos armes en ligne".to_string()),
+                    ("4. COURS DU MARCHE & STATS", "Alertes penuries et surplus".to_string()),
+                    ("5. SYSTEME ET PARAMETRES", "Options d'affichage et son".to_string()),
                 ];
 
                 for (idx, (title, sub)) in apps.iter().enumerate() {
-                    let ay = py + 95. + idx as f32 * 75.;
+                    let ay = py + 90. + idx as f32 * 62.;
                     let selected = pda.selected_index == idx;
                     let bg = if selected { [0.22, 0.26, 0.35] } else { [0.07, 0.09, 0.12] };
-                    rounded([px + 20., ay, pw - 40., 65.], 4., bg);
+                    rounded([px + 20., ay, pw - 40., 54.], 4., bg);
                     let title_col = if selected { [1.0, 0.92, 0.35] } else { [0.90, 0.92, 0.94] };
-                    self.psp_text(px + 32., ay + 12., title, 2.0, title_col);
-                    self.psp_text(px + 32., ay + 36., sub, 1.7, [0.65, 0.70, 0.75]);
+                    self.psp_text(px + 32., ay + 8., title, 1.9, title_col);
+                    self.psp_text(px + 32., ay + 30., sub, 1.6, [0.65, 0.70, 0.75]);
+                }
+            }
+            crate::pda::PdaView::ContactsList => {
+                self.psp_text(px + 20., py + 55., "CARNET DE CONTACTS & GPS", 2.2, [1.0, 0.85, 0.20]);
+                for (idx, contact) in pda.contacts.iter().enumerate().take(5) {
+                    let cy = py + 95. + idx as f32 * 68.;
+                    let selected = pda.selected_index == idx;
+                    let bg = if selected { [0.22, 0.26, 0.35] } else { [0.07, 0.09, 0.12] };
+                    rounded([px + 20., cy, pw - 40., 60.], 4., bg);
+                    let title = format!("{}: {}", contact.name, contact.title);
+                    let col = if selected { [1.0, 0.92, 0.35] } else { [0.85, 0.88, 0.90] };
+                    self.psp_text(px + 28., cy + 10., &title, 1.8, col);
+                    let sub = format!("{} | Tel: {}", contact.district, contact.phone);
+                    self.psp_text(px + 28., cy + 32., &sub, 1.6, [0.60, 0.65, 0.70]);
+                }
+            }
+            crate::pda::PdaView::ContactDetail(idx) => {
+                if let Some(contact) = pda.contacts.get(idx) {
+                    self.psp_text(px + 20., py + 55., contact.name, 2.2, [1.0, 0.85, 0.20]);
+                    self.psp_text(px + 20., py + 85., contact.title, 1.9, [0.85, 0.90, 0.95]);
+
+                    rounded([px + 20., py + 115., pw - 40., 270.], 4., [0.06, 0.08, 0.10]);
+                    self.psp_text(px + 32., py + 135., &format!("Organisation : {}", contact.organization), 1.8, [0.92, 0.92, 0.94]);
+                    self.psp_text(px + 32., py + 165., &format!("Quartier : {}", contact.district), 1.8, [0.92, 0.92, 0.94]);
+                    self.psp_text(px + 32., py + 195., &format!("Numero de telephone : {}", contact.phone), 1.8, [0.92, 0.92, 0.94]);
+                    self.psp_text(px + 32., py + 235., "[ ENTREE / A ] : ROUTER LE GPS VERS CE CONTACT", 1.9, [0.28, 0.88, 0.38]);
                 }
             }
             crate::pda::PdaView::EmailInbox => {

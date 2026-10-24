@@ -2245,6 +2245,9 @@ impl Scene {
                 crate::minigames::MinigameKind::DumpsterSearch { .. } => {
                     "[ E / Y ] FOUILLER LA BENNE".to_string()
                 }
+                crate::minigames::MinigameKind::CarBombFitting { wires_connected, .. } => {
+                    format!("[ E / Y ] RACCORDER LES FILS DU DÉTONATEUR ({}/3)", wires_connected)
+                }
             };
             self.prompt = Some(action_hint);
         } else if self.driving.is_none() {

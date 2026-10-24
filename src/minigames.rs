@@ -49,6 +49,11 @@ pub enum MinigameKind {
         found_weapon: Option<usize>, // weapon type_id
         found_cash: u32,
     },
+    /// Fitting and arming a vehicle car bomb (Overlay 010 carbombfittingapp).
+    CarBombFitting {
+        wires_connected: u8, // 0..=3 (power, ground, detonator switch)
+        armed: bool,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -150,6 +155,19 @@ impl MinigameSession {
         }
     }
 
+    pub fn new_car_bomb() -> Self {
+        Self {
+            kind: MinigameKind::CarBombFitting {
+                wires_connected: 0,
+                armed: false,
+            },
+            completed: false,
+            failed: false,
+            reward_cash: 500,
+            reward_message: None,
+        }
+    }
+
     /// Primary interaction action (strike glass, twist wire, pump fuel, scratch cell, turn dial).
     pub fn trigger_action(&mut self) -> bool {
         if self.completed || self.failed {
@@ -223,6 +241,14 @@ impl MinigameSession {
                     None => format!("TROUVE DANS LA BENNE: ${}", found_cash),
                 };
                 self.reward_message = Some(msg);
+            }
+            MinigameKind::CarBombFitting { wires_connected, armed } => {
+                *wires_connected += 1;
+                if *wires_connected >= 3 {
+                    *armed = true;
+                    self.completed = true;
+                    self.reward_message = Some("BOMBE AUTOMOBILE AMORCÉE ! Le véhicule explosera au démarrage (+500$)".into());
+                }
             }
         }
 
@@ -334,5 +360,22 @@ mod tests {
         assert!(safe.trigger_action());
         assert!(safe.completed);
         assert_eq!(safe.reward_cash, 2500);
+    }
+
+    #[test]
+    fn car_bomb_fitting_wiring_and_arming() {
+        let mut bomb = MinigameSession::new_car_bomb();
+        assert!(!bomb.completed);
+
+        assert!(!bomb.trigger_action());
+        assert!(!bomb.trigger_action());
+        assert!(bomb.trigger_action());
+        assert!(bomb.completed);
+        if let MinigameKind::CarBombFitting { wires_connected, armed } = bomb.kind {
+            assert_eq!(wires_connected, 3);
+            assert!(armed);
+        } else {
+            panic!("Wrong minigame kind");
+        }
     }
 }

@@ -29,7 +29,7 @@
   // GitHub Pages supplies the real account and repository; no invented username.
   const host = location.hostname;
   const repo = location.pathname.split('/').filter(Boolean)[0];
-  if (/^[a-z0-9-]+\.github\.io$/i.test(host) && repo === 'regta-ctw') {
+  if (/^[a-z0-9-]+\.github\.io$/i.test(host) && repo) {
     const owner = host.slice(0, -'.github.io'.length);
     document.querySelectorAll('.repo-link').forEach((link) => {
       link.href = `https://github.com/${owner}/${repo}`;

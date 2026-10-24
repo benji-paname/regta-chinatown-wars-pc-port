@@ -23,8 +23,8 @@ L'entrée `outputs/CTW-Rust/Compiler.ps1 -Test` reste compatible. Les sources ac
 
 ## État exact
 
-- Dernière compilation : **135 tests réussis, 0 échec, 0 ignoré, 0 avertissement**, avec `-D warnings`.
-- Git local initialisé : 12 commits sur `main`, état propre. Dernier commit `897e676` : implémentation du système PDA complet (`pdaapp`, `emailapp`, `ammozoneapp`, `tradestatsapp`) avec navigation, commandes Ammu-Nation et synchronisation des waypoints GPS par email.
+- Dernière compilation : **139 tests réussis, 0 échec, 0 ignoré, 0 avertissement**, avec `-D warnings`.
+- Git local initialisé : 13 commits sur `main`, état propre. Dernier commit `5949531` : implémentation du moteur de mini-jeux authentiques PSP (`sinkingcarapp`, `hotwiringapp`, `scratchcardapp`, `safecrackingapp`, `dumpsterweaponstashapp`, `molotovcocktailapp`) synchronisé avec les étapes du mode Histoire.
 - Exécutable : `outputs/CTW-Rust/CTW-Rust.exe`.
 - Indexation automatique au lancement : les 166 code overlays PSP sont détectés et chargés directement depuis `OVERLAYS.PAK` dans l'ISO UMD originale en 1.18 s.
 - Cache actif unique : `target/`. Rapports courants : `target/validation/build-report.json`.

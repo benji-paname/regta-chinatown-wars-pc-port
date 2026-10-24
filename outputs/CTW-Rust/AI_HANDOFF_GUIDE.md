@@ -13,10 +13,18 @@ Depuis la racine du dépôt :
 
 L'entrée `outputs/CTW-Rust/Compiler.ps1 -Test` reste compatible. Les sources actives sont uniquement dans **src/**. Le workspace et Cargo.lock sont à la racine ; le package **regta-ctw** conserve son manifeste dans `outputs/CTW-Rust/Cargo.toml`.
 
+## Règle Obligatoire Permanente (Directive de Benjamin)
+
+> Avant CHAQUE tâche de développement ou d'ingénierie inverse, exécuter un contrôle de synchronisation avec le dépôt voisin `references/chinatown-wars-psp-recomp` pour vérifier et intégrer ses avancées récentes :
+> ```powershell
+> git -C references/chinatown-wars-psp-recomp fetch --all
+> git -C references/chinatown-wars-psp-recomp status -uno
+> ```
+
 ## État exact
 
-- Dernière compilation : **127 tests réussis, 0 échec, 0 ignoré, 0 avertissement**, avec `-D warnings`.
-- Git local initialisé : 6 commits sur `main`, état propre. Dernier commit `f5cebd9` : système de deal de drogue (6 commodities, 81 dealers) et 21 planques de Liberty City.
+- Dernière compilation : **131 tests réussis, 0 échec, 0 ignoré, 0 avertissement**, avec `-D warnings`.
+- Git local initialisé : 8 commits sur `main`, état propre. Dernier commit `dc61440` : décompresseur des 166 code overlays PSP (`OVERLAYS.PAK`) et moteur de missions du mode Histoire.
 - Exécutable : `outputs/CTW-Rust/CTW-Rust.exe`.
 - Cache actif unique : `target/`. Rapports courants : `target/validation/build-report.json`.
 - Nouvelles références intégrées dans `references/` :

@@ -2,9 +2,6 @@
   <title>ReGTA CTW — PSP Recomp</title>
   <desc>Official Vertical Stacked Project Logo — ReGTA CTW PSP Recompilation by Benji Paname</desc>
   
-  <rect width="100%" height="100%" fill="#08090d" rx="20" />
-  <circle cx="450" cy="250" r="280" fill="radial-gradient(circle, rgba(220,20,20,0.14) 0%, rgba(255,200,0,0.05) 50%, transparent 70%)" />
-
   
     <defs>
       <!-- Recomp Red Gradient for "Re" -->

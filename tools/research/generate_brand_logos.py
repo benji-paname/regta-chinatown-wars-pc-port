@@ -224,26 +224,27 @@ def main():
     assets_dir.mkdir(parents=True, exist_ok=True)
     deliverables_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. Generate SVGs
+    # 1. Generate SVGs (transparent by default)
     svg_h_bg = assets_dir / 'logo-ctw.svg'
     svg_h_tr = assets_dir / 'logo-ctw-transparent.svg'
     svg_v_bg = assets_dir / 'logo.svg'
     svg_v_tr = assets_dir / 'logo-transparent.svg'
 
-    svg_h_bg.write_text(build_horizontal_svg(transparent=False), encoding='utf-8')
+    # Make transparent the default for all versions
+    svg_h_bg.write_text(build_horizontal_svg(transparent=True), encoding='utf-8')
     svg_h_tr.write_text(build_horizontal_svg(transparent=True), encoding='utf-8')
-    svg_v_bg.write_text(build_vertical_svg(transparent=False), encoding='utf-8')
+    svg_v_bg.write_text(build_vertical_svg(transparent=True), encoding='utf-8')
     svg_v_tr.write_text(build_vertical_svg(transparent=True), encoding='utf-8')
 
-    print("Generated 4 SVG files.")
+    print("Generated 4 SVG files (transparent by default).")
 
-    # 2. Render PNGs (2x High-Resolution)
+    # 2. Render PNGs (2x High-Resolution, transparent by default)
     # Horizontal: 960x260 -> 1920x520
-    render_png(svg_h_bg, assets_dir / 'logo-ctw.png', 1920, 520, transparent=False)
+    render_png(svg_h_bg, assets_dir / 'logo-ctw.png', 1920, 520, transparent=True)
     render_png(svg_h_tr, assets_dir / 'logo-ctw-transparent.png', 1920, 520, transparent=True)
 
     # Vertical: 900x500 -> 1800x1000
-    render_png(svg_v_bg, assets_dir / 'logo.png', 1800, 1000, transparent=False)
+    render_png(svg_v_bg, assets_dir / 'logo.png', 1800, 1000, transparent=True)
     render_png(svg_v_tr, assets_dir / 'logo-transparent.png', 1800, 1000, transparent=True)
 
     # 3. Synchronize to outputs/CTW-Rust/branding

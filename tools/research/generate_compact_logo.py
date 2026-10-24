@@ -1,0 +1,152 @@
+# SPDX-License-Identifier: GPL-3.0-only
+"""
+Generates compact ReGTA CTW official logo:
+- 'GTA' in authentic Pricedown Grand Theft Auto font.
+- 'CTW' in authentic Chinese Rocks chisel-brush font.
+- Clean, modern, high-contrast, scalable.
+"""
+
+def generate_compact_logo_svg():
+    svg = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 260" width="100%" height="100%">
+  <defs>
+    <filter id="gtaShadowCompact" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="6" dy="8" stdDeviation="0" flood-color="#000000" flood-opacity="1.0" />
+      <feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="rgba(0,0,0,0.85)" />
+    </filter>
+
+    <filter id="ctwShadowCompact" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="5" dy="6" stdDeviation="0" flood-color="#000000" flood-opacity="1.0" />
+      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="rgba(229, 37, 33, 0.5)" />
+    </filter>
+
+    <linearGradient id="gtaWhiteGradC" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="70%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#cbd5e1" />
+    </linearGradient>
+
+    <linearGradient id="ctwGoldGradC" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fff066" />
+      <stop offset="35%" stop-color="#ffcc00" />
+      <stop offset="85%" stop-color="#ff9900" />
+      <stop offset="100%" stop-color="#e67e00" />
+    </linearGradient>
+
+    <linearGradient id="recompCyanGradC" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+  </defs>
+
+  <!-- Clean, Deep Background -->
+  <rect width="760" height="260" rx="16" fill="#090b10" />
+  
+  <!-- Subtle Red/Gold Atmospheric Radial Glow -->
+  <circle cx="380" cy="120" r="220" fill="radial-gradient(circle, rgba(229,37,33,0.12) 0%, rgba(255,204,0,0.04) 50%, transparent 70%)" />
+
+  <!-- 1. "GTA" - AUTHENTIC PRICEDOWN (Left side) -->
+  <g id="GTA_Pricedown_Compact" filter="url(#gtaShadowCompact)" transform="translate(18, 10)">
+    <!-- 'G' -->
+    <path d="M 125,145 
+             C 72,145 45,118 45,78 
+             C 45,38 72,12 125,12 
+             C 161,12 181,26 190,42 
+             L 163,58 
+             C 156,47 144,38 125,38 
+             C 90,38 76,56 76,78 
+             C 76,100 90,118 125,118 
+             C 143,118 156,111 161,104 
+             L 161,88 
+             L 120,88 
+             L 120,66 
+             L 192,66 
+             L 192,124 
+             C 178,138 154,145 125,145 Z"
+          fill="url(#gtaWhiteGradC)" 
+          stroke="#000000" 
+          stroke-width="12" 
+          stroke-linejoin="round" 
+          paint-order="stroke fill" />
+
+    <!-- 'T' -->
+    <path d="M 206,12 
+             L 325,12 
+             L 325,38 
+             L 280,38 
+             L 280,142 
+             L 250,142 
+             L 250,38 
+             L 206,38 Z"
+          fill="url(#gtaWhiteGradC)" 
+          stroke="#000000" 
+          stroke-width="12" 
+          stroke-linejoin="round" 
+          paint-order="stroke fill" />
+
+    <!-- 'A' -->
+    <path d="M 382,12 
+             C 412,12 434,24 445,44 
+             L 445,142 
+             L 415,142 
+             L 415,112 
+             L 350,112 
+             L 350,142 
+             L 320,142 
+             L 320,44 
+             C 331,24 353,12 382,12 Z
+             M 382,37 
+             C 361,37 350,47 350,65 
+             L 350,88 
+             L 415,88 
+             L 415,65 
+             C 415,47 404,37 382,37 Z"
+          fill="url(#gtaWhiteGradC)" 
+          stroke="#000000" 
+          stroke-width="12" 
+          stroke-linejoin="round" 
+          paint-order="stroke fill" />
+  </g>
+
+  <!-- Vertical Divider Slash / Katana Cut -->
+  <line x1="492" y1="28" x2="480" y2="152" stroke="#e52521" stroke-width="4" stroke-linecap="round" />
+
+  <!-- 2. "CTW" - CHINATOWN WARS COVER BRUSH FONT (Right side) -->
+  <g id="CTW_CoverFont" filter="url(#ctwShadowCompact)" transform="translate(506, 26)">
+    <!-- 'C' -->
+    <path d="M 68,14 L 26,14 L 11,29 L 11,76 L 26,91 L 68,91 L 68,71 L 31,71 L 26,66 L 26,39 L 31,34 L 68,34 Z" 
+          fill="url(#ctwGoldGradC)" stroke="#000000" stroke-width="8" stroke-linejoin="round" paint-order="stroke fill"/>
+
+    <!-- 'T' -->
+    <path d="M 80,14 L 132,14 L 132,32 L 114,32 L 114,91 L 98,91 L 98,32 L 80,32 Z" 
+          fill="url(#ctwGoldGradC)" stroke="#000000" stroke-width="8" stroke-linejoin="round" paint-order="stroke fill"/>
+
+    <!-- 'W' -->
+    <path d="M 142,14 L 157,14 L 167,68 L 178,14 L 192,14 L 203,68 L 213,14 L 227,14 L 213,91 L 197,91 L 185,38 L 173,91 L 157,91 Z" 
+          fill="url(#ctwGoldGradC)" stroke="#000000" stroke-width="8" stroke-linejoin="round" paint-order="stroke fill"/>
+  </g>
+
+  <!-- 3. SLEEK MODERN SUBTITLE: "PSP STATIC RECOMP" -->
+  <g transform="translate(380, 215)">
+    <line x1="-260" y1="0" x2="-120" y2="0" stroke="#334155" stroke-width="1.5" />
+    <line x1="120" y1="0" x2="260" y2="0" stroke="#334155" stroke-width="1.5" />
+
+    <polygon points="-115,-3 -110,0 -115,3 -120,0" fill="#38bdf8" />
+    <polygon points="115,-3 120,0 115,3 110,0" fill="#38bdf8" />
+
+    <text x="0" y="5" 
+          font-family="'Segoe UI', -apple-system, sans-serif" 
+          font-size="13" 
+          font-weight="800" 
+          letter-spacing="8" 
+          fill="url(#recompCyanGradC)" 
+          text-anchor="middle">PSP STATIC RECOMP</text>
+  </g>
+</svg>'''
+    return svg
+
+if __name__ == '__main__':
+    content = generate_compact_logo_svg()
+    with open('docs/assets/logo-ctw.svg', 'w', encoding='utf-8') as f:
+        f.write(content)
+    print("Compact GTA : CTW SVG logo generated in docs/assets/logo-ctw.svg")

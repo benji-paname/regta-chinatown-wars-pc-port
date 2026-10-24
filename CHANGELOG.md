@@ -4,8 +4,27 @@ Changes are recorded by release. The project is in the alpha phase; a version nu
 
 ## [Unreleased]
 
-- Continue PSP provenance verification and replacement of experimental behaviour.
-- Continue campaign, scripting, audio and save integration.
+- Interactive PDA Email market tip push alerts and Ammu-Nation web store ordering.
+- Minigames execution via loaded PSP ELF overlays (sinkingcarapp, hotwiringapp, safecrackingapp).
+
+## [0.1.3-alpha] — 2026-10-24
+
+### Added
+
+- **PSP Code Overlays Engine (`src/overlays.rs`)**: Automatic detection, indexing, and decompression of all 166 code overlays stored inside `OVERLAYS.PAK` (20KP / 10SA container format) into PSP memory Slot 0 (0x08b87460, 114 mission scripts) and Slot 1 (0x08bb2480, 52 minigames & PDA apps).
+- **Story Missions Engine (`src/missions.rs`)**: State machine orchestrating story missions across the 8 boss contacts (Uncle Kenny, Chan Jaoming, Zhou Ming, Hsin Jaoming, Wade Heston, Lester Leroc, Rudy D'Avanzo, Xin Shan). Waypoint guidance, mission briefing banners, objectives tracking, and cash rewards.
+- **Drug Dealing Economy (`src/drugs.rs`)**: Authentic 6 commodities (Acid, Coke, Downers, Ecstasy, Heroin, Weed), gang supply/demand wholesale dynamics (7 gangs), 81 street dealers tracked in `save_progress.dealer`, player 100-capacity bag, and police confiscation on arrest.
+- **Safehouses & Real Estate (`src/safehouse.rs`)**: 21 purchasable properties across Liberty City, Save Bed (advances clock 6h, restores 127 health, commits savegame count), Stash Box (unlimited cash & drug storage immune to police), and Wardrobe.
+- **Gameplay HUD & Radar Integration (`src/gpu.rs`, `src/actors.rs`, `src/play.rs`)**:
+  - Live HUD cash counter in authentic bright green (`$00000500`).
+  - Contextual interaction prompt bar (`[ E / Y ] MISSION : Wu 'Kenny' Lee`, `[ E / Y ] DEALER...`, `[ E / Y ] PLANQUE...`).
+  - Announcement banners for mission pass/fail, safehouse saved, and dealer discovery.
+  - Minimap radar and full city map markers: golden contact diamonds ('K', 'C', 'Z', etc.), green safehouses, cyan drug dealers, and flashing mission target waypoints.
+
+### Validation
+
+- 132/132 unit tests passing, 0 warnings with `-D warnings`.
+- Native runtime loads all 166 code overlays from UMD ISO in 1.18 seconds.
 
 ## [0.1.2-alpha] — 2026-10-24
 

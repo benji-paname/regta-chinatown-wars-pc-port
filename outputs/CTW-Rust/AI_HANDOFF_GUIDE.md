@@ -1,14 +1,14 @@
 # ReGTA CTW — guide de reprise
 
 Nom complet : **ReGTA CTW PSP Recomp**. Version **0.1.2-alpha**.
-Mise à jour : **2026-10-24T11:15+02:00**, Europe/Paris. Restructuration terminée, validée et enrichie des références officielles PSP.
+Mise à jour : **2026-10-24T12:20+02:00**, Europe/Paris. Restructuration terminée, validée et enrichie des références officielles PSP.
 
 ## Reprendre en dix secondes
 
 Depuis la racine du dépôt :
 
 ```powershell
-.\Compiler.ps1 -Test
+powershell -ExecutionPolicy Bypass -File .\Compiler.ps1 -Test
 ```
 
 L'entrée `outputs/CTW-Rust/Compiler.ps1 -Test` reste compatible. Les sources actives sont uniquement dans **src/**. Le workspace et Cargo.lock sont à la racine ; le package **regta-ctw** conserve son manifeste dans `outputs/CTW-Rust/Cargo.toml`.
@@ -23,9 +23,10 @@ L'entrée `outputs/CTW-Rust/Compiler.ps1 -Test` reste compatible. Les sources ac
 
 ## État exact
 
-- Dernière compilation : **131 tests réussis, 0 échec, 0 ignoré, 0 avertissement**, avec `-D warnings`.
-- Git local initialisé : 8 commits sur `main`, état propre. Dernier commit `dc61440` : décompresseur des 166 code overlays PSP (`OVERLAYS.PAK`) et moteur de missions du mode Histoire.
+- Dernière compilation : **132 tests réussis, 0 échec, 0 ignoré, 0 avertissement**, avec `-D warnings`.
+- Git local initialisé : 10 commits sur `main`, état propre. Dernier commit `9159081` : connexion des missions d'histoire, des 166 code overlays, de l'économie de drogues et des planques dans la boucle de jeu active et sur le radar HUD.
 - Exécutable : `outputs/CTW-Rust/CTW-Rust.exe`.
+- Indexation automatique au lancement : les 166 code overlays PSP sont détectés et chargés directement depuis `OVERLAYS.PAK` dans l'ISO UMD originale en 1.18 s.
 - Cache actif unique : `target/`. Rapports courants : `target/validation/build-report.json`.
 - Nouvelles références intégrées dans `references/` :
   - `references/chinatown-wars-psp-recomp` (Static recompilation officielle PSP ULUS-10490 v1.01 par highcmd avec extraction des 167 code overlays de `OVERLAYS.PAK`).

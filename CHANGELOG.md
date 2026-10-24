@@ -4,13 +4,18 @@ Changes are recorded by release. The project is in the alpha phase; a version nu
 
 ## [Unreleased]
 
-- Interactive PDA Contacts and GPS Address Book (`contactsapp`, Overlay 014).
-- Vehicle Car Bomb fitting minigame (`carbombfittingapp`, Overlay 010).
+- Tattoo parlor precision needle minigame (`tattoominigame`, Overlay 142).
+- Street races circuit checkpoint racing (`streetrace`, Overlay 140).
 
 ## [0.1.4-alpha] — 2026-10-24
 
 ### Added
 
+- **Interactive PDA Contacts and Address Book (`src/pda.rs`, `contactsapp` Overlay 014)**:
+  - Intégration du carnet de contacts des 8 boss d'histoire (Kenny, Chan, Zhou, Hsin, Heston, Lester, Rudy, Xin Shan) avec leurs districts, affiliations de gang et numéros de téléphone.
+  - Sélection interactive et routage GPS automatique vers le point de rencontre du contact.
+- **Minijeu de Piégeage de Véhicule (`src/minigames.rs`, `carbombfittingapp` Overlay 010)**:
+  - Minijeu d'installation et de câblage d'un engin explosif sous le capot d'une voiture (câble d'alimentation, masse et détonateur) avec amorçage pour explosion au démarrage.
 - **Odd Jobs and Emergency Services Engine (`src/jobs.rs`)**:
   - `taxi` (Overlay 143): Chauffeur de taxi avec détection du véhicule Cabbie, passagers sur trottoir, destinations dynamiques, tarifs calculés selon distance et pourboire dégressif, streaks et déblocage du médaillon de taxi (boost nitro).
   - `vigilante` (Overlay 152): Autodéfense via l'ordinateur de police en patrouille (5 vagues, élimination de criminels en fuite, récompense gilet pare-balles doublé 200 AP).
@@ -35,7 +40,7 @@ Changes are recorded by release. The project is in the alpha phase; a version nu
 
 ### Validation
 
-- **150/150 unit tests passing**, 0 failed, 0 warnings under `-D warnings`.
+- **152/152 unit tests passing**, 0 failed, 0 warnings under `-D warnings`.
 - Binaire compilé et actualisé sous `outputs/CTW-Rust/CTW-Rust.exe`.
 
 ## [0.1.3-alpha] — 2026-10-24

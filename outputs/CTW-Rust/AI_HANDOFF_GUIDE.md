@@ -1,6 +1,11 @@
 # ReGTA CTW PC Recomp — media and naming checkpoint
 
-Updated: 2026-10-25, Europe/Paris. Current task completed locally; no push or YouTube publication performed.
+Updated: 2026-10-25, Europe/Paris. Current media work was published to GitHub and GitHub Pages in commit 4dbbc6c. No YouTube upload was performed.
+
+
+## Obsolete-media cleanup — 25 October 2026
+
+Owner explicitly requested removal of old logo/video versions and their superseded production work. Deleted 71 files (263,822,158 bytes; exact inventory in ignored target/obsolete-media-cleanup.json): old devlog MP4, old thumbnail, video/temp, old review images/previews and obsolete logo/video/README generators. Current four logo variants, aliases, raw custom_gameplay.mp4, launch-film outputs/work files, fonts and current generators were kept. SHA-256 comparison confirmed 109 protected files unchanged. No gameplay or research source removed. Git history was not rewritten.
 
 ## Latest user decisions
 - Start the promotional film from scratch; new film uses Benjamin's original native capture, not the old finished montage.
@@ -10,7 +15,7 @@ Updated: 2026-10-25, Europe/Paris. Current task completed locally; no push or Yo
 ## Completed
 - Flat cover-inspired red/yellow CTW, white integrated ReGTA with lowercase e at 78% scale. Pricedown Black + Bruce Mikita Two. Four named variants in docs/assets and outputs/CTW-Rust/branding, SVG + 2x PNG; default aliases remain transparent. Board: outputs/CTW-Rust/branding/logo-variants-preview.png.
 - New English film: outputs/CTW-Rust/video/launch-film/ReGTA_CTW_First_Look_EN.mp4. 1920x1080 / 60 fps, approximately 78.55 seconds container duration. 13 native footage selects, new synthetic narration and original score, concise headings, nine-second donation end card. All footage is from custom_gameplay.mp4, supplied by Benjamin. No new gameplay capture or invented footage was needed.
-- New thumbnail, English SRT, narration, YouTube description and exact timeline in the same launch-film folder. Source: tools/video/build_launch_film.py + launch_film.json. Retired the old generator to eliminate its PPSSPP fallback and unsupported claims. Old finished movie remains locally for comparison.
+- New thumbnail, English SRT, narration, YouTube description and exact timeline in the same launch-film folder. Source: tools/video/build_launch_film.py + launch_film.json. Deleted the obsolete generators and old movie at the owner's request. The current generator has no emulator-footage fallback.
 - Updated website, README, active docs, build output, package description, runtime window/PDA/help branding to PC Recomp. Archived historical documents and upstream repository names remain unchanged. No gameplay mechanics modified.
 - docs/PROMO_REVIEW.md records the review; docs/YOUTUBE_CREATOR_KIT.md is the current upload kit. Bruce Mikita publication terms remain undocumented (pre-existing issue in BRANDING.md); no font files redistributed.
 

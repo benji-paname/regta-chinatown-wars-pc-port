@@ -2,6 +2,8 @@
 
 ## Unreleased — 25 October 2026
 
+- Removed superseded logo/video generators, old devlog/thumbnail and intermediate media at the owner's request; preserved current branding, film and source capture.
+
 - Public name updated to **ReGTA CTW PC Recomp** throughout current website, documentation, logo outputs, build messages and runtime title/help/PDA text. PSP remains the original-data target. Existing executable paths and upstream reference names are unchanged.
 - Rebuilt horizontal/vertical wordmarks with a clearly lowercase e, flat white ReGTA and red/yellow CTW; transparent and black-background SVG/PNG variants.
 - New 1:18.51 English first-look film, 13 native gameplay selects, new narration and score, timed subtitles, thumbnail and donation end card. Replaced the promotional copy with qualified prototype claims; retired the emulator-fallback video generator.

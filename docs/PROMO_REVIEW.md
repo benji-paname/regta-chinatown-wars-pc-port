@@ -23,5 +23,5 @@ The four logo variants use Pricedown Black + Bruce Mikita Two, a visible lowerca
 - Native source: `outputs/CTW-Rust/video/custom_gameplay.mp4` (2560 × 1440, 60 fps, 4:04.34).
 - New film: `outputs/CTW-Rust/video/launch-film/ReGTA_CTW_First_Look_EN.mp4`.
 - Exact selects, narration and timings: `tools/video/launch_film.json` and generated `launch-film/timeline.json`.
-- Old finished film is preserved locally for comparison. Archived documents and third-party reference repository names are not rewritten to match a new brand.
+- Old finished film and obsolete production files were deleted at the project owner's request on 25 October 2026. Archived documents and third-party reference repository names are not rewritten to match a new brand.
 - A current Bruce Mikita license was not supplied; see BRANDING.md. This edit does not add a rights clearance.

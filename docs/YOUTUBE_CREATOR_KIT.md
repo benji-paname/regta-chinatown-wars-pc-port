@@ -10,7 +10,7 @@ New production from scratch, 25 October 2026. English primary. No upload has bee
 - [YouTube description](../outputs/CTW-Rust/video/launch-film/youtube-description-en.txt)
 - [Narration](../outputs/CTW-Rust/video/launch-film/narration-en.txt)
 
-These are local output links; video, narration audio and source recording are excluded from Git. The thumbnail and logo graphics are tracked. The older devlog is retained locally but is no longer the recommended upload.
+These are local output links; video, narration audio and source recording are excluded from Git. The thumbnail and logo graphics are tracked. The older devlog and its obsolete production files were deleted at the project owner's request on 25 October 2026.
 
 ## Title
 

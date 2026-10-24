@@ -1,4 +1,6 @@
 import os
+import shutil
+import subprocess
 from pathlib import Path
 from fontTools.ttLib import TTFont
 from fontTools.pens.boundsPen import BoundsPen
@@ -30,7 +32,6 @@ def get_text_metrics(font, text, scale, tracking=0):
     adv = 0
     for i, ch in enumerate(text):
         g = glyphs[cmap[ord(ch)]]
-        t = (1, 0, 1, 0)
         t = (1, 0, 0, 1, adv, 0)
         g.draw(TransformPen(bounds, t))
         adv += g.width
@@ -83,58 +84,49 @@ DEFS = '''
     </defs>
 '''
 
-def generate_logos():
-    # -------------------------------------------------------------
-    # 1. HORIZONTAL LOGO (docs/assets/logo-ctw.svg)
-    #    "ReGTA : CTW" on a single horizontal row
-    # -------------------------------------------------------------
-    width_h, height_h = 960, 260
-    scale_regta_h = 0.185
-    y_regta_h = 152
-    x_regta_h = 65
+def build_horizontal_svg(transparent=False):
+    width, height = 960, 260
+    scale_regta = 0.175
+    y_regta = 158
+    x_regta = 75
     tracking_p = -20
 
-    # Pricedown "Re"
-    p_re_h, adv_re_h = text_to_svg_path(pricedown, "Re", x_regta_h, y_regta_h, scale_regta_h, tracking_p)
-    # Pricedown "GTA" immediately following "Re"
-    x_gta_h = x_regta_h + adv_re_h + (tracking_p * scale_regta_h)
-    p_gta_h, adv_gta_h = text_to_svg_path(pricedown, "GTA", x_gta_h, y_regta_h, scale_regta_h, tracking_p)
-    # Combined "ReGTA" for unified shadow
-    p_regta_all_h, _ = text_to_svg_path(pricedown, "ReGTA", x_regta_h, y_regta_h, scale_regta_h, tracking_p)
+    p_re, adv_re = text_to_svg_path(pricedown, "Re", x_regta, y_regta, scale_regta, tracking_p)
+    x_gta = x_regta + adv_re + (tracking_p * scale_regta)
+    p_gta, adv_gta = text_to_svg_path(pricedown, "GTA", x_gta, y_regta, scale_regta, tracking_p)
+    p_regta_all, _ = text_to_svg_path(pricedown, "ReGTA", x_regta, y_regta, scale_regta, tracking_p)
 
-    # Bruce Mikita "CTW" on right
-    scale_ctw_h = 0.185
-    y_ctw_h = 150
-    x_ctw_h = 585
+    scale_ctw = 0.175
+    y_ctw = 156
+    x_ctw = 580
     tracking_b = 0
 
-    p_ctw_solid_h, adv_ctw_h = text_to_svg_path(bruce_solid, "CTW", x_ctw_h, y_ctw_h, scale_ctw_h, tracking_b)
-    p_ctw_reg_h, _ = text_to_svg_path(bruce_reg, "CTW", x_ctw_h, y_ctw_h, scale_ctw_h, tracking_b)
+    p_ctw_solid, _ = text_to_svg_path(bruce_solid, "CTW", x_ctw, y_ctw, scale_ctw, tracking_b)
+    p_ctw_reg, _ = text_to_svg_path(bruce_reg, "CTW", x_ctw, y_ctw, scale_ctw, tracking_b)
 
-    svg_horizontal = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width_h} {height_h}" width="{width_h}" height="{height_h}" role="img">
-  <title>ReGTA : CTW — PSP Recomp</title>
-  <desc>Official Project Horizontal Logo — ReGTA CTW PSP Recompilation by Benji Paname</desc>
+    bg_elements = ''
+    if not transparent:
+        bg_elements = '''
   <rect width="100%" height="100%" fill="#08090d" rx="16" />
-  {DEFS}
-
-  <!-- Ambient Chinatown Glow -->
   <circle cx="280" cy="125" r="190" fill="radial-gradient(circle, rgba(229,37,33,0.12) 0%, transparent 70%)" />
   <circle cx="730" cy="125" r="190" fill="radial-gradient(circle, rgba(255,200,0,0.08) 0%, transparent 70%)" />
+'''
+
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" role="img">
+  <title>ReGTA : CTW — PSP Recomp</title>
+  <desc>Official Project Horizontal Logo — ReGTA CTW PSP Recompilation by Benji Paname</desc>
+  {bg_elements}
+  {DEFS}
 
   <!-- ========================================================= -->
   <!-- 1. LEFT: ReGTA (Pricedown Black, integrated, lowercase e)  -->
   <!-- ========================================================= -->
-  <!-- ReGTA Unified Drop Shadow -->
-  <path d="{p_regta_all_h}" fill="#000000" stroke="#000000" stroke-width="16" stroke-linejoin="round" transform="translate(6 8)" />
-
-  <!-- "Re" (Large, Recomp Red, bold black contour) -->
-  <path d="{p_re_h}" fill="url(#regRedGrad)" stroke="#050608" stroke-width="10" stroke-linejoin="round" paint-order="stroke fill" />
-
-  <!-- "GTA" (Classic White, bold black contour) -->
-  <path d="{p_gta_h}" fill="url(#gtaWhiteGrad)" stroke="#050608" stroke-width="10" stroke-linejoin="round" paint-order="stroke fill" />
+  <path d="{p_regta_all}" fill="#000000" stroke="#000000" stroke-width="16" stroke-linejoin="round" transform="translate(6 8)" />
+  <path d="{p_re}" fill="url(#regRedGrad)" stroke="#050608" stroke-width="10" stroke-linejoin="round" paint-order="stroke fill" />
+  <path d="{p_gta}" fill="url(#gtaWhiteGrad)" stroke="#050608" stroke-width="10" stroke-linejoin="round" paint-order="stroke fill" />
 
   <!-- Stylized Chinatown Gold Diamond Separator -->
-  <g transform="translate(535, 115)">
+  <g transform="translate(535, 118)">
     <polygon points="0,-16 6,-22 0,-28 -6,-22" fill="url(#ctwGoldGrad)" stroke="#000000" stroke-width="2" />
     <polygon points="0,22 6,16 0,10 -6,16" fill="url(#ctwGoldGrad)" stroke="#000000" stroke-width="2" />
   </g>
@@ -142,91 +134,129 @@ def generate_logos():
   <!-- ========================================================= -->
   <!-- 2. RIGHT: CTW (Authentic Bruce Mikita, Cover Red & Gold)  -->
   <!-- ========================================================= -->
-  <!-- CTW Drop Shadow -->
-  <path d="{p_ctw_solid_h}" fill="#000000" stroke="#000000" stroke-width="18" stroke-linejoin="round" transform="translate(6 8)" />
-
-  <!-- CTW Layer 1: Golden Yellow Outline & Fill (shows through cutouts) -->
-  <path d="{p_ctw_solid_h}" fill="url(#ctwGoldGrad)" stroke="url(#ctwGoldGrad)" stroke-width="10" stroke-linejoin="round" />
-
-  <!-- CTW Layer 2: Authentic Lacquer Red Face (Regular variant with cutouts) -->
-  <path d="{p_ctw_reg_h}" fill="url(#ctwRedGrad)" stroke="#660505" stroke-width="1.5" stroke-linejoin="round" />
+  <path d="{p_ctw_solid}" fill="#000000" stroke="#000000" stroke-width="18" stroke-linejoin="round" transform="translate(6 8)" />
+  <path d="{p_ctw_solid}" fill="url(#ctwGoldGrad)" stroke="url(#ctwGoldGrad)" stroke-width="10" stroke-linejoin="round" />
+  <path d="{p_ctw_reg}" fill="url(#ctwRedGrad)" stroke="#660505" stroke-width="1.5" stroke-linejoin="round" />
 
   <!-- ========================================================= -->
   <!-- 3. SUBTITLE: PSP RECOMP                                   -->
   <!-- ========================================================= -->
-  <text x="480" y="222" text-anchor="middle" fill="#94a3b8" font-family="'Segoe UI',-apple-system,sans-serif" font-size="13" font-weight="700" letter-spacing="8">PSP RECOMPILATION</text>
+  <text x="480" y="224" text-anchor="middle" fill="#94a3b8" font-family="'Segoe UI',-apple-system,sans-serif" font-size="13" font-weight="700" letter-spacing="8">PSP RECOMPILATION</text>
 </svg>
 '''
-    Path('docs/assets/logo-ctw.svg').write_text(svg_horizontal, encoding='utf-8')
-    print("Generated docs/assets/logo-ctw.svg (Horizontal)")
 
-    # -------------------------------------------------------------
-    # 2. VERTICAL / STACKED LOGO (docs/assets/logo.svg)
-    #    "ReGTA" on top, "CTW" underneath ("en bas du ReGTA")
-    # -------------------------------------------------------------
-    width_v, height_v = 900, 480
-    scale_regta_v = 0.25
-    y_regta_v = 168
+def build_vertical_svg(transparent=False):
+    width, height = 900, 500
+    scale_regta = 0.24
+    y_regta = 185
+    tracking_p = -20
 
-    # Center ReGTA
-    metrics_regta = get_text_metrics(pricedown, "ReGTA", scale_regta_v, tracking_p)
-    x_regta_v = (width_v - metrics_regta['advance']) / 2
+    metrics_regta = get_text_metrics(pricedown, "ReGTA", scale_regta, tracking_p)
+    x_regta = (width - metrics_regta['advance']) / 2
 
-    p_re_v, adv_re_v = text_to_svg_path(pricedown, "Re", x_regta_v, y_regta_v, scale_regta_v, tracking_p)
-    x_gta_v = x_regta_v + adv_re_v + (tracking_p * scale_regta_v)
-    p_gta_v, adv_gta_v = text_to_svg_path(pricedown, "GTA", x_gta_v, y_regta_v, scale_regta_v, tracking_p)
-    p_regta_all_v, _ = text_to_svg_path(pricedown, "ReGTA", x_regta_v, y_regta_v, scale_regta_v, tracking_p)
+    p_re, adv_re = text_to_svg_path(pricedown, "Re", x_regta, y_regta, scale_regta, tracking_p)
+    x_gta = x_regta + adv_re + (tracking_p * scale_regta)
+    p_gta, adv_gta = text_to_svg_path(pricedown, "GTA", x_gta, y_regta, scale_regta, tracking_p)
+    p_regta_all, _ = text_to_svg_path(pricedown, "ReGTA", x_regta, y_regta, scale_regta, tracking_p)
 
-    # CTW underneath ReGTA (spaced cleanly below ReGTA)
-    scale_ctw_v = 0.23
-    y_ctw_v = 345
-    metrics_ctw = get_text_metrics(bruce_solid, "CTW", scale_ctw_v, tracking_b)
-    x_ctw_v = (width_v - metrics_ctw['advance']) / 2
+    scale_ctw = 0.22
+    y_ctw = 358
+    tracking_b = 0
 
-    p_ctw_solid_v, _ = text_to_svg_path(bruce_solid, "CTW", x_ctw_v, y_ctw_v, scale_ctw_v, tracking_b)
-    p_ctw_reg_v, _ = text_to_svg_path(bruce_reg, "CTW", x_ctw_v, y_ctw_v, scale_ctw_v, tracking_b)
+    metrics_ctw = get_text_metrics(bruce_solid, "CTW", scale_ctw, tracking_b)
+    x_ctw = (width - metrics_ctw['advance']) / 2
 
-    svg_vertical = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width_v} {height_v}" width="{width_v}" height="{height_v}" role="img">
+    p_ctw_solid, _ = text_to_svg_path(bruce_solid, "CTW", x_ctw, y_ctw, scale_ctw, tracking_b)
+    p_ctw_reg, _ = text_to_svg_path(bruce_reg, "CTW", x_ctw, y_ctw, scale_ctw, tracking_b)
+
+    bg_elements = ''
+    if not transparent:
+        bg_elements = '''
+  <rect width="100%" height="100%" fill="#08090d" rx="20" />
+  <circle cx="450" cy="250" r="280" fill="radial-gradient(circle, rgba(220,20,20,0.14) 0%, rgba(255,200,0,0.05) 50%, transparent 70%)" />
+'''
+
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" role="img">
   <title>ReGTA CTW — PSP Recomp</title>
   <desc>Official Vertical Stacked Project Logo — ReGTA CTW PSP Recompilation by Benji Paname</desc>
-  <rect width="100%" height="100%" fill="#08090d" rx="20" />
+  {bg_elements}
   {DEFS}
-
-  <!-- Ambient Chinatown Lacquer Red & Imperial Gold Glow -->
-  <circle cx="450" cy="240" r="280" fill="radial-gradient(circle, rgba(220,20,20,0.14) 0%, rgba(255,200,0,0.05) 50%, transparent 70%)" />
 
   <!-- ========================================================= -->
   <!-- 1. TOP: ReGTA (Pricedown Black, integrated, lowercase e)  -->
   <!-- ========================================================= -->
-  <!-- ReGTA Unified Drop Shadow -->
-  <path d="{p_regta_all_v}" fill="#000000" stroke="#000000" stroke-width="18" stroke-linejoin="round" transform="translate(6 9)" />
-
-  <!-- "Re" (Large, Recomp Red, bold black contour) -->
-  <path d="{p_re_v}" fill="url(#regRedGrad)" stroke="#050608" stroke-width="11" stroke-linejoin="round" paint-order="stroke fill" />
-
-  <!-- "GTA" (Classic White, bold black contour) -->
-  <path d="{p_gta_v}" fill="url(#gtaWhiteGrad)" stroke="#050608" stroke-width="11" stroke-linejoin="round" paint-order="stroke fill" />
+  <path d="{p_regta_all}" fill="#000000" stroke="#000000" stroke-width="18" stroke-linejoin="round" transform="translate(6 9)" />
+  <path d="{p_re}" fill="url(#regRedGrad)" stroke="#050608" stroke-width="11" stroke-linejoin="round" paint-order="stroke fill" />
+  <path d="{p_gta}" fill="url(#gtaWhiteGrad)" stroke="#050608" stroke-width="11" stroke-linejoin="round" paint-order="stroke fill" />
 
   <!-- ========================================================= -->
   <!-- 2. BOTTOM: CTW (en bas du ReGTA, authentic Red & Gold)    -->
   <!-- ========================================================= -->
-  <!-- CTW Drop Shadow -->
-  <path d="{p_ctw_solid_v}" fill="#000000" stroke="#000000" stroke-width="20" stroke-linejoin="round" transform="translate(6 9)" />
-
-  <!-- CTW Layer 1: Golden Yellow Outline & Fill -->
-  <path d="{p_ctw_solid_v}" fill="url(#ctwGoldGrad)" stroke="url(#ctwGoldGrad)" stroke-width="12" stroke-linejoin="round" />
-
-  <!-- CTW Layer 2: Authentic Lacquer Red Face (Regular variant with cutouts) -->
-  <path d="{p_ctw_reg_v}" fill="url(#ctwRedGrad)" stroke="#660505" stroke-width="1.8" stroke-linejoin="round" />
+  <path d="{p_ctw_solid}" fill="#000000" stroke="#000000" stroke-width="20" stroke-linejoin="round" transform="translate(6 9)" />
+  <path d="{p_ctw_solid}" fill="url(#ctwGoldGrad)" stroke="url(#ctwGoldGrad)" stroke-width="12" stroke-linejoin="round" />
+  <path d="{p_ctw_reg}" fill="url(#ctwRedGrad)" stroke="#660505" stroke-width="1.8" stroke-linejoin="round" />
 
   <!-- ========================================================= -->
   <!-- 3. SUBTITLE: PSP RECOMP                                   -->
   <!-- ========================================================= -->
-  <text x="450" y="425" text-anchor="middle" fill="#94a3b8" font-family="'Segoe UI',-apple-system,sans-serif" font-size="15" font-weight="700" letter-spacing="10">PSP RECOMPILATION</text>
+  <text x="450" y="440" text-anchor="middle" fill="#94a3b8" font-family="'Segoe UI',-apple-system,sans-serif" font-size="15" font-weight="700" letter-spacing="10">PSP RECOMPILATION</text>
 </svg>
 '''
-    Path('docs/assets/logo.svg').write_text(svg_vertical, encoding='utf-8')
-    print("Generated docs/assets/logo.svg (Vertical Stacked)")
+
+def render_png(svg_path, png_path, width, height, transparent=False):
+    edge_exe = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+    bg_color = "--default-background-color=00000000" if transparent else "--default-background-color=ff08090d"
+    cmd = [
+        edge_exe,
+        "--headless",
+        r"--user-data-dir=C:\Users\BENJAMIN\AppData\Local\Temp\edge_temp",
+        bg_color,
+        f"--screenshot={png_path.resolve()}",
+        f"--window-size={width},{height}",
+        f"file:///{svg_path.resolve().as_posix()}"
+    ]
+    subprocess.run(cmd, check=True)
+    print(f"Rendered PNG: {png_path.name} ({width}x{height})")
+
+def main():
+    assets_dir = Path('docs/assets')
+    deliverables_dir = Path('outputs/CTW-Rust/branding')
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    deliverables_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. Generate SVGs
+    svg_h_bg = assets_dir / 'logo-ctw.svg'
+    svg_h_tr = assets_dir / 'logo-ctw-transparent.svg'
+    svg_v_bg = assets_dir / 'logo.svg'
+    svg_v_tr = assets_dir / 'logo-transparent.svg'
+
+    svg_h_bg.write_text(build_horizontal_svg(transparent=False), encoding='utf-8')
+    svg_h_tr.write_text(build_horizontal_svg(transparent=True), encoding='utf-8')
+    svg_v_bg.write_text(build_vertical_svg(transparent=False), encoding='utf-8')
+    svg_v_tr.write_text(build_vertical_svg(transparent=True), encoding='utf-8')
+
+    print("Generated 4 SVG files.")
+
+    # 2. Render PNGs (2x High-Resolution)
+    # Horizontal: 960x260 -> 1920x520
+    render_png(svg_h_bg, assets_dir / 'logo-ctw.png', 1920, 520, transparent=False)
+    render_png(svg_h_tr, assets_dir / 'logo-ctw-transparent.png', 1920, 520, transparent=True)
+
+    # Vertical: 900x500 -> 1800x1000
+    render_png(svg_v_bg, assets_dir / 'logo.png', 1800, 1000, transparent=False)
+    render_png(svg_v_tr, assets_dir / 'logo-transparent.png', 1800, 1000, transparent=True)
+
+    # 3. Synchronize to outputs/CTW-Rust/branding
+    files_to_sync = [
+        'logo.png', 'logo-transparent.png',
+        'logo-ctw.png', 'logo-ctw-transparent.png',
+        'logo.svg', 'logo-transparent.svg',
+        'logo-ctw.svg', 'logo-ctw-transparent.svg'
+    ]
+    for fname in files_to_sync:
+        shutil.copy2(assets_dir / fname, deliverables_dir / fname)
+
+    print("All branding PNGs and SVGs synchronized to outputs/CTW-Rust/branding/!")
 
 if __name__ == '__main__':
-    generate_logos()
+    main()

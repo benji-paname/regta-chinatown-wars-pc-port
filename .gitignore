@@ -55,6 +55,8 @@
 *.toc
 *.bmp
 *.png
+!docs/assets/*.png
+!outputs/CTW-Rust/branding/*.png
 *.jpg
 *.jpeg
 *.mp4

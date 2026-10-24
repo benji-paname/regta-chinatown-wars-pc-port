@@ -52,7 +52,8 @@ try {
     Copy-Item -LiteralPath (Join-Path $env:CARGO_TARGET_DIR 'release/ctw-rust.exe') -Destination (Join-Path $delivery 'CTW-Rust.exe') -Force
     $report = [ordered]@{
         timestamp=(Get-Date -Format 'o'); version='0.1.2-alpha'; warnings=0; warnings_as_errors=$true
-        tests=$testResult; executable_sha256=(Get-FileHash -LiteralPath (Join-Path $delivery 'CTW-Rust.exe') -Algorithm SHA256).Hash.ToLower()
+        tests=$testResult; private_reference_checks=[bool]$env:CTW_TEST_REFERENCE_TABLES
+        executable_sha256=(Get-FileHash -LiteralPath (Join-Path $delivery 'CTW-Rust.exe') -Algorithm SHA256).Hash.ToLower()
         cargo=(& $cargo --version); rustc=(& rustc --version)
     }
     $json = $report | ConvertTo-Json -Depth 5

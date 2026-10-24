@@ -781,9 +781,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_authentic_sound_tables() {
-        let path = std::path::Path::new("data/tables/sound_tables.bin");
-        if let Ok(bytes) = std::fs::read(path) {
+    fn parse_sound_layout_and_optional_reference() {
+        // Synthetic data, generated in memory; no extracted samples or tables.
+        let mut data = vec![0; 3868];
+        data[..8].copy_from_slice(b"CTWSND2\0");
+        data[8..12].copy_from_slice(&(-7i32).to_le_bytes());
+        data[20] = (-30i8) as u8;
+        data[3516..3518].copy_from_slice(&321u16.to_le_bytes());
+        data[3518] = 77;
+        let parsed = SoundTables::parse(&data).unwrap();
+        assert_eq!(parsed.events.len(), 156);
+        assert_eq!(parsed.gears.len(), 20);
+        assert_eq!(parsed.events[0].bank, -7);
+        assert_eq!(parsed.events[0].pan, -30);
+        assert_eq!(parsed.prop_sfx[0].sample, 321);
+        assert_eq!(parsed.prop_sfx[0].volume, 77);
+        assert!(SoundTables::parse(&data[..100]).is_err());
+        data[0] = 0;
+        assert!(SoundTables::parse(&data).is_err());
+        if let Some(bytes) = crate::test_support::reference_table("sound_tables.bin") {
             let tables = SoundTables::parse(&bytes).expect("Failed to parse sound tables");
             assert_eq!(tables.events.len(), 156);
             assert_eq!(tables.gears.len(), 20);

@@ -233,8 +233,21 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_authentic_weather_tables() {
-        let data = std::fs::read("data/tables/weather_tables.bin").unwrap();
+    fn parse_weather_layout_and_optional_reference() {
+        let mut data = vec![0; 92];
+        data[..8].copy_from_slice(b"CTWWTHR1");
+        data[8] = 25;
+        data[9] = 75;
+        data[72..76].copy_from_slice(&1234u32.to_le_bytes());
+        let parsed = WeatherTables::parse(&data).unwrap();
+        assert_eq!(parsed.thunder_samples[0], 1234);
+        assert_eq!(parsed.roll_next(WeatherKind::Sunny, 24), WeatherKind::Sunny);
+        assert_eq!(parsed.roll_next(WeatherKind::Sunny, 25), WeatherKind::ExtraSunny);
+        assert!(WeatherTables::parse(&data[..91]).is_err());
+        data[0] = 0;
+        assert!(WeatherTables::parse(&data).is_err());
+
+        if let Some(data) = crate::test_support::reference_table("weather_tables.bin") {
         let tables = WeatherTables::parse(&data).unwrap();
 
         assert_eq!(tables.chance.len(), 8);
@@ -245,6 +258,7 @@ mod tests {
         assert_eq!(next_0, WeatherKind::Sunny);
         let next_1 = tables.roll_next(WeatherKind::Sunny, 75);
         assert_eq!(next_1, WeatherKind::ExtraSunny);
+        }
     }
 
     #[test]

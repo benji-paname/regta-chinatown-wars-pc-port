@@ -195,8 +195,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_authentic_radio_tables() {
-        let data = std::fs::read("data/tables/radio_tables.bin").unwrap();
+    fn parse_radio_layout_and_optional_reference() {
+        let mut data = vec![0; 26 + 11 * 16 + 33 * 40];
+        data[..8].copy_from_slice(b"CTWRAD2\0");
+        data[8..12].copy_from_slice(&11u32.to_le_bytes());
+        data[12..16].copy_from_slice(&33u32.to_le_bytes());
+        data[26 + 9 * 16 + 4..26 + 9 * 16 + 8].copy_from_slice(&18u32.to_le_bytes());
+        let stream = 26 + 11 * 16 + 18 * 40;
+        data[stream..stream + 14].copy_from_slice(b"fixture-18.mp3");
+        let parsed = RadioTables::parse(&data).unwrap();
+        assert_eq!(parsed.stations.len(), 11);
+        assert_eq!(parsed.streams.len(), 33);
+        assert_eq!(parsed.stations[9].stream, 18);
+        assert_eq!(parsed.streams[18], "fixture-18.mp3");
+        assert!(RadioTables::parse(&data[..data.len()-1]).is_err());
+        data[8] = 12;
+        assert!(RadioTables::parse(&data).is_err());
+        data[0] = 0;
+        assert!(RadioTables::parse(&data).is_err());
+
+        if let Some(data) = crate::test_support::reference_table("radio_tables.bin") {
         let tables = RadioTables::parse(&data).unwrap();
 
         assert_eq!(tables.stations.len(), 11, "11 authentic stations");
@@ -210,6 +228,7 @@ mod tests {
         // Verify station 9 (SinoWav / Chinese.mp3)
         assert_eq!(tables.stations[9].stream, 18);
         assert_eq!(tables.streams[18], "Chinese.mp3");
+        }
     }
 
     #[test]

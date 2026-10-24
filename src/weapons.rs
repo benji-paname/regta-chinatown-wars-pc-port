@@ -358,10 +358,43 @@ impl TargetingSystem {
 mod tests {
     use super::*;
 
+    fn synthetic_table() -> Vec<u8> {
+        let mut data = vec![0x5a; 8 + 28 * 60 + 56 + 12];
+        data[..8].copy_from_slice(b"CTWWPN01");
+        for i in 0..28 {
+            let p = 8 + i * 60;
+            let fields = [(0, 1i32), (4, 300), (8, 7), (12, 9), (16, 11),
+                          (24, 13), (32, 17), (36, 19 * 4096), (44, (i % 10 + 1) as i32)];
+            for (offset, value) in fields {
+                data[p + offset..p + offset + 4].copy_from_slice(&value.to_le_bytes());
+            }
+            let a = 8 + 28 * 60 + i * 2;
+            data[a..a + 2].copy_from_slice(&21u16.to_le_bytes());
+        }
+        data[12..16].copy_from_slice(&(-1i32).to_le_bytes());
+        for (i, value) in [2i32, 3, 5].into_iter().enumerate() {
+            let p = 8 + 28 * 60 + 56 + i * 4;
+            data[p..p + 4].copy_from_slice(&value.to_le_bytes());
+        }
+        data
+    }
+
     #[test]
-    fn parse_authentic_weapon_tables() {
-        let path = std::path::Path::new("data/tables/weapon_tables.bin");
-        if let Ok(bytes) = std::fs::read(path) {
+    fn parse_weapon_layout_and_optional_reference() {
+        let mut data = synthetic_table();
+        let parsed = WeaponTables::parse(&data).unwrap();
+        assert_eq!(parsed.records.len(), 28);
+        assert_eq!(parsed.records[0].max_ammo, -1);
+        assert_eq!(parsed.records[5].clip, 7);
+        assert_eq!(parsed.records[5].reload_time, 13);
+        assert_eq!(parsed.records[5].range_meters(), 19.);
+        assert_eq!(parsed.records[27].slot, 8);
+        assert_eq!(parsed.default_ammo, [21; 28]);
+        assert_eq!(parsed.trace_lifetimes, [2, 3, 5]);
+        assert!(WeaponTables::parse(&data[..data.len()-1]).is_err());
+        data[0] = 0;
+        assert!(WeaponTables::parse(&data).is_err());
+        if let Some(bytes) = crate::test_support::reference_table("weapon_tables.bin") {
             let tables = WeaponTables::parse(&bytes).expect("Failed to parse weapon tables");
             assert_eq!(tables.records.len(), 28);
 
@@ -485,8 +518,9 @@ mod tests {
     }
 
     #[test]
-    fn weapon_firing_takedowns_and_explosions_parity() {
-        let tables_data = std::fs::read("data/tables/weapon_tables.bin").unwrap();
+    fn weapon_inventory_explosion_and_takedown_integration() {
+        let tables_data = crate::test_support::reference_table("weapon_tables.bin")
+            .unwrap_or_else(synthetic_table);
         let tables = WeaponTables::parse(&tables_data).unwrap();
         let mut wm = WeaponManager::new(&tables);
 

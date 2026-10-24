@@ -23,6 +23,8 @@ mod radar;
 mod radio;
 mod roll;
 mod stats;
+#[cfg(test)]
+mod test_support;
 mod texture;
 mod texture_pack;
 mod ui;
@@ -68,7 +70,9 @@ fn run() -> Result<()> {
         .parent()
         .ok_or("Executable path absent")?
         .to_path_buf();
-    let mut iso = base.join("../../work/Chinatown-Wars-PSP.iso");
+    let mut iso = std::env::var_os("CTW_ISO")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| base.join("../../work/Chinatown-Wars-PSP.iso"));
     let mut output = base.join("data");
     let mut verify = false;
     let mut pavement_audit = false;

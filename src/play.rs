@@ -101,6 +101,18 @@ impl Default for Options {
         }
     }
 }
+/// Optional, private reference tables retained for the experimental systems.
+/// These are Android-derived in the existing installation, not PSP evidence.
+/// Resolve relative to the executable so desktop shortcuts do not change behaviour.
+fn reference_table(name: &str) -> Vec<u8> {
+    let Ok(exe) = std::env::current_exe() else { return Vec::new(); };
+    let Some(base) = exe.parent() else { return Vec::new(); };
+    [base.join("data/tables"), base.join("../../data/tables"), base.join("data")]
+        .into_iter()
+        .find_map(|dir| fs::read(dir.join(name)).ok())
+        .unwrap_or_default()
+}
+
 pub fn run(
     disc: &mut Disc,
     pak: &Pak,
@@ -215,17 +227,11 @@ pub fn run(
     let pavement = std::sync::Arc::new(crate::pavement::Network::build(&collision.cells));
     // PAK resources 1866 and 1867: Chinatown Wars prop library and physics kinds.
     let prop_library = std::sync::Arc::new(crate::props::PropLibrary::load(disc, pak)?);
-    let weapon_tables_bytes = fs::read("data/tables/weapon_tables.bin")
-        .or_else(|_| fs::read("data/weapon_tables.bin"))
-        .unwrap_or_default();
+    let weapon_tables_bytes = reference_table("weapon_tables.bin");
     let weapon_tables = crate::weapons::WeaponTables::parse(&weapon_tables_bytes).ok();
-    let radio_tables_bytes = fs::read("data/tables/radio_tables.bin")
-        .or_else(|_| fs::read("data/radio_tables.bin"))
-        .unwrap_or_default();
+    let radio_tables_bytes = reference_table("radio_tables.bin");
     let radio_tables = crate::radio::RadioTables::parse(&radio_tables_bytes).ok();
-    let weather_tables_bytes = fs::read("data/tables/weather_tables.bin")
-        .or_else(|_| fs::read("data/weather_tables.bin"))
-        .unwrap_or_default();
+    let weather_tables_bytes = reference_table("weather_tables.bin");
     let weather_tables = crate::weather::WeatherTables::parse(&weather_tables_bytes).ok();
 
     let mut scene = slice_enabled.then(|| {
@@ -311,11 +317,11 @@ pub fn run(
     crate::locale::set(hud_settings.english);
     let mut map_ui = crate::gps::MapUi::new(player.p);
 
-    // Load authentic PSP audio tables and resident sound bank
-    let sound_tables_bytes = fs::read("data/tables/sound_tables.bin")
-        .or_else(|_| fs::read("data/sound_tables.bin"))
-        .unwrap_or_default();
-    let sound_tables = crate::audio::SoundTables::parse(&sound_tables_bytes)
+    // Optional reference lookup tables; resident sound bank comes from the PSP ISO.
+    let sound_tables_bytes = reference_table("sound_tables.bin");
+    let parsed_sound_tables = crate::audio::SoundTables::parse(&sound_tables_bytes);
+    let sound_reference_loaded = parsed_sound_tables.is_ok();
+    let sound_tables = parsed_sound_tables
         .unwrap_or_else(|_| crate::audio::SoundTables {
             events: vec![crate::audio::EventInfo::default(); 156],
             gears: vec![crate::audio::GearSound::default(); 20],
@@ -1166,6 +1172,11 @@ pub fn run(
             .map(|s|serde_json::json!({"id":s.id,"source":s.source,"offset":s.offset})).collect::<Vec<_>>(),
         "reference":"ULES01347 cRadar 0x089e3ba4/0x089e55b0/0x089e7324; SS_Radar.bin",
         "full_original_parity_verified":false
+    });
+    report["reference_tables"] = serde_json::json!({
+        "weapons": weapon_tables.is_some(), "radio": radio_tables.is_some(),
+        "weather": weather_tables.is_some(), "sound": sound_reference_loaded,
+        "psp_provenance_verified": false
     });
     report["shader"] = serde_json::json!(renderer.shader_status);
     report["texture_pack"] = crate::texture_pack::report();

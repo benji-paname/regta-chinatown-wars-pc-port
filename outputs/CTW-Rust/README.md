@@ -1,4 +1,4 @@
-# ReGTA CTW PSP Recomp
+# ReGTA CTW PC Recomp
 
 Voir le [README public](../../README.md), la [compilation](../../docs/BUILDING.md) et le [guide de reprise](AI_HANDOFF_GUIDE.md).
 

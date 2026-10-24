@@ -35,6 +35,6 @@ The tracked-file policy check rejects game assets, private research, generated b
 
 This validates the restructuring, build, fixtures and short startup checks. It does not certify full PSP gameplay equivalence, physical-controller behaviour or a complete campaign. Optional Android-derived table dependencies and reconstructed behaviours remain identified in [STATUS.md](STATUS.md).
 
-Public project name: **ReGTA CTW**, full name **ReGTA CTW PSP Recomp**. Tipeee and PayPal.Me support links were supplied by the owner and added to the README and GitHub funding configuration; their pages were not accessible to the browsing tool, so destination/account ownership was not independently verified.
+Public project name: **ReGTA CTW**, full name **ReGTA CTW PC Recomp**. Tipeee and PayPal.Me support links were supplied by the owner and added to the README and GitHub funding configuration; their pages were not accessible to the browsing tool, so destination/account ownership was not independently verified.
 
 Detailed local logs and manifests: `work/restructure/`; current build diagnostics: `target/validation/`. These private/generated reports are not committed.

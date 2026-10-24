@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — 25 October 2026
+
+- Public name updated to **ReGTA CTW PC Recomp** throughout current website, documentation, logo outputs, build messages and runtime title/help/PDA text. PSP remains the original-data target. Existing executable paths and upstream reference names are unchanged.
+- Rebuilt horizontal/vertical wordmarks with a clearly lowercase e, flat white ReGTA and red/yellow CTW; transparent and black-background SVG/PNG variants.
+- New 1:18.51 English first-look film, 13 native gameplay selects, new narration and score, timed subtitles, thumbnail and donation end card. Replaced the promotional copy with qualified prototype claims; retired the emulator-fallback video generator.
+
+
 Changes are recorded by release. The project is in the alpha phase; a version number does not imply complete PSP behaviour.
 
 ## [0.1.4-alpha] — 2026-10-24
@@ -78,7 +85,7 @@ Changes are recorded by release. The project is in the alpha phase; a version nu
 
 ### Changed
 
-- Renamed the project **ReGTA CTW**, full name **ReGTA CTW PSP Recomp**; retained executable/launcher paths for compatibility.
+- Renamed the project **ReGTA CTW**, full name **ReGTA CTW PC Recomp**; retained executable/launcher paths for compatibility.
 - Initialized a source-only local Git repository with explicit asset/build exclusions.
 - Centralized Rust sources under `src/` and introduced a root Cargo workspace.
 - Preserved the existing compiler, executable name and demo launcher paths.

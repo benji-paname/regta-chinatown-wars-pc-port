@@ -1,6 +1,6 @@
 # Provenance and licenses
 
-## ReGTA CTW PSP Recomp
+## ReGTA CTW PC Recomp
 
 The project code is licensed under **GPL-3.0-only**; the full text is in [LICENSE](LICENSE). Game data is separate from the code and is not licensed or distributed by this project.
 
@@ -48,4 +48,4 @@ The earlier provenance document is preserved verbatim in `docs/archive/THIRD_PAR
 
 ## Presentation logo typefaces
 
-The project wordmarks in `docs/assets/logo.svg` and `logo-ctw.svg` use fixed outlines from user-supplied **Pricedown Black** (Typodermic Fonts) and **Bruce Mikita Regular** (Harold Lohner). Font software is not redistributed or covered by the source-code GPL declaration. The supplied Pricedown desktop terms permit fixed logo artwork. Public-use terms for the supplied historical Bruce Mikita copy remain undocumented; consult [BRANDING.md](docs/BRANDING.md) before public distribution. The wordmarks are independent project branding, not official Rockstar artwork or endorsement.
+The project wordmarks in `docs/assets/logo.svg` and `logo-ctw.svg` use fixed outlines from user-supplied **Pricedown Black** (Typodermic Fonts) and **Bruce Mikita Two** (Harold Lohner). Font software is not redistributed or covered by the source-code GPL declaration. The supplied Pricedown desktop terms permit fixed logo artwork. Public-use terms for the supplied historical Bruce Mikita copy remain undocumented; consult [BRANDING.md](docs/BRANDING.md) before public distribution. The wordmarks are independent project branding, not official Rockstar artwork or endorsement.

@@ -6,7 +6,7 @@ header = """<p align="center">
   <img src="docs/assets/logo.svg" alt="ReGTA CTW Official Logo" width="720"/>
 </p>
 
-# ReGTA CTW — ReGTA CTW PSP Recomp
+# ReGTA CTW — ReGTA CTW PC Recomp
 
 [![Version](https://img.shields.io/badge/version-0.1.4--alpha-orange)](CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-152%20passed%20%7C%200%20warnings-brightgreen)](docs/STATUS.md)
@@ -16,7 +16,7 @@ header = """<p align="center">
 [![Donate Tipeee](https://img.shields.io/badge/Tipeee-Soutenir%20le%20Projet-red?logo=tipeee)](https://fr.tipeee.com/benji-paname/)
 [![Donate PayPal](https://img.shields.io/badge/PayPal.Me-Faire%20un%20Don-blue?logo=paypal)](https://paypal.me/BenjiLsg)
 
-**ReGTA CTW PSP Recomp** — portage et recompilation statique native en pur Rust de *Grand Theft Auto: Chinatown Wars* PSP (version Europe **ULES-01347, version 1.01**).
+**ReGTA CTW PC Recomp** — portage et recompilation statique native en pur Rust de *Grand Theft Auto: Chinatown Wars* PSP (version Europe **ULES-01347, version 1.01**).
 
 **par Benji Paname**
 

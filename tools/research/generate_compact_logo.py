@@ -126,7 +126,7 @@ def generate_compact_logo_svg():
           fill="url(#ctwGoldGradC)" stroke="#000000" stroke-width="8" stroke-linejoin="round" paint-order="stroke fill"/>
   </g>
 
-  <!-- 3. SLEEK MODERN SUBTITLE: "PSP STATIC RECOMP" -->
+  <!-- 3. SLEEK MODERN SUBTITLE: "PC RECOMP" -->
   <g transform="translate(380, 215)">
     <line x1="-260" y1="0" x2="-120" y2="0" stroke="#334155" stroke-width="1.5" />
     <line x1="120" y1="0" x2="260" y2="0" stroke="#334155" stroke-width="1.5" />
@@ -140,7 +140,7 @@ def generate_compact_logo_svg():
           font-weight="800" 
           letter-spacing="8" 
           fill="url(#recompCyanGradC)" 
-          text-anchor="middle">PSP STATIC RECOMP</text>
+          text-anchor="middle">PC RECOMP</text>
   </g>
 </svg>'''
     return svg

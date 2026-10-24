@@ -1,3 +1,34 @@
+# ReGTA CTW PC Recomp — media and naming checkpoint
+
+Updated: 2026-10-25, Europe/Paris. Current task completed locally; no push or YouTube publication performed.
+
+## Latest user decisions
+- Start the promotional film from scratch; new film uses Benjamin's original native capture, not the old finished montage.
+- Public name is **ReGTA CTW PC Recomp**, not PSP Recomp. Technical PSP original-data references remain PSP.
+- Two logo layouts (horizontal + vertical), each on black and transparent backgrounds.
+
+## Completed
+- Flat cover-inspired red/yellow CTW, white integrated ReGTA with lowercase e at 78% scale. Pricedown Black + Bruce Mikita Two. Four named variants in docs/assets and outputs/CTW-Rust/branding, SVG + 2x PNG; default aliases remain transparent. Board: outputs/CTW-Rust/branding/logo-variants-preview.png.
+- New English film: outputs/CTW-Rust/video/launch-film/ReGTA_CTW_First_Look_EN.mp4. 1920x1080 / 60 fps, approximately 78.55 seconds container duration. 13 native footage selects, new synthetic narration and original score, concise headings, nine-second donation end card. All footage is from custom_gameplay.mp4, supplied by Benjamin. No new gameplay capture or invented footage was needed.
+- New thumbnail, English SRT, narration, YouTube description and exact timeline in the same launch-film folder. Source: tools/video/build_launch_film.py + launch_film.json. Retired the old generator to eliminate its PPSSPP fallback and unsupported claims. Old finished movie remains locally for comparison.
+- Updated website, README, active docs, build output, package description, runtime window/PDA/help branding to PC Recomp. Archived historical documents and upstream repository names remain unchanged. No gameplay mechanics modified.
+- docs/PROMO_REVIEW.md records the review; docs/YOUTUBE_CREATOR_KIT.md is the current upload kit. Bruce Mikita publication terms remain undocumented (pre-existing issue in BRANDING.md); no font files redistributed.
+
+## Verification
+- Compiler.ps1 -Test after runtime string changes: 160 passed, 0 failed, 0 warnings. Log target/promo-final-validation.log.
+- Complete final MP4 decode successful; final video contact sheet visually checked. Audio peak -3.6 dBFS, no sample clipping observed; automated audio checks are not a full listening review.
+- All four logo variants visually inspected, PNG alpha/background checked and SVG XML parsed. New video/thumbnail/end-card graphics inspected.
+- Website browser preview was not performed. Existing browser restrictions remain; no headless browser workaround used. Logos are rasterized with Sharp, video with FFmpeg/Pillow.
+
+## Resume
+```powershell
+Get-Content .\outputs\CTW-Rust\AI_HANDOFF_GUIDE.md -TotalCount 45
+git status --short
+```
+Review the new film and logos with Benjamin. Do not publish automatically. Subsequent gameplay priorities remain in the historical handoff below, but its fidelity claims are not certified by this media work.
+
+---
+## Previous gameplay handoff (historical)
 # ReGTA CTW — presentation, street races, and autonomous progress
 
 Updated: 2026-10-24 23:50 Europe/Paris. Multi-AI autonomous handoff guide.

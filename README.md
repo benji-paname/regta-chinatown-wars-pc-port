@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/assets/logo.svg" alt="ReGTA CTW — PSP Recomp" width="720"/>
+  <img src="docs/assets/logo.svg" alt="ReGTA CTW — PC Recomp" width="720"/>
 </p>
 
-# ReGTA CTW — PSP Recomp
+# ReGTA CTW — PC Recomp
 
 **A native PC future for Chinatown Wars PSP.**
 **by Benji Paname**
@@ -27,8 +27,8 @@ Support helps sustain Benji Paname's reverse engineering, native development and
 
 ## Next milestones
 
-- Review the English-first presentation and font-based logos; see [branding provenance](docs/BRANDING.md) for the outstanding Bruce Mikita license documentation.
-- YouTube premiere video: record and publish devlog using the complete production kit in [`docs/YOUTUBE_CREATOR_KIT.md`](docs/YOUTUBE_CREATOR_KIT.md).
+- Review the English-first presentation and four horizontal/vertical, black/transparent logo variants; see [branding provenance](docs/BRANDING.md) for the outstanding Bruce Mikita license documentation.
+- YouTube first-look film: review the new local edit and upload kit in [`docs/YOUTUBE_CREATOR_KIT.md`](docs/YOUTUBE_CREATOR_KIT.md).
 - Expand story missions execution engine across Boss contacts with scripted cutscene staging.
 - Continue PSP behaviour comparisons, progression and save work before considering a public playable release.
 

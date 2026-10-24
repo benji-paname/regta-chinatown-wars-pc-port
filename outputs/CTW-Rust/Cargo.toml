@@ -3,7 +3,7 @@ name = "regta-ctw"
 version = "0.1.2-alpha"
 edition = "2021"
 license = "GPL-3.0-only"
-description = "ReGTA CTW PSP Recomp: native Rust research port for Chinatown Wars PSP"
+description = "ReGTA CTW PC Recomp: native Rust research port for Chinatown Wars PSP"
 publish = false
 
 [[bin]]

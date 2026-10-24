@@ -1,0 +1,77 @@
+{
+  "title": "ReGTA CTW PC Recomp \u2014 First Look",
+  "voice": "en-US-AndrewNeural",
+  "fps": 60,
+  "scenes": [
+    {
+      "id": "01",
+      "label": "FIRST LOOK",
+      "headline": "Chinatown Wars. A native PC future.",
+      "shots": [
+        94,
+        201
+      ],
+      "voice": "Chinatown Wars. Built for handhelds. Now, an independent project is bringing its PSP world to native PC. This is ReGTA CTW PC Recomp, by Benji Paname."
+    },
+    {
+      "id": "02",
+      "label": "REAL PROTOTYPE FOOTAGE",
+      "headline": "Back on the streets of Liberty City.",
+      "shots": [
+        33,
+        53
+      ],
+      "voice": "You're watching the current prototype: exploring Liberty City, riding through its streets, and getting behind the wheel. Real gameplay, with plenty still to improve."
+    },
+    {
+      "id": "03",
+      "label": "BUILT IN RUST",
+      "headline": "Original PSP data. A native runtime.",
+      "shots": [
+        211,
+        63
+      ],
+      "voice": "The runtime is written in Rust. It reads the world from your own PSP game image, without emulating the PSP processor."
+    },
+    {
+      "id": "04",
+      "label": "THE VISION",
+      "headline": "Bring the PSP experience together.",
+      "shots": [
+        165,
+        108
+      ],
+      "voice": "The goal is to preserve the character of the PSP original, from movement and cameras to the city around you. Every detail needs research and comparison."
+    },
+    {
+      "id": "05",
+      "label": "WORK IN PROGRESS",
+      "headline": "An early build. A much bigger ambition.",
+      "shots": [
+        188,
+        222
+      ],
+      "voice": "This is an early build, not a finished port. The full campaign, save compatibility, and closer gameplay fidelity are still ahead. No public playable release is available yet."
+    },
+    {
+      "id": "06",
+      "label": "SUPPORT THE DEVELOPMENT",
+      "headline": "Help make the next step possible.",
+      "shots": [
+        99,
+        207
+      ],
+      "voice": "If you want to help this project move forward, follow the development and share it. Optional support on Tipeee or PayPal helps sustain the work. Links are in the description."
+    },
+    {
+      "id": "07",
+      "label": "by Benji Paname",
+      "headline": "Help build what comes next.",
+      "shots": [
+        214
+      ],
+      "voice": "Follow ReGTA CTW. Support the research. Help build what comes next.",
+      "end_card": true
+    }
+  ]
+}

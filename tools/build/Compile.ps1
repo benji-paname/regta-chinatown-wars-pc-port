@@ -61,7 +61,7 @@ try {
     }
     $json = $report | ConvertTo-Json -Depth 5
     [IO.File]::WriteAllText((Join-Path $reportDir 'build-report.json'), $json, [Text.UTF8Encoding]::new($false))
-    Write-Host 'ReGTA CTW PSP Recomp compiled and delivered to outputs/CTW-Rust/CTW-Rust.exe (0 warnings).'
+    Write-Host 'ReGTA CTW PC Recomp compiled and delivered to outputs/CTW-Rust/CTW-Rust.exe (0 warnings).'
 } finally {
     foreach ($name in $savedEnvironment.Keys) {
         [Environment]::SetEnvironmentVariable($name, $savedEnvironment[$name], 'Process')

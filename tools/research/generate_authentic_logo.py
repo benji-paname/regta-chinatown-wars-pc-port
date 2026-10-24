@@ -3,7 +3,7 @@
 Generates the draft, simple, and modern ReGTA CTW logo draft:
 - 'GTA' in draft Pricedown Grand Theft Auto font typography with thick black contour and drop shadow.
 - 'CHINATOWN WARS' in draft unverified angular lettering (not the cover font) in vibrant golden yellow.
-- Sleek modern 'PSP RECOMP' minimalist subtitle.
+- Sleek modern 'PC RECOMP' minimalist subtitle.
 - Pure transparent/obsidian modern aesthetic, no clutter.
 """
 
@@ -182,7 +182,7 @@ def generate_logo_svg():
   </g>
 
   <!-- ================================================================= -->
-  <!-- 3. SLEEK MODERN SUBTITLE: "PSP STATIC RECOMP"                     -->
+  <!-- 3. SLEEK MODERN SUBTITLE: "PC RECOMP"                     -->
   <!-- ================================================================= -->
   <g transform="translate(450, 310)">
     <!-- Thin Sleek Center Divider -->
@@ -200,7 +200,7 @@ def generate_logo_svg():
           font-weight="800" 
           letter-spacing="9" 
           fill="url(#recompCyanGrad)" 
-          text-anchor="middle">PSP STATIC RECOMP</text>
+          text-anchor="middle">PC RECOMP</text>
   </g>
 </svg>'''
     return svg

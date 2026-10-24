@@ -1,10 +1,79 @@
-# 🎬 Kit Vidéo YouTube & Promotion — ReGTA Chinatown Wars PC Port
+# 🎬 YouTube Creator Kit & Promotion — ReGTA Chinatown Wars PC Port
 
-Guide complet et clé en main pour enregistrer, monter, publier et promouvoir la première vidéo YouTube officielle du projet afin de captiver la communauté et inviter au soutien financier.
+Complete turnkey production kit to publish and promote the first official Devlog video for the ReGTA Chinatown Wars PC port.
 
 ---
 
-## 1. 🎯 Titres Optimisés pour l'Algorithme YouTube (Fort CTR)
+## 🚀 1. Ready-To-Upload English Video & Thumbnail (Generated)
+
+The complete 1080p 60 FPS master video in English with neural voiceover (`en-US-AndrewNeural`), dynamic 1080p motion slides, and synthesized cyberpunk soundtrack has been produced and delivered directly on your PC:
+
+- 📹 **Full Video File (1080p 60 FPS — 1m 50s)**:  
+  [`outputs/CTW-Rust/video/ReGTA_Chinatown_Wars_Devlog_01_EN.mp4`](../outputs/CTW-Rust/video/ReGTA_Chinatown_Wars_Devlog_01_EN.mp4)
+- 🖼️ **Official High-CTR Thumbnail (1280×720)**:  
+  [`outputs/CTW-Rust/video/thumbnail.png`](../outputs/CTW-Rust/video/thumbnail.png)
+
+You can double-click and open the `.mp4` file right now in VLC or Windows Media Player to inspect it, and upload it directly to YouTube!
+
+---
+
+## 🎯 2. High-CTR YouTube Titles (English)
+
+- **Option 1 (Recommended — High curiosity & algorithm reach)**:  
+  `GTA Chinatown Wars is FINALLY on PC in 60 FPS! (Native Rust Recompilation)`
+- **Option 2 (Tech & Decomp Focus)**:  
+  `We Rebuilt GTA Chinatown Wars in Rust for PC — No Emulator Needed!`
+- **Option 3 (Gaming Community)**:  
+  `Grand Theft Auto Chinatown Wars Has a Native PC Port Now (ReGTA Devlog #1)`
+
+---
+
+## 📋 3. Ready-To-Copy English YouTube Description
+
+```markdown
+🎮 Grand Theft Auto: Chinatown Wars is FINALLY running natively on PC in Rust!
+
+For over 15 years, Chinatown Wars was locked on PSP and Nintendo DS, forcing PC gamers to deal with clunky, laggy emulators. ReGTA is an independent, clean-room reverse engineering project rebuilding the entire PSP game in pure Rust for Windows x64. 
+
+⚡ Features:
+- 100% Native x86_64 machine code (Zero CPU emulation overhead)
+- Silky smooth 60+ FPS & unconstrained 4K ultra-widescreen resolutions
+- 16 Street Races & Time Trials with dynamic AI rival racers
+- Complete Drug Wars wholesale economy with 81 dealers and 7 gangs
+- Tactile minigames: Tattoo parlor, car-bomb rigging, safe cracking, hotwiring
+- 21 purchasable safehouses, Taxi nitro boost, Vigilante, Firefighter
+- 160 automated unit tests passing, strict clean-room legal integrity
+
+🔗 OFFICIAL PROJECT LINKS:
+🌐 Official Showcase Website: https://benji-paname.github.io/regta-chinatown-wars-pc-port/
+💻 Open Source GitHub Repository: https://github.com/benji-paname/regta-chinatown-wars-pc-port
+☕ Support development on Tipeee: https://fr.tipeee.com/benji-paname/
+💳 Support development on PayPal: https://paypal.me/BenjiLsg
+
+⏱️ TIMESTAMPS:
+0:00 - The 15-Year Wait is Over
+0:16 - Native Rust vs PSP Emulation (PPSSPP)
+0:42 - What's Already Playable (Street Races, Drug Wars, Minigames)
+1:05 - Engineering Rigor & Clean-Room Legal Integrity
+1:29 - Roadmap & How You Can Support Development
+
+⚠️ LEGAL DISCLAIMER / PRE-ALPHA NOTICE:
+ReGTA Chinatown Wars is an independent non-profit research and reverse-engineering project by Benji Paname, not affiliated with or endorsed by Rockstar Games or Take-Two Interactive. No proprietary game code, assets, ROMs, or playable executables are distributed. Running the project requires a legally owned personal copy of the European PSP release (ULES-01347). Donations on Tipeee and PayPal are voluntary community tips to support ongoing research and do not constitute a purchase or early access pass.
+
+#GTA #ChinatownWars #PCGaming #Rust #Recomp #ReverseEngineering #PSP #Devlog #GTAPC
+```
+
+---
+
+## 🏷️ 4. YouTube SEO Tags (English)
+
+```text
+GTA Chinatown Wars, GTA Chinatown Wars PC, GTA Chinatown Wars PC Port, ReGTA, Recomp, GTA Recompiled, Chinatown Wars Remaster, GTA PSP PC, Rust gamedev, Reverse engineering GTA, Grand Theft Auto Chinatown Wars, Huang Lee, GTA PC 60fps, Liberty City, GTA fangame, GTA modding, Chinatown Wars 2026, PC port Rust
+```
+
+---
+
+## 5. 🇫🇷 Version Française du Kit (Archives & Références)
 
 - **Option 1 (Recommandée — Fort impact de curiosité)** :  
   `J'ai recréé GTA Chinatown Wars sur PC en RUST ! (Sans Émulateur)`

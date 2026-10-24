@@ -1,6 +1,6 @@
 # Provenance and licenses
 
-## CTW-Recomp
+## ReGTA CTW PSP Recomp
 
 The project code is licensed under **GPL-3.0-only**; the full text is in [LICENSE](LICENSE). Game data is separate from the code and is not licensed or distributed by this project.
 

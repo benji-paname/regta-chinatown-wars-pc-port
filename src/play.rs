@@ -389,7 +389,7 @@ pub fn run(
     )?;
     let events = Rc::new(RefCell::new(KeyEvents::default()));
     let mut window = Window::new(
-        "CTW-Rust - Vertical Slice - by Benji Paname",
+        "ReGTA CTW PSP Recomp - by Benji Paname",
         W,
         H,
         WindowOptions {

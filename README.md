@@ -1,15 +1,15 @@
-# CTW-Recomp
+# ReGTA CTW
 
 ![Version](https://img.shields.io/badge/version-0.1.2--alpha-orange)
 ![Platform](https://img.shields.io/badge/platform-Windows%20x64-blue)
 ![Language](https://img.shields.io/badge/runtime-Rust-dea584)
 ![License](https://img.shields.io/badge/license-GPL--3.0--only-blue)
 
-**A native Rust research port of Grand Theft Auto: Chinatown Wars for PSP.**
+**ReGTA CTW PSP Recomp** — a native Rust research port of Grand Theft Auto: Chinatown Wars for PSP.
 
 **by Benji Paname** · Target: European PSP release **ULES01347, version 1.01**.
 
-CTW-Recomp aims to reconstruct the PSP game's behaviour as native Windows x64 code. It reads the user's own game data directly from an ISO; the runtime does not execute an emulated PSP CPU. The project builds on reverse-engineering work from [Kryo.to's ctw-native](https://github.com/official-kryo-to/ctw-native), adapting relevant algorithms to Rust and investigating PSP-specific formats and behaviour.
+ReGTA CTW aims to reconstruct the PSP game's behaviour as native Windows x64 code. It reads the user's own game data directly from an ISO; the runtime does not execute an emulated PSP CPU. The project builds on reverse-engineering work from [Kryo.to's ctw-native](https://github.com/official-kryo-to/ctw-native), adapting relevant algorithms to Rust and investigating PSP-specific formats and behaviour.
 
 **This is an early development build, not a completed or fully faithful recompilation.** The playable slice demonstrates the world, player movement and experimental gameplay. Some systems still use reconstructed behaviour or optional Android-derived reference tables. Passing tests verifies the implemented code, not full PSP parity. See the [module status and evidence limits](docs/STATUS.md).
 
@@ -32,7 +32,7 @@ For desktop launchers, set `CTW_ISO` in the launching environment or pass `--iso
 .\outputs\CTW-Rust\Presenter-la-demo.cmd --iso "D:\Games\Chinatown-Wars-PSP.iso"
 ```
 
-The existing `outputs/CTW-Rust/Compiler.ps1 -Test` entry point remains supported. Build cache: `target/`. See [build instructions](docs/BUILDING.md) for portable toolchains, offline builds, private integration checks and troubleshooting.
+The existing `outputs/CTW-Rust/Compiler.ps1 -Test` entry point remains supported. The executable keeps its technical name `CTW-Rust.exe` for existing shortcuts; the Cargo package is `regta-ctw`. Build cache: `target/`. See [build instructions](docs/BUILDING.md) for portable toolchains, offline builds, private integration checks and troubleshooting.
 
 ## Current scope
 

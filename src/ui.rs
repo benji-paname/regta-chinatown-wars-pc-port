@@ -272,7 +272,7 @@ pub fn model_run(
         return Ok(());
     }
     let mut window = Window::new(
-        "CTW-Rust | PSP | Geometrie originale",
+        "ReGTA CTW | PSP | Geometrie originale",
         W,
         H,
         WindowOptions {
@@ -323,7 +323,7 @@ pub fn run(
         return Ok(());
     }
     let mut window = Window::new(
-        "CTW-Rust | PSP | Ressources - prototype non jouable",
+        "ReGTA CTW | PSP | Ressources - prototype non jouable",
         W,
         H,
         WindowOptions {

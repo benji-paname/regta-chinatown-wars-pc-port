@@ -11,6 +11,7 @@ Changes are recorded by release. The project is in the alpha phase; a version nu
 
 ### Changed
 
+- Renamed the project **ReGTA CTW**, full name **ReGTA CTW PSP Recomp**; retained executable/launcher paths for compatibility.
 - Initialized a source-only local Git repository with explicit asset/build exclusions.
 - Centralized Rust sources under `src/` and introduced a root Cargo workspace.
 - Preserved the existing compiler, executable name and demo launcher paths.

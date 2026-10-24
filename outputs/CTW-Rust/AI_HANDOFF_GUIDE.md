@@ -1,38 +1,44 @@
-# CTW-Recomp — guide de reprise
+# ReGTA CTW — guide de reprise
 
-Mise a jour : 2026-10-24 10:53 +02:00. Version : 0.1.2-alpha.
+Nom complet : **ReGTA CTW PSP Recomp**. Version **0.1.2-alpha**.
+Mise à jour : **2026-10-24T11:01+02:00**, Europe/Paris. Restructuration terminée et vérifiée.
 
-## Reprise en dix secondes
+## Reprendre en dix secondes
 
-Depuis la racine du depot :
+Depuis la racine du dépôt :
 
 ```powershell
 .\Compiler.ps1 -Test
 ```
 
-L'entree outputs/CTW-Rust/Compiler.ps1 -Test reste compatible. Les sources actives sont uniquement dans src/. Le manifeste de package conserve son ancien chemin dans le workspace Cargo racine. Ne pas recreer outputs/CTW-Rust/src/.
+L'entrée `outputs/CTW-Rust/Compiler.ps1 -Test` reste compatible. Les sources actives sont uniquement dans **src/**. Le workspace et Cargo.lock sont à la racine ; le package **regta-ctw** conserve son manifeste dans `outputs/CTW-Rust/Cargo.toml`. Ne pas recréer une seconde copie des sources à l'ancien emplacement.
 
-## Etat verifie
+## État exact
 
-- Baseline : 119 tests passes, 0 echec, aucun avertissement affiche.
-- Apres deplacement et adaptation : 119 tests passes sans tables privees ; 119 tests passes avec controles prives explicites.
-- Compilation avec -D warnings, aucun nouveau masquage de lint. Les allow(dead_code) historiques sont conserves et documentes.
-- Executable livre : outputs/CTW-Rust/CTW-Rust.exe ; empreinte et horodatage dans target/validation/build-report.json.
-- Commits deja crees : 7d3d173 (baseline), 31ae193 (sources/workspace/compiler).
+- Dernière compilation : **119 tests réussis, 0 échec, 0 ignoré, 0 avertissement**, après renommage, avec `-D warnings`.
+- Export Git sans assets : **119/119** également. Tests synthétiques générés en mémoire, jamais utilisés comme données de gameplay.
+- Contrôles privés des tables : **119/119** avant le changement de nom ; provenance Android explicite.
+- Exécutable : `outputs/CTW-Rust/CTW-Rust.exe`, SHA-256 `40709cbefedbafc9efd6d007a264fba5167cd0f99a774560fa84aff40c8a648f`.
+- Cache actif unique : `target/`. Rapports courants : `target/validation/build-report.json` et `work/restructure/final-report.json`.
+- Smoke natif final : 60 images, pack HD actif, 20 passants, 12 voitures, lancement depuis un autre dossier. Réseau PSP vérifié : 13 530 nœuds, 9 654 raccords.
 
-## Fait et reste a faire a ce jalon
+## Travail terminé
 
-Sources regroupees, cache unique target/, tests synthetiques independants des assets, chemins des tables independants du dossier courant, documentation publique/financement rediges. Tables privees deplacees dans data/tables/ ; les dix fichiers sont identiques a la reference Android, pas une preuve PSP. Les originaux Python/C++ et recherches restent dans work/.
+- Git local initialisé, baseline `7d3d173`, migration `31ae193`, tests/documentation `0a567f3` ; consulter `git log -4 --oneline` pour le commit final.
+- Arborescence `src/`, `tools/`, `docs/`, `data/tables/`, `references/`, cache unique et lanceurs compatibles.
+- README public, CHANGELOG, statut honnête des modules, provenance/licence et procédure de release.
+- Soutien : https://fr.tipeee.com/benji-paname/ (principal), https://paypal.me/BenjiLsg. Aucun envoi/publication distante.
+- Suppression vérifiée des trois anciens caches et de 37 BMP redondants : 424 859 280 octets au total. Les BMP non identiques ou sans PNG sont conservés.
+- 1198 fichiers de recherche conservés et vérifiés par empreinte ; les dix tables déplacées sont identiques. Python/C++ et recherches intacts, index dans `tools/research/README.md`.
 
-Nettoyage seulement prepare : 3 caches nommes + 37 BMP verifies pixel par pixel, 424859280 octets au total. Deux BMP roof-before/roof-after different de leur PNG et doivent rester. Prochaines actions : appliquer le nettoyage verifie, controler la preservation, tester un checkout source seul et lancer un smoke test ISO. Ne pas annoncer ces controles comme deja passes.
+## Contraintes et prochaine étape utile
 
-## Regles de reprise
+L'objectif reste un portage natif PSP en Rust sans émulation. **La fidélité intégrale n'est pas démontrée.** Lire `docs/STATUS.md` : les dix tables locales sont Android, et quatre restent optionnellement utilisées par les systèmes expérimentaux. Ne pas les présenter comme PSP. La prochaine étape de rétro-ingénierie utile est d'identifier leurs équivalents PSP et de remplacer ces dépendances avec des preuves, sans inventer de comportements. Ne pas lancer ce travail au titre de la restructuration déjà terminée.
 
-- Objectif : portage natif PSP en Rust, sans emulation. La parite complete n'est PAS encore etablie. Lire docs/STATUS.md avant toute affirmation.
-- Aucun asset proprietaire dans Git. work/, target/, les tables et outputs/CTW-Rust/data/ sont ignores.
-- ISO locale de secours : work/Chinatown-Wars-PSP.iso. ISO utilisateur indiquee : F:\JEUX EMULATION\PSP GAME\Grand Theft Auto - Chinatown Wars (Europe) (En,Fr,De,Es,It).iso ; acces F: indisponible dans cette session. Ne pas toucher aux originaux.
-- Preserver les cameras PSP/mobile/DS, le HUD, les controles et le pack HD local.
-- Support indique par Benjamin : https://fr.tipeee.com/benji-paname/ et https://paypal.me/BenjiLsg. Aucun site/release distant publie.
-- Avant interruption : ecrire un etat exact et horodate ici, puis committer un etat compilable. Ne pas gonfler les resultats de tests ou la fidelite PSP.
+Les fichiers propriétaires et les recherches restent hors de Git. Ne pas déplacer/modifier les sources C++ ni les scripts historiques pour suivre les nouveaux chemins sans une tâche dédiée. Conserver les trois caméras, le HUD, les commandes et le pack HD local.
 
-Les anciennes notes sont conservees dans docs/archive/. Elles ne remplacent pas ce guide ni les preuves du code actuel.
+ISO utilisée pour les vérifications : `work/Chinatown-Wars-PSP.iso`, SHA-256 `8c62ef8d7263ff0d42db40901927de4e86afd02f3d3450c3a96d0e2bc8d5168e`. Elle correspond à la source PSP précédemment inspectée. Le lecteur accepte `--iso` ou `CTW_ISO`. L'ISO indiquée par l'utilisateur sur F: n'était pas accessible dans cette session.
+
+Avant toute interruption : terminer l'écriture des fichiers, mettre à jour ce guide avec heure et résultats réels, puis committer un état compilable. Ne pas déclarer un test exécuté s'il ne l'a pas été. Les notes dans `docs/archive/` sont historiques et peuvent contenir des affirmations corrigées depuis.
+
+Voir [rapport de restructuration](../../docs/RESTRUCTURING.md) et [compilation](../../docs/BUILDING.md).

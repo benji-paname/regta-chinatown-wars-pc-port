@@ -774,6 +774,182 @@ impl SoundSystem {
             }
         }
     }
+
+    /// Plays authentic cash register chime for purchases, sales, and fares.
+    pub fn play_cash_register(&self) {
+        let pcm = synth_cash_chime();
+        if let Ok(mut m) = self.mixer.lock() {
+            m.play_sfx(&pcm, 22050, 0.75, 0.0, 1.0, false);
+        }
+    }
+
+    /// Plays authentic PDA incoming email / stock alert notification tone.
+    pub fn play_pda_notification(&self) {
+        let pcm = synth_pda_chime();
+        if let Ok(mut m) = self.mixer.lock() {
+            m.play_sfx(&pcm, 22050, 0.65, 0.0, 1.0, false);
+        }
+    }
+
+    /// Plays authentic glass cracking and shattering sound for windshields or shop windows.
+    pub fn play_glass_break(
+        &self,
+        pos: [f32; 3],
+        listener_p: [f32; 3],
+        listener_fwd: [f32; 2],
+    ) {
+        let dx = pos[0] - listener_p[0];
+        let dy = pos[1] - listener_p[1];
+        let d2 = dx * dx + dy * dy;
+        if d2 > 1200.0 {
+            return;
+        }
+        let vol = (1.0 - (d2 / 1200.0)).clamp(0.1, 0.9);
+        let cside = [-listener_fwd[1], listener_fwd[0]];
+        let pan = ((dx * cside[0] + dy * cside[1]) / 35.0).clamp(-1.0, 1.0);
+
+        let pcm = synth_glass_crack();
+        if let Ok(mut m) = self.mixer.lock() {
+            m.play_sfx(&pcm, 22050, vol, pan, 1.0, false);
+        }
+    }
+
+    /// Plays authentic police dispatch tone for vigilante alerts.
+    pub fn play_police_dispatch(&self) {
+        let pcm = synth_police_chirp();
+        if let Ok(mut m) = self.mixer.lock() {
+            m.play_sfx(&pcm, 22050, 0.7, 0.0, 1.0, false);
+        }
+    }
+
+    /// Plays authentic defibrillator shock sound for paramedic rescue.
+    pub fn play_defibrillator(&self) {
+        let pcm = synth_defibrillator_shock();
+        if let Ok(mut m) = self.mixer.lock() {
+            m.play_sfx(&pcm, 22050, 0.8, 0.0, 1.0, false);
+        }
+    }
+
+    /// Plays triumphant fanfare jingle when passing a mission or ambient job level.
+    pub fn play_mission_fanfare(&self) {
+        let pcm = synth_fanfare();
+        if let Ok(mut m) = self.mixer.lock() {
+            m.play_sfx(&pcm, 22050, 0.85, 0.0, 1.0, false);
+        }
+    }
+}
+
+/// Synthesizes a two-tone high-frequency cash register chime (8-bit PCM).
+fn synth_cash_chime() -> Vec<u8> {
+    let rate = 22050;
+    let dur = 0.35;
+    let samples = (rate as f32 * dur) as usize;
+    let mut out = Vec::with_capacity(samples);
+    for i in 0..samples {
+        let t = i as f32 / rate as f32;
+        let env = (1.0 - (t / dur)).clamp(0.0, 1.0);
+        let s1 = (t * 1760.0 * std::f32::consts::TAU).sin();
+        let s2 = (t * 2640.0 * std::f32::consts::TAU).sin();
+        let val = (s1 * 0.5 + s2 * 0.5) * env * 0.8;
+        out.push(((val * 120.0) + 128.0).clamp(0.0, 255.0) as u8);
+    }
+    out
+}
+
+/// Synthesizes a tri-tone electronic PDA notification tone.
+fn synth_pda_chime() -> Vec<u8> {
+    let rate = 22050;
+    let dur = 0.28;
+    let samples = (rate as f32 * dur) as usize;
+    let mut out = Vec::with_capacity(samples);
+    for i in 0..samples {
+        let t = i as f32 / rate as f32;
+        let env = (1.0 - (t / dur)).clamp(0.0, 1.0);
+        let freq = if t < 0.09 {
+            987.0
+        } else if t < 0.18 {
+            1318.0
+        } else {
+            1760.0
+        };
+        let s = (t * freq * std::f32::consts::TAU).sin() * env * 0.75;
+        out.push(((s * 120.0) + 128.0).clamp(0.0, 255.0) as u8);
+    }
+    out
+}
+
+/// Synthesizes a crunchy glass crack/shatter burst.
+fn synth_glass_crack() -> Vec<u8> {
+    let rate = 22050;
+    let dur = 0.22;
+    let samples = (rate as f32 * dur) as usize;
+    let mut out = Vec::with_capacity(samples);
+    let mut lfsr: u32 = 0xACE1;
+    for i in 0..samples {
+        let t = i as f32 / rate as f32;
+        let env = (1.0 - (t / dur)).powi(2);
+        lfsr = (lfsr >> 1) ^ (-(lfsr as i32 & 1) as u32 & 0xB400);
+        let noise = ((lfsr & 0xFF) as f32 / 128.0) - 1.0;
+        let tone = (t * 3200.0 * std::f32::consts::TAU).sin() * 0.3;
+        let val = (noise * 0.7 + tone * 0.3) * env * 0.8;
+        out.push(((val * 120.0) + 128.0).clamp(0.0, 255.0) as u8);
+    }
+    out
+}
+
+/// Synthesizes a two-tone police dispatch alert chirp.
+fn synth_police_chirp() -> Vec<u8> {
+    let rate = 22050;
+    let dur = 0.25;
+    let samples = (rate as f32 * dur) as usize;
+    let mut out = Vec::with_capacity(samples);
+    for i in 0..samples {
+        let t = i as f32 / rate as f32;
+        let freq = if t < 0.12 { 650.0 } else { 920.0 };
+        let env = if t < 0.12 { 1.0 - t / 0.12 } else { 1.0 - (t - 0.12) / 0.13 };
+        let s = (t * freq * std::f32::consts::TAU).sin() * env * 0.75;
+        out.push(((s * 120.0) + 128.0).clamp(0.0, 255.0) as u8);
+    }
+    out
+}
+
+/// Synthesizes a defibrillator electric shock pulse.
+fn synth_defibrillator_shock() -> Vec<u8> {
+    let rate = 22050;
+    let dur = 0.30;
+    let samples = (rate as f32 * dur) as usize;
+    let mut out = Vec::with_capacity(samples);
+    let mut lfsr: u32 = 0x5432;
+    for i in 0..samples {
+        let t = i as f32 / rate as f32;
+        let env = (1.0 - (t / dur)).clamp(0.0, 1.0);
+        lfsr = (lfsr >> 1) ^ (-(lfsr as i32 & 1) as u32 & 0x9800);
+        let noise = ((lfsr & 0xFF) as f32 / 128.0) - 1.0;
+        let buzz = (t * 120.0 * std::f32::consts::TAU).sin();
+        let val = (buzz * 0.6 + noise * 0.4) * env * 0.85;
+        out.push(((val * 120.0) + 128.0).clamp(0.0, 255.0) as u8);
+    }
+    out
+}
+
+/// Synthesizes a triumphant 4-note ascending brass fanfare (C5, E5, G5, C6).
+fn synth_fanfare() -> Vec<u8> {
+    let rate = 22050;
+    let note_dur = 0.12;
+    let total_dur = note_dur * 4.0 + 0.2;
+    let samples = (rate as f32 * total_dur) as usize;
+    let mut out = Vec::with_capacity(samples);
+    let notes = [523.25, 659.25, 783.99, 1046.50];
+    for i in 0..samples {
+        let t = i as f32 / rate as f32;
+        let note_idx = ((t / note_dur) as usize).min(3);
+        let freq = notes[note_idx];
+        let note_t = t % note_dur;
+        let env = (1.0 - (note_t / (note_dur * 1.5))).clamp(0.0, 1.0);
+        let s = (t * freq * std::f32::consts::TAU).sin() * env * 0.8;
+        out.push(((s * 120.0) + 128.0).clamp(0.0, 255.0) as u8);
+    }
+    out
 }
 
 #[cfg(test)]
@@ -833,5 +1009,35 @@ mod tests {
         assert!(out.iter().any(|&sample| sample != 0), "Mixer generated non-zero audio");
         mixer.stop_voice(id);
         assert!(!mixer.is_playing(id));
+    }
+
+    #[test]
+    fn synthesized_audio_effects_and_fanfare() {
+        let sound_system = SoundSystem::new(
+            SoundTables {
+                events: vec![],
+                gears: vec![],
+                prop_sfx: vec![],
+                collision_low: [0; 3],
+                collision_med: [0; 3],
+                collision_high: [0; 3],
+                rev_after_shift: [0; 4],
+            },
+            SoundBank { samples: vec![] },
+        );
+
+        // Verify triggers play without error on internal mixer
+        sound_system.play_cash_register();
+        sound_system.play_pda_notification();
+        sound_system.play_glass_break([10.0, 10.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0]);
+        sound_system.play_police_dispatch();
+        sound_system.play_defibrillator();
+        sound_system.play_mission_fanfare();
+
+        let mut out = [0i16; 1024];
+        if let Ok(mut m) = sound_system.mixer.lock() {
+            m.mix(&mut out);
+        }
+        assert!(out.iter().any(|&s| s != 0), "Audio mixer must have rendered non-zero samples");
     }
 }

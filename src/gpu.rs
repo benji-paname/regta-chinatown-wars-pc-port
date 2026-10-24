@@ -1641,6 +1641,28 @@ impl Renderer {
                     }
                 }
             }
+
+            // Active Odd Job Objective Waypoint (Taxi, Vigilante, Firefighter, Paramedic, Delivery)
+            if let Some((blip_pos, _sym, blip_color)) = s.jobs.current_radar_blip() {
+                let mut jp = view.screen(blip_pos);
+                if !large {
+                    jp = view.edge_marker(jp, 9.);
+                }
+                if view.contains(jp) {
+                    let cr = blip_color[0] as f32 / 255.0;
+                    let cg = blip_color[1] as f32 / 255.0;
+                    let cb = blip_color[2] as f32 / 255.0;
+                    for k in 0..2 {
+                        let r = if k == 0 { 7. } else { 4.5 };
+                        glColor3f(if k == 0 { 0.05 } else { cr }, if k == 0 { 0.05 } else { cg }, if k == 0 { 0.05 } else { cb });
+                        glBegin(7);
+                        for v in [[0., -r], [r, 0.], [0., r], [-r, 0.]] {
+                            glVertex2f(jp[0] + v[0], jp[1] + v[1]);
+                        }
+                        glEnd();
+                    }
+                }
+            }
         }
         let p = view.screen(walker.p);
         if view.contains(p) {

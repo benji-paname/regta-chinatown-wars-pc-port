@@ -1281,6 +1281,12 @@ pub fn run(
         "safehouses_owned": s.safehouses.owned_count(),
         "dealers_discovered": s.drugs.discovered_count(),
         "wanted_stars": s.police.stars,
+        "taxi_fares": s.jobs.total_taxi_fares,
+        "vigilante_wave": s.jobs.vigilante_highest_wave,
+        "firefighter_wave": s.jobs.firefighter_highest_wave,
+        "paramedic_wave": s.jobs.paramedic_highest_wave,
+        "cameras_destroyed": s.collectibles.destroyed_camera_count(),
+        "stunts_completed": s.collectibles.completed_stunt_count(),
     })).unwrap_or(serde_json::Value::Null);
     report["slice"] = scene.as_ref().map(|s| serde_json::json!({
         "cars":s.cars.len(),"cargen_spawned":s.cars.iter().filter(|c|c.from_cargen).count(),"cargen_total":collision.cells.iter().map(|c|c.car_gens.len()).sum::<usize>(),

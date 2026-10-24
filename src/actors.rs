@@ -276,6 +276,8 @@ pub struct Scene {
     pub save_progress: crate::stats::SaveProgress,
     pub pda: crate::pda::PdaEngine,
     pub minigame: Option<crate::minigames::MinigameSession>,
+    pub jobs: crate::jobs::JobManager,
+    pub collectibles: crate::collectibles::CollectibleManager,
     pub cash: u32,
     pub prompt: Option<String>,
     pub banner: Option<(String, f32)>,
@@ -528,6 +530,8 @@ impl Scene {
             save_progress: crate::stats::SaveProgress::default(),
             pda: crate::pda::PdaEngine::new(),
             minigame: None,
+            jobs: crate::jobs::JobManager::new(),
+            collectibles: crate::collectibles::CollectibleManager::new(),
             cash: 500,
             prompt: None,
             banner: None,
@@ -1146,6 +1150,35 @@ impl Scene {
                     }
                 }
                 self.banner = Some((format!("DEALER: {} ({}) - STOCK EPUISE", dealer_name, dealer_gang.name()), 2.5));
+                return true;
+            }
+        }
+
+        // 4. Vehicle Ambient Jobs (Taxi, Vigilante, Firefighter, Paramedic, Noodle Delivery)
+        if let Some(car_idx) = self.driving {
+            let car_name = self.cars[car_idx].name;
+            if self.jobs.is_active() {
+                self.jobs.cancel_job();
+                self.banner = Some(("MISSION DE SERVICE ANNULÉE".to_string(), 3.0));
+                return true;
+            } else if let Some(job_kind) = crate::jobs::JobKind::from_vehicle(car_name) {
+                if self.jobs.try_start_job(job_kind, car_name, player_pos) {
+                    if let Some(msg) = self.jobs.banner_message.take() {
+                        self.banner = Some(msg);
+                    }
+                    return true;
+                }
+            }
+        }
+
+        // 5. Dumpster Stash Search
+        if self.driving.is_none() {
+            if let Some((loot_name, _kind)) = self.collectibles.try_search_dumpster(player_pos, &mut self.cash) {
+                if let Some(msg) = self.collectibles.banner_message.take() {
+                    self.banner = Some(msg);
+                } else {
+                    self.banner = Some((format!("FOUILLE DE BENNE : {}", loot_name), 3.5));
+                }
                 return true;
             }
         }
@@ -2161,6 +2194,14 @@ impl Scene {
 
             // 4. Report crime to police
             self.police.report_crime(crate::police::CrimeType::Explosion);
+
+            // 5. Check damage against Security Cameras
+            self.collectibles.check_explosion_against_cameras(
+                blast_pos,
+                blast.damage_radius,
+                &mut self.save_progress,
+                &mut self.cash,
+            );
         }
 
         // Chinatown Wars authentic Pursuit AI and Takedowns
@@ -2247,6 +2288,22 @@ impl Scene {
                     }
                 }
             }
+
+            // Check dumpsters
+            if self.prompt.is_none() {
+                for d in &self.collectibles.dumpsters {
+                    if !d.searched && planar(focus, d.pos) < 3.5 {
+                        self.prompt = Some("[ E / Y ] FOUILLER LA BENNE".to_string());
+                        break;
+                    }
+                }
+            }
+        } else if let Some(car_idx) = self.driving {
+            if self.jobs.is_active() {
+                self.prompt = Some("[ E / Y ] QUITTER LE SERVICE".to_string());
+            } else if let Some(job_kind) = crate::jobs::JobKind::from_vehicle(self.cars[car_idx].name) {
+                self.prompt = Some(job_kind.start_prompt().to_string());
+            }
         }
 
         // Check active story mission objective progress
@@ -2307,6 +2364,43 @@ impl Scene {
                 }
                 self.banner = Some((format!("DEALER DECOUVERT: {} ({})", d.name, d.district), 3.0));
             }
+        }
+
+        // Update vehicle ambient jobs
+        let player_in_vehicle = self.driving.is_some();
+        let vehicle_speed = self.driving.map(|i| self.cars[i].speed).unwrap_or(0.0);
+        let vehicle_health = 1000.0;
+        self.jobs.update(
+            dt,
+            focus,
+            player_in_vehicle,
+            vehicle_health,
+            vehicle_speed,
+            false,
+            &mut self.cash,
+            &mut self.save_progress,
+        );
+        if let Some(msg) = self.jobs.banner_message.take() {
+            self.banner = Some(msg);
+        }
+
+        // Update collectibles, stunt jumps, and rampages
+        let vehicle_pos = self.driving.map(|i| self.cars[i].p);
+        let vehicle_roll = self.driving.map(|i| self.cars[i].roll).unwrap_or(0.0);
+        let vehicle_pitch = self.driving.map(|i| self.cars[i].pitch).unwrap_or(0.0);
+        self.collectibles.update(
+            dt,
+            focus,
+            vehicle_pos,
+            vehicle_speed,
+            false,
+            vehicle_roll,
+            vehicle_pitch,
+            &mut self.cash,
+            &mut self.save_progress,
+        );
+        if let Some(msg) = self.collectibles.banner_message.take() {
+            self.banner = Some(msg);
         }
 
         self.driving.map(|i| self.cars[i].p)
@@ -2656,6 +2750,8 @@ mod tests {
             save_progress: crate::stats::SaveProgress::default(),
             pda: crate::pda::PdaEngine::new(),
             minigame: None,
+            jobs: crate::jobs::JobManager::new(),
+            collectibles: crate::collectibles::CollectibleManager::new(),
             cash: 500,
             prompt: None,
             banner: None,
@@ -3361,5 +3457,45 @@ mod tests {
         let prev_cash = s.cash;
         assert!(s.interact(dealer_pos), "trade interaction executed");
         assert!(s.cash != prev_cash || s.drugs.player_bag.total_units() > 0, "transaction took place");
+    }
+
+    #[test]
+    fn odd_jobs_taxi_emergency_services_and_collectibles() {
+        let mut s = empty();
+        let c = flat();
+        let roads = Roads { nodes: vec![] };
+        let assets = assets();
+
+        // 1. Enter Cabbie and start Taxi Driver Job
+        let mut taxi = make_vehicle([250.0, 250.0, 5.0], 0.0, 0, 0, 13, 0, false, false);
+        taxi.name = "CABBIE";
+        s.cars.push(taxi);
+        s.driving = Some(0);
+
+        // Interact while driving starts taxi job
+        assert!(s.interact([250.0, 250.0, 5.0]), "interaction in cabbie starts taxi service");
+        assert!(s.jobs.is_active(), "taxi job active");
+        s.tick(&c, &roads, &assets, [250.0, 250.0, 5.0], 1.0 / 30.0, DriveInput::default());
+        assert!(s.prompt.is_some(), "shows quit job prompt");
+
+        // Cancel job by pressing interact again
+        assert!(s.interact([250.0, 250.0, 5.0]), "interaction toggles/cancels job");
+        assert!(!s.jobs.is_active(), "job is cancelled");
+
+        // 2. Dumpster search on foot
+        s.driving = None;
+        let dumpster_pos = s.collectibles.dumpsters[0].pos;
+        let initial_cash = s.cash;
+        assert!(s.interact(dumpster_pos), "searching dumpster on foot succeeds");
+        assert!(s.collectibles.dumpsters[0].searched, "dumpster marked searched");
+        assert!(s.cash >= initial_cash, "dumpster awards cash or weapon");
+
+        // 3. Security camera destruction by explosion
+        let cam_pos = s.collectibles.cameras[0].pos;
+        assert!(!s.save_progress.package[0], "camera initially intact");
+        s.explosions.trigger(cam_pos, crate::explosions::ExplosionType::Rocket, 1.0);
+        s.tick(&c, &roads, &assets, [100.0, 100.0, 5.0], 1.0 / 30.0, DriveInput::default());
+        assert!(s.collectibles.cameras[0].destroyed, "camera destroyed by blast");
+        assert!(s.save_progress.package[0], "camera recorded in save_progress");
     }
 }

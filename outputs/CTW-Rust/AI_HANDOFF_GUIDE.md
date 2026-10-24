@@ -1,7 +1,7 @@
 # ReGTA CTW — guide de reprise
 
-Nom complet : **ReGTA CTW PSP Recomp**. Version **0.1.2-alpha**.
-Mise à jour : **2026-10-24T12:20+02:00**, Europe/Paris. Restructuration terminée, validée et enrichie des références officielles PSP.
+Nom complet : **ReGTA CTW PSP Recomp**. Version **0.1.4-alpha**.
+Mise à jour : **2026-10-24T19:20+02:00**, Europe/Paris. Restructuration terminée, validée et enrichie des références officielles PSP.
 
 ## Reprendre en dix secondes
 
@@ -23,10 +23,14 @@ L'entrée `outputs/CTW-Rust/Compiler.ps1 -Test` reste compatible. Les sources ac
 
 ## État exact
 
-- Dernière compilation : **139 tests réussis, 0 échec, 0 ignoré, 0 avertissement**, avec `-D warnings`.
-- Git local initialisé : 13 commits sur `main`, état propre. Dernier commit `5949531` : implémentation du moteur de mini-jeux authentiques PSP (`sinkingcarapp`, `hotwiringapp`, `scratchcardapp`, `safecrackingapp`, `dumpsterweaponstashapp`, `molotovcocktailapp`) synchronisé avec les étapes du mode Histoire.
+- Dernière compilation : **150 tests réussis, 0 échec, 0 ignoré, 0 avertissement**, avec `-D warnings`.
+- Git local initialisé : 14 commits sur `main`.
 - Exécutable : `outputs/CTW-Rust/CTW-Rust.exe`.
 - Indexation automatique au lancement : les 166 code overlays PSP sont détectés et chargés directement depuis `OVERLAYS.PAK` dans l'ISO UMD originale en 1.18 s.
+- Nouveaux modules intégrés :
+  - `src/jobs.rs` : Missions secondaires complètes (Taxi avec passagers/destinations/streaks/médaillon nitro, Autodéfense/Vigilante en 5 vagues avec gilet pare-balles doublé, Pompiers avec lance à eau et immunité au feu, Ambulance avec transport de blessés et sprint infini, Livraison de nouilles à scooter).
+  - `src/collectibles.rs` : 100 Caméras de sécurité LCPD destructibles (sauvegarde `package[100]` + remises dealers), 30 Sauts uniques USJ (`unique_jump[30]`), 35 Carnages/Rampages avec médailles, 2 Lions de Fo, bennes à ordures interactives.
+  - `src/audio.rs` : Synthèse sonore 8-bit PCM pour caisse enregistreuse, notification PDA, bris de vitre, dispatch police, défibrillateur et fanfare de victoire.
 - Cache actif unique : `target/`. Rapports courants : `target/validation/build-report.json`.
 - Nouvelles références intégrées dans `references/` :
   - `references/chinatown-wars-psp-recomp` (Static recompilation officielle PSP ULUS-10490 v1.01 par highcmd avec extraction des 167 code overlays de `OVERLAYS.PAK`).

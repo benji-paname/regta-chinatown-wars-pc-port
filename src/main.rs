@@ -2,6 +2,7 @@
 mod actors;
 mod audio;
 mod camera;
+mod collectibles;
 mod collision;
 mod drugs;
 mod explosions;
@@ -10,6 +11,7 @@ mod gps;
 mod gpu;
 mod hud;
 mod iso;
+mod jobs;
 mod locale;
 mod minigames;
 mod missions;

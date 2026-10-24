@@ -4,8 +4,39 @@ Changes are recorded by release. The project is in the alpha phase; a version nu
 
 ## [Unreleased]
 
-- Interactive PDA Email market tip push alerts and Ammu-Nation web store ordering.
-- Minigames execution via loaded PSP ELF overlays (sinkingcarapp, hotwiringapp, safecrackingapp).
+- Interactive PDA Contacts and GPS Address Book (`contactsapp`, Overlay 014).
+- Vehicle Car Bomb fitting minigame (`carbombfittingapp`, Overlay 010).
+
+## [0.1.4-alpha] — 2026-10-24
+
+### Added
+
+- **Odd Jobs and Emergency Services Engine (`src/jobs.rs`)**:
+  - `taxi` (Overlay 143): Chauffeur de taxi avec détection du véhicule Cabbie, passagers sur trottoir, destinations dynamiques, tarifs calculés selon distance et pourboire dégressif, streaks et déblocage du médaillon de taxi (boost nitro).
+  - `vigilante` (Overlay 152): Autodéfense via l'ordinateur de police en patrouille (5 vagues, élimination de criminels en fuite, récompense gilet pare-balles doublé 200 AP).
+  - `firefighter` (Overlay 028): Interventions d'urgence en camion de pompiers, extinction des brasiers à la lance à eau, déblocage de l'immunité totale au feu (Huang ignifugé).
+  - `paramedicapp` (Overlay 094): Secours en ambulance vers les urgences de Schottler, transport de blessés et déblocage du sprint infini.
+  - `chinesedelivery` (Overlay 013): Tournées de livraisons express de nouilles à scooter avec minuterie et pourboires.
+- **Collectibles and World Challenges Engine (`src/collectibles.rs`)**:
+  - 100 Caméras de sécurité LCPD réparties sur Liberty City, destructibles par balles et explosifs, synchronisées avec `save_progress.package[100]`, accordant jusqu'à 20% de remise chez les dealers.
+  - 30 Sauts uniques USJ (`save_progress.unique_jump[30]`) avec détection de rampe, phase aérienne et validation d'atterrissage sur roues.
+  - 35 Carnages / Rampages (`rampage`, Overlay 116) avec munitions infinies et médailles de bronze/argent/or dans `save_progress.ambient_medal`.
+  - 2 Statues sacrées des Lions de Fo (`monumentapp`, Overlay 091).
+  - Bennes à ordures rouges (armes cachées) et vertes (nourriture, cash et bric-à-brac) fouillables.
+- **Synthétiseur et Déclencheurs Audio Dédiés (`src/audio.rs`)**:
+  - Bruitage de caisse enregistreuse et transaction (`play_cash_register`).
+  - Carillon de notification email et alerte cours PDA (`play_pda_notification`).
+  - Craquement et bris de pare-brise sous-marin (`play_glass_break`).
+  - Gazouillis radio de dispatch de police (`play_police_dispatch`).
+  - Choc électrique de défibrillateur (`play_defibrillator`).
+  - Fanfare triomphale de mission et job réussi (`play_mission_fanfare`).
+- **HUD & Radar Live Tracking (`src/gpu.rs`)**:
+  - Balises radar contextuelles pour les jobs actifs (passagers 'P', suspects 'V', incendies 'F', ambulances '+', livraisons 'D').
+
+### Validation
+
+- **150/150 unit tests passing**, 0 failed, 0 warnings under `-D warnings`.
+- Binaire compilé et actualisé sous `outputs/CTW-Rust/CTW-Rust.exe`.
 
 ## [0.1.3-alpha] — 2026-10-24
 

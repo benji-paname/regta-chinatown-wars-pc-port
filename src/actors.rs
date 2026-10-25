@@ -96,6 +96,7 @@ pub struct Particle {
     pub kind: u8,
 }
 
+#[allow(dead_code)]
 pub struct Car {
     /// Ground position; renderer adds the vehicle mesh's base offset.
     pub p: [f32; 3],
@@ -144,6 +145,11 @@ pub struct Car {
     pub previous: usize,
     pub blocked: f32,
     pub siren_active: bool,
+    pub health: f32,
+    pub flat_tires: [bool; 4],
+    pub disabled: bool,
+    pub sparks: f32,
+    pub respray_timer: f32,
 }
 impl Car {
     pub fn spec(&self) -> &'static crate::vehicle::Spec {
@@ -275,6 +281,7 @@ pub struct Scene {
     pub sniper_scope: crate::weapons::SniperScope,
     pub traffic_lights: crate::vehicle::TrafficLightManager,
     pub traffic_manager: crate::vehicle::TrafficManager,
+    pub pay_n_spray: crate::vehicle::PayNSprayManager,
     pub police: crate::police::PoliceManager,
     pub explosions: crate::explosions::ExplosionManager,
     pub radio: crate::radio::RadioManager,
@@ -478,6 +485,11 @@ pub(crate) fn make_vehicle(
         previous,
         blocked: 0.,
         siren_active: false,
+        health: 1000.0,
+        flat_tires: [false; 4],
+        disabled: false,
+        sparks: 0.0,
+        respray_timer: 0.0,
     }
 }
 
@@ -549,6 +561,7 @@ impl Scene {
             sniper_scope: crate::weapons::SniperScope::new(),
             traffic_lights,
             traffic_manager: crate::vehicle::TrafficManager::new(),
+            pay_n_spray: crate::vehicle::PayNSprayManager::new(),
             police: crate::police::PoliceManager::new(),
             explosions: crate::explosions::ExplosionManager::new(),
             radio: crate::radio::RadioManager::new(None),
@@ -1753,6 +1766,21 @@ impl Scene {
                     if self.driving == Some(i) || self.driving == Some(j) {
                         self.collisions += 1;
                         let driver_idx = self.driving.unwrap();
+                        let other_idx = if driver_idx == i { j } else { i };
+                        let rel_speed = (vi - vj).abs();
+
+                        // Chinatown Wars authentic PIT maneuver and Cop Ram Takedown
+                        if self.police.stars > 0
+                            && (self.cars[other_idx].siren_active || self.police.cop_car_indices.contains(&other_idx))
+                            && rel_speed > 5.5
+                        {
+                            if self.police.trigger_cop_ram_takedown(other_idx, &mut self.cars) {
+                                self.banner = Some(("TAKEDOWN POLICE ! INDICE DE RECHERCHE REDUIT".to_string(), 3.5));
+                            } else {
+                                self.banner = Some(("TAKEDOWN POLICE ! BADGE BARRE".to_string(), 2.5));
+                            }
+                        }
+
                         if self.cars[driver_idx].is_bike() {
                             let rel_speed = (vi - vj).abs();
                             if rel_speed > 7.5 {
@@ -2465,8 +2493,45 @@ impl Scene {
             );
         }
 
-        // Chinatown Wars authentic Pursuit AI and Takedowns
-        self.police.update(dt, focus, &mut self.cars);
+        // Chinatown Wars authentic Pay 'n' Spray Respray Garage update
+        let mut spent_pns = 0;
+        let pns_respray = if let Some(d_idx) = self.driving {
+            if let Some(car) = self.cars.get_mut(d_idx) {
+                self.pay_n_spray.update(
+                    dt,
+                    Some(car),
+                    &mut self.cash,
+                    &mut self.police,
+                    &mut spent_pns,
+                )
+            } else {
+                false
+            }
+        } else {
+            self.pay_n_spray.update(
+                dt,
+                None,
+                &mut self.cash,
+                &mut self.police,
+                &mut spent_pns,
+            )
+        };
+        if pns_respray {
+            self.stats.add_spent_on_pay_n_spray(spent_pns);
+            self.banner = Some(("VEHICULE REPARE & REPEINT ! INDICE DE RECHERCHE EN REFROIDISSEMENT".to_string(), 4.0));
+        }
+
+        // Chinatown Wars authentic Pursuit AI, Roadblocks, and Takedowns
+        let forward = if let Some(d_idx) = self.driving {
+            if d_idx < self.cars.len() {
+                [-self.cars[d_idx].angle.sin(), self.cars[d_idx].angle.cos()]
+            } else {
+                [0.0, 1.0]
+            }
+        } else {
+            [0.0, 1.0]
+        };
+        self.police.update(dt, focus, forward, &mut self.cars);
 
         // Chinatown Wars authentic In-Car Radio & Dynamic Weather updates
         self.radio.update(dt, self.driving.is_some());
@@ -3066,6 +3131,7 @@ mod tests {
             sniper_scope: crate::weapons::SniperScope::new(),
             traffic_lights: crate::vehicle::TrafficLightManager::new(),
             traffic_manager: crate::vehicle::TrafficManager::new(),
+            pay_n_spray: crate::vehicle::PayNSprayManager::new(),
             police: crate::police::PoliceManager::new(),
             explosions: crate::explosions::ExplosionManager::new(),
             radio: crate::radio::RadioManager::new(None),

@@ -601,6 +601,169 @@ impl TrafficManager {
     }
 }
 
+// ============================================================================
+// Chinatown Wars authentic Pay 'n' Spray Respray Garage System (cPayNSpray, cPayNSprayManager)
+// ============================================================================
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PayNSprayState {
+    Open,
+    Closing,
+    Spraying,
+    Opening,
+}
+
+#[derive(Clone, Debug)]
+pub struct PayNSpray {
+    pub id: usize,
+    pub name: &'static str,
+    pub p: [f32; 3],
+    pub bounds: [f32; 3], // half-width, half-depth, height
+    pub facing_angle: f32,
+    pub door_progress: f32, // 0.0 = fully open, 1.0 = fully closed
+    pub state: PayNSprayState,
+    pub timer: f32,
+}
+
+impl PayNSpray {
+    pub fn new(id: usize, name: &'static str, p: [f32; 3], facing_angle: f32) -> Self {
+        Self {
+            id,
+            name,
+            p,
+            bounds: [4.5, 6.0, 3.8],
+            facing_angle,
+            door_progress: 0.0,
+            state: PayNSprayState::Open,
+            timer: 0.0,
+        }
+    }
+
+    pub fn is_car_inside(&self, car_p: [f32; 3]) -> bool {
+        let dx = (car_p[0] - self.p[0]).abs();
+        let dy = (car_p[1] - self.p[1]).abs();
+        let dz = (car_p[2] - self.p[2]).abs();
+        dx < self.bounds[0] && dy < self.bounds[1] && dz < self.bounds[2]
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct PayNSprayManager {
+    pub garages: Vec<PayNSpray>,
+    pub active_garage: Option<usize>,
+}
+
+impl Default for PayNSprayManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl PayNSprayManager {
+    pub const RESIGN_COST: u32 = 100;
+
+    pub fn new() -> Self {
+        Self {
+            garages: vec![
+                PayNSpray::new(0, "Meadows Park (Dukes)", [465.0, 180.0, 0.0], 0.0),
+                PayNSpray::new(1, "Cerveza Heights (Broker)", [520.0, -280.0, 0.0], std::f32::consts::FRAC_PI_2),
+                PayNSpray::new(2, "Northwood (Algonquin)", [-310.0, 720.0, 0.0], std::f32::consts::PI),
+                PayNSpray::new(3, "Suffolk (Lower Algonquin)", [-380.0, -420.0, 0.0], -std::f32::consts::FRAC_PI_2),
+                PayNSpray::new(4, "BOABO (Broker)", [290.0, -110.0, 0.0], 0.0),
+                PayNSpray::new(5, "Chase Point (Bohan)", [150.0, 580.0, 0.0], std::f32::consts::FRAC_PI_2),
+            ],
+            active_garage: None,
+        }
+    }
+
+    /// Updates garage doors and checks car entry/exit and respray service.
+    pub fn update(
+        &mut self,
+        dt: f32,
+        mut player_car: Option<&mut crate::actors::Car>,
+        player_cash: &mut u32,
+        police: &mut crate::police::PoliceManager,
+        spent_on_pay_n_spray: &mut u32,
+    ) -> bool {
+        let mut did_respray = false;
+
+        for (idx, garage) in self.garages.iter_mut().enumerate() {
+            match garage.state {
+                PayNSprayState::Open => {
+                    garage.door_progress = (garage.door_progress - dt * 2.5).max(0.0);
+                    if let Some(ref car) = player_car {
+                        if garage.is_car_inside(car.p) && car.speed.abs() < 4.0 {
+                            garage.state = PayNSprayState::Closing;
+                            garage.timer = 0.0;
+                            self.active_garage = Some(idx);
+                        }
+                    }
+                }
+                PayNSprayState::Closing => {
+                    garage.door_progress = (garage.door_progress + dt * 2.0).min(1.0);
+                    if garage.door_progress >= 1.0 {
+                        garage.state = PayNSprayState::Spraying;
+                        garage.timer = 0.0;
+                    }
+                    if let Some(ref mut car) = player_car {
+                        car.speed = 0.0;
+                    }
+                }
+                PayNSprayState::Spraying => {
+                    garage.timer += dt;
+                    if let Some(ref mut car) = player_car {
+                        car.speed = 0.0;
+                    }
+                    if garage.timer >= 1.6 {
+                        // Service complete!
+                        if let Some(ref mut car) = player_car {
+                            car.health = 1000.0;
+                            car.flat_tires = [false; 4];
+                            car.disabled = false;
+                            car.paint = (car.paint + 1) % 16;
+                            car.respray_timer = 3.0; // exit sparkles
+                        }
+                        if *player_cash >= Self::RESIGN_COST {
+                            *player_cash -= Self::RESIGN_COST;
+                            *spent_on_pay_n_spray = spent_on_pay_n_spray.wrapping_add(Self::RESIGN_COST);
+                        }
+                        police.start_cooldown(15.0);
+                        garage.state = PayNSprayState::Opening;
+                        garage.timer = 0.0;
+                        did_respray = true;
+                    }
+                }
+                PayNSprayState::Opening => {
+                    garage.door_progress = (garage.door_progress - dt * 2.0).max(0.0);
+                    if garage.door_progress <= 0.0 {
+                        garage.state = PayNSprayState::Open;
+                        self.active_garage = None;
+                    }
+                }
+            }
+        }
+
+        did_respray
+    }
+
+    /// Finds nearest Pay 'n' Spray garage coordinates for radar blip.
+    pub fn nearest_blip(&self, player_p: [f32; 3]) -> Option<([f32; 2], [f32; 4])> {
+        let mut nearest: Option<([f32; 2], [f32; 4])> = None;
+        let mut min_d = f32::MAX;
+        for g in &self.garages {
+            let dx = g.p[0] - player_p[0];
+            let dy = g.p[1] - player_p[1];
+            let d = dx * dx + dy * dy;
+            if d < min_d {
+                min_d = d;
+                // Yellow/Orange spray-can radar icon color
+                nearest = Some(([g.p[0], g.p[1]], [1.0, 0.85, 0.15, 1.0]));
+            }
+        }
+        nearest
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -686,5 +849,39 @@ mod tests {
 
         // Distant car at 100m does not need to yield
         assert!(!tm.should_yield_to_siren([50.0, 150.0, 0.0]));
+    }
+
+    #[test]
+    fn pay_n_spray_garage_service_and_wanted_cooldown() {
+        let mut pns = PayNSprayManager::new();
+        assert_eq!(pns.garages.len(), 6, "6 authentic Liberty City garages");
+
+        let mut car = crate::actors::make_car([465.0, 180.0, 0.0], 0.0, 0, 0, 0);
+        car.health = 200.0;
+        car.flat_tires = [true, true, false, false];
+        car.paint = 2;
+        let mut cash = 500;
+        let mut police = crate::police::PoliceManager::new();
+        police.set_stars(2);
+        let mut spent = 0;
+
+        // Step 1: Car inside garage at slow speed triggers closing door
+        pns.update(0.1, Some(&mut car), &mut cash, &mut police, &mut spent);
+        assert_eq!(pns.garages[0].state, PayNSprayState::Closing);
+
+        // Step 2: Door closes
+        pns.update(0.6, Some(&mut car), &mut cash, &mut police, &mut spent);
+        assert_eq!(pns.garages[0].state, PayNSprayState::Spraying);
+
+        // Step 3: Spraying finishes -> repairs car, repaints, deducts cash, cools down police
+        let finished = pns.update(1.8, Some(&mut car), &mut cash, &mut police, &mut spent);
+        assert!(finished, "Respray completed");
+        assert_eq!(car.health, 1000.0, "Car fully repaired");
+        assert_eq!(car.flat_tires, [false; 4], "All tires restored");
+        assert_eq!(car.paint, 3, "Repainted to next palette");
+        assert_eq!(cash, 400, "100$ deducted");
+        assert_eq!(spent, 100, "100$ tracked in stats");
+        assert!(police.is_cooling_down(), "Police evasion cooldown started");
+        assert_eq!(pns.garages[0].state, PayNSprayState::Opening);
     }
 }

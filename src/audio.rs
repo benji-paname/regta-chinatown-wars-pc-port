@@ -1702,6 +1702,11 @@ mod tests {
             previous: 0,
             blocked: 0.0,
             siren_active: true,
+            health: 1000.0,
+            flat_tires: [false; 4],
+            disabled: false,
+            sparks: 0.0,
+            respray_timer: 0.0,
         };
         cars.push(car);
 

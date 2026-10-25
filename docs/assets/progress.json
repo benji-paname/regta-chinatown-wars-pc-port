@@ -1,9 +1,9 @@
 {
-  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 953 Rust functions)",
+  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 972 Rust functions)",
   "bytes": 6469472,
-  "portedBytes": 160160,
+  "portedBytes": 164712,
   "routines": 25988,
-  "portedRoutines": 676,
+  "portedRoutines": 695,
   "subsystems": [
     {
       "name": "Missions",
@@ -3922,9 +3922,9 @@
     {
       "name": "Vehicles",
       "bytes": 396136,
-      "portedBytes": 3648,
+      "portedBytes": 4616,
       "routines": 1623,
-      "portedRoutines": 36,
+      "portedRoutines": 43,
       "classes": [
         {
           "name": "(free functions)",
@@ -3951,8 +3951,8 @@
           "name": "Vehicle",
           "bytes": 9860,
           "routines": 95,
-          "portedBytes": 3648,
-          "portedRoutines": 36
+          "portedBytes": 4616,
+          "portedRoutines": 43
         },
         {
           "name": "VehicleType",
@@ -4722,9 +4722,9 @@
     {
       "name": "Saves and wanted level",
       "bytes": 45700,
-      "portedBytes": 7520,
+      "portedBytes": 11104,
       "routines": 419,
-      "portedRoutines": 117,
+      "portedRoutines": 129,
       "classes": [
         {
           "name": "(free functions)",
@@ -4758,8 +4758,8 @@
           "name": "cMonitorWantedLevel",
           "bytes": 980,
           "routines": 8,
-          "portedBytes": 836,
-          "portedRoutines": 6
+          "portedBytes": 980,
+          "portedRoutines": 8
         },
         {
           "name": "cPhysicalStats",
@@ -4772,8 +4772,8 @@
           "name": "cPoliceChase",
           "bytes": 5500,
           "routines": 16,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 3440,
+          "portedRoutines": 10
         },
         {
           "name": "cProfileObject",

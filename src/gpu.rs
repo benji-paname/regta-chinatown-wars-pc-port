@@ -1018,6 +1018,172 @@ impl Renderer {
 
                     glPopMatrix();
                 }
+
+                // Chinatown Wars authentic Pay 'n' Spray Garages (cPayNSpray)
+                for garage in &scene.pay_n_spray.garages {
+                    let dx = garage.p[0] - walker.p[0];
+                    let dy = garage.p[1] - walker.p[1];
+                    if dx * dx + dy * dy > 160.0 * 160.0 {
+                        continue;
+                    }
+                    glPushMatrix();
+                    glTranslatef(garage.p[0], garage.p[1], garage.p[2]);
+                    glRotatef(garage.facing_angle.to_degrees(), 0.0, 0.0, 1.0);
+
+                    let gw = garage.bounds[0];
+                    let gh = garage.bounds[2];
+
+                    // Left & Right concrete pillar columns
+                    glColor4f(0.35, 0.36, 0.38, 1.0);
+                    for &side in &[-gw, gw] {
+                        glBegin(7);
+                        glVertex3f(side - 0.4, -0.4, gh);
+                        glVertex3f(side + 0.4, -0.4, gh);
+                        glVertex3f(side + 0.4, 0.4, gh);
+                        glVertex3f(side - 0.4, 0.4, gh);
+                        glVertex3f(side - 0.4, -0.4, 0.0);
+                        glVertex3f(side + 0.4, -0.4, 0.0);
+                        glVertex3f(side + 0.4, -0.4, gh);
+                        glVertex3f(side - 0.4, -0.4, gh);
+                        glEnd();
+                    }
+
+                    // Overhead lintel beam
+                    glBegin(7);
+                    glVertex3f(-gw - 0.4, -0.4, gh + 0.6);
+                    glVertex3f(gw + 0.4, -0.4, gh + 0.6);
+                    glVertex3f(gw + 0.4, 0.4, gh + 0.6);
+                    glVertex3f(-gw - 0.4, 0.4, gh + 0.6);
+                    glVertex3f(-gw - 0.4, -0.4, gh);
+                    glVertex3f(gw + 0.4, -0.4, gh);
+                    glVertex3f(gw + 0.4, -0.4, gh + 0.6);
+                    glVertex3f(-gw - 0.4, -0.4, gh + 0.6);
+                    glEnd();
+
+                    // Yellow and Black Diagonal Hazard Caution Stripes on portal
+                    for step in 0..8 {
+                        let col = if step % 2 == 0 { [0.95, 0.85, 0.1, 1.0] } else { [0.15, 0.15, 0.15, 1.0] };
+                        glColor4f(col[0], col[1], col[2], col[3]);
+                        let sx = -gw + (step as f32) * (gw * 2.0 / 8.0);
+                        let sw = gw * 2.0 / 8.0;
+                        glBegin(7);
+                        glVertex3f(sx, -0.41, gh);
+                        glVertex3f(sx + sw, -0.41, gh);
+                        glVertex3f(sx + sw, -0.41, gh + 0.5);
+                        glVertex3f(sx, -0.41, gh + 0.5);
+                        glEnd();
+                    }
+
+                    // Glowing Cyan / Hot Yellow Neon "PAY 'N' SPRAY" Sign
+                    glColor4f(0.1, 0.9, 0.95, 0.95);
+                    glBegin(7);
+                    glVertex3f(-2.2, -0.45, gh + 0.7);
+                    glVertex3f(2.2, -0.45, gh + 0.7);
+                    glVertex3f(2.2, -0.45, gh + 1.25);
+                    glVertex3f(-2.2, -0.45, gh + 1.25);
+                    glEnd();
+
+                    // Animated Corrugated Steel Roll-up Garage Door
+                    let door_height = gh * (1.0 - garage.door_progress);
+                    if garage.door_progress > 0.02 {
+                        let door_top = gh;
+                        let door_bottom = door_height;
+                        glColor4f(0.24, 0.26, 0.28, 1.0);
+                        glBegin(7);
+                        glVertex3f(-gw, -0.05, door_top);
+                        glVertex3f(gw, -0.05, door_top);
+                        glVertex3f(gw, -0.05, door_bottom);
+                        glVertex3f(-gw, -0.05, door_bottom);
+                        glEnd();
+
+                        // Horizontal Corrugation Segments
+                        glColor4f(0.16, 0.18, 0.20, 1.0);
+                        glBegin(1); // GL_LINES
+                        let num_corrugations = 10;
+                        for c in 0..num_corrugations {
+                            let cz = door_bottom + (c as f32) * ((door_top - door_bottom) / num_corrugations as f32);
+                            glVertex3f(-gw, -0.06, cz);
+                            glVertex3f(gw, -0.06, cz);
+                        }
+                        glEnd();
+                    }
+
+                    glPopMatrix();
+                }
+
+                // Chinatown Wars authentic Tactical Police Roadblocks & Spike Strips (cRoadBlock, cSpikeStrip)
+                for block in &scene.police.roadblocks.blocks {
+                    let dx = block.p[0] - walker.p[0];
+                    let dy = block.p[1] - walker.p[1];
+                    if dx * dx + dy * dy > 160.0 * 160.0 {
+                        continue;
+                    }
+                    glPushMatrix();
+                    glTranslatef(block.p[0], block.p[1], block.p[2]);
+                    glRotatef(block.angle.to_degrees(), 0.0, 0.0, 1.0);
+
+                    // Wooden Striped Sawhorse Barricades (Left & Right)
+                    for &bx in &[-3.2, 3.2] {
+                        glColor4f(0.65, 0.45, 0.25, 1.0);
+                        glBegin(7);
+                        glVertex3f(bx - 0.15, -0.8, 0.9);
+                        glVertex3f(bx + 0.15, -0.8, 0.9);
+                        glVertex3f(bx + 0.15, 0.8, 0.9);
+                        glVertex3f(bx - 0.15, 0.8, 0.9);
+                        glEnd();
+
+                        for b_seg in 0..4 {
+                            let col = if b_seg % 2 == 0 { [0.95, 0.85, 0.1, 1.0] } else { [0.12, 0.12, 0.12, 1.0] };
+                            glColor4f(col[0], col[1], col[2], col[3]);
+                            let sy = -0.7 + (b_seg as f32) * 0.35;
+                            glBegin(7);
+                            glVertex3f(bx - 0.08, sy, 0.5);
+                            glVertex3f(bx + 0.08, sy, 0.5);
+                            glVertex3f(bx + 0.08, sy + 0.35, 0.75);
+                            glVertex3f(bx - 0.08, sy + 0.35, 0.75);
+                            glEnd();
+                        }
+
+                        let beacon_flash = block.light_timer.sin() > 0.0;
+                        let b_col = if beacon_flash { [1.0, 0.80, 0.1, 1.0] } else { [0.35, 0.25, 0.05, 0.8] };
+                        glColor4f(b_col[0], b_col[1], b_col[2], b_col[3]);
+                        glBegin(6);
+                        glVertex3f(bx, 0.0, 1.05);
+                        for i in 0..=8 {
+                            let a = (i as f32) * (std::f32::consts::TAU / 8.0);
+                            glVertex3f(bx + a.cos() * 0.12, a.sin() * 0.12, 1.05);
+                        }
+                        glEnd();
+                    }
+
+                    // 3D Spike Strip (stinger) laid flat on asphalt across the road
+                    if let Some(ref spike) = block.spike_strip {
+                        let sl = spike.length;
+                        glColor4f(0.18, 0.20, 0.22, 1.0);
+                        glBegin(7);
+                        glVertex3f(-sl * 0.5, -0.25, 0.02);
+                        glVertex3f(sl * 0.5, -0.25, 0.02);
+                        glVertex3f(sl * 0.5, 0.25, 0.02);
+                        glVertex3f(-sl * 0.5, 0.25, 0.02);
+                        glEnd();
+
+                        glColor4f(0.85, 0.88, 0.92, 1.0);
+                        let num_spikes = 16;
+                        for sp in 0..num_spikes {
+                            let sp_x = -sl * 0.45 + (sp as f32) * (sl * 0.9 / (num_spikes as f32 - 1.0));
+                            for &sp_y in &[-0.12, 0.12] {
+                                glBegin(4);
+                                glVertex3f(sp_x - 0.03, sp_y, 0.02);
+                                glVertex3f(sp_x + 0.03, sp_y, 0.02);
+                                glVertex3f(sp_x, sp_y, 0.18);
+                                glEnd();
+                            }
+                        }
+                    }
+
+                    glPopMatrix();
+                }
+
                 for car in &scene.cars {
                     shadow(car.p, [car.h[0] * 1.44, car.h[1] * 0.92], car.angle, 0.28);
                     if distance2(car.p, walker.p) > 180. * 180. && !cam.is_free() {
@@ -1077,6 +1243,40 @@ impl Renderer {
                             draw_lamp(lx1, ly1, rz);
                             draw_lamp(lx2, ly2, rz);
                         }
+                    }
+
+                    // Chinatown Wars authentic Flat Tire Rim Sparks
+                    if car.flat_tires.iter().any(|&f| f) && car.speed.abs() > 1.8 {
+                        glColor4f(1.0, 0.72, 0.12, 0.95);
+                        glBegin(1); // GL_LINES
+                        for &side in &[-car.h[0] * 0.9, car.h[0] * 0.9] {
+                            for &axle in &[-car.h[1] * 0.7, car.h[1] * 0.7] {
+                                let wx = car.p[0] + cside[0] * side + cf[0] * axle;
+                                let wy = car.p[1] + cside[1] * side + cf[1] * axle;
+                                let wz = car.p[2] + 0.05;
+                                let spark_tail = -car.speed * 0.15;
+                                glVertex3f(wx, wy, wz);
+                                glVertex3f(wx + cf[0] * spark_tail, wy + cf[1] * spark_tail, wz + 0.12);
+                            }
+                        }
+                        glEnd();
+                    }
+
+                    // Celebratory Golden Sparkles when emerging from Pay 'n' Spray
+                    if car.respray_timer > 0.0 {
+                        glColor4f(0.98, 0.88, 0.35, (car.respray_timer / 3.0).min(1.0));
+                        glBegin(1);
+                        for sp in 0..6 {
+                            let sa = (sp as f32) * (std::f32::consts::TAU / 6.0) + (car.respray_timer * 4.0);
+                            let sx = car.p[0] + sa.cos() * (car.h[0] + 0.4);
+                            let sy = car.p[1] + sa.sin() * (car.h[1] + 0.4);
+                            let sz = car.p[2] + 0.4 + (sa * 0.5).sin() * 0.3;
+                            glVertex3f(sx - 0.1, sy, sz);
+                            glVertex3f(sx + 0.1, sy, sz);
+                            glVertex3f(sx, sy - 0.1, sz);
+                            glVertex3f(sx, sy + 0.1, sz);
+                        }
+                        glEnd();
                     }
                 }
                 for npc in &scene.peds {
@@ -1292,6 +1492,95 @@ impl Renderer {
                         2.2,
                         [0.28, 0.88, 0.38],
                     );
+
+                    // Chinatown Wars authentic Wanted Stars & Cop Takedown Badges HUD
+                    let num_stars = scene.police.stars;
+                    if num_stars > 0 {
+                        let (_stars, takedowns_done, takedowns_req) = scene.police.takedown_progress();
+                        let cooling = scene.police.is_cooling_down();
+                        let flash = scene.police.flash_timer.sin() > 0.0;
+                        let star_y = 54.0 + top;
+                        let star_spacing = 24.0;
+                        let start_x = W as f32 - 180.0;
+
+                        // 1. Draw Golden 5-pointed Wanted Stars
+                        for s_idx in 0..num_stars {
+                            let sx = start_x + (s_idx as f32) * star_spacing;
+                            let star_col = if cooling && flash {
+                                [0.45, 0.45, 0.45, 0.85]
+                            } else {
+                                [1.0, 0.82, 0.08, 1.0]
+                            };
+                            glColor4f(star_col[0], star_col[1], star_col[2], star_col[3]);
+                            glBegin(6);
+                            glVertex2f(sx, star_y);
+                            for pt in 0..=10 {
+                                let a = (pt as f32) * (std::f32::consts::TAU / 10.0) - std::f32::consts::FRAC_PI_2;
+                                let r = if pt % 2 == 0 { 8.5 } else { 3.8 };
+                                glVertex2f(sx + a.cos() * r, star_y + a.sin() * r);
+                            }
+                            glEnd();
+                        }
+
+                        // 2. Draw Chinatown Wars Takedown Cop Badges below stars
+                        let badge_y = star_y + 18.0;
+                        for b_idx in 0..takedowns_req {
+                            let bx = start_x + (b_idx as f32) * 26.0;
+                            let is_crossed = b_idx < takedowns_done;
+                            let is_pulsing = is_crossed && (b_idx + 1 == takedowns_done) && scene.police.recent_takedown_flash > 0.0;
+
+                            // Badge background shield
+                            glColor4f(0.12, 0.18, 0.28, 0.90);
+                            glBegin(7);
+                            glVertex2f(bx - 10.0, badge_y - 7.0);
+                            glVertex2f(bx + 10.0, badge_y - 7.0);
+                            glVertex2f(bx + 10.0, badge_y + 4.0);
+                            glVertex2f(bx - 10.0, badge_y + 4.0);
+                            glEnd();
+                            glBegin(4);
+                            glVertex2f(bx - 10.0, badge_y + 4.0);
+                            glVertex2f(bx + 10.0, badge_y + 4.0);
+                            glVertex2f(bx, badge_y + 11.0);
+                            glEnd();
+
+                            // Police cruiser silhouette icon
+                            glColor4f(0.85, 0.90, 0.95, 0.85);
+                            glBegin(7);
+                            glVertex2f(bx - 6.0, badge_y - 3.0);
+                            glVertex2f(bx + 6.0, badge_y - 3.0);
+                            glVertex2f(bx + 6.0, badge_y + 3.0);
+                            glVertex2f(bx - 6.0, badge_y + 3.0);
+                            glEnd();
+
+                            // Red / blue emergency lightbar atop badge
+                            let bar_color = if b_idx % 2 == 0 { [0.95, 0.15, 0.15, 1.0] } else { [0.2, 0.45, 0.98, 1.0] };
+                            glColor4f(bar_color[0], bar_color[1], bar_color[2], bar_color[3]);
+                            glBegin(7);
+                            glVertex2f(bx - 3.5, badge_y - 5.5);
+                            glVertex2f(bx + 3.5, badge_y - 5.5);
+                            glVertex2f(bx + 3.5, badge_y - 3.5);
+                            glVertex2f(bx - 3.5, badge_y - 3.5);
+                            glEnd();
+
+                            // Iconic Chinatown Wars Thick Red/Black "X" Stamp over disabled cop car!
+                            if is_crossed {
+                                let (xr, xg, xb) = if is_pulsing {
+                                    (1.0, 0.95, 0.85) // white-hot flash on recent takedown
+                                } else {
+                                    (0.92, 0.08, 0.08) // bold crimson red cross
+                                };
+                                glColor4f(xr, xg, xb, 1.0);
+                                glLineWidth(3.0);
+                                glBegin(1); // GL_LINES
+                                glVertex2f(bx - 11.0, badge_y - 8.0);
+                                glVertex2f(bx + 11.0, badge_y + 12.0);
+                                glVertex2f(bx + 11.0, badge_y - 8.0);
+                                glVertex2f(bx - 11.0, badge_y + 12.0);
+                                glEnd();
+                                glLineWidth(1.0);
+                            }
+                        }
+                    }
                 }
                 if let Some((scene, i)) = scene.and_then(|s| s.driving.map(|i| (s, i))) {
                     let vname = scene.cars[i].name;
@@ -2058,6 +2347,25 @@ impl Renderer {
                             }
                             glEnd();
                         }
+                    }
+                }
+            }
+
+            // Nearest Pay 'n' Spray Garage Waypoint
+            if let Some((pns_pos, pns_col)) = s.pay_n_spray.nearest_blip(walker.p) {
+                let mut jp = view.screen([pns_pos[0], pns_pos[1], 0.0]);
+                if !large {
+                    jp = view.edge_marker(jp, 9.);
+                }
+                if view.contains(jp) {
+                    for k in 0..2 {
+                        let r = if k == 0 { 7.5 } else { 4.5 };
+                        glColor3f(if k == 0 { 0.05 } else { pns_col[0] }, if k == 0 { 0.05 } else { pns_col[1] }, if k == 0 { 0.05 } else { pns_col[2] });
+                        glBegin(7);
+                        for v in [[0., -r], [r, 0.], [0., r], [-r, 0.]] {
+                            glVertex2f(jp[0] + v[0], jp[1] + v[1]);
+                        }
+                        glEnd();
                     }
                 }
             }

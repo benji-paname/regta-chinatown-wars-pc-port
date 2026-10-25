@@ -480,8 +480,11 @@ pub fn run(
         // Preserve taps whose down and up events arrived in one window update.
         let pressed = std::mem::take(&mut events.borrow_mut().pressed);
         let pda_active = scene.as_ref().is_some_and(|s| s.pda.open);
+        let safehouse_active = scene.as_ref().is_some_and(|s| s.safehouse_session.is_some());
+        let trade_active = scene.as_ref().is_some_and(|s| s.trade_session.is_some());
+        let any_overlay_active = map_ui.open || pda_active || safehouse_active || trade_active;
         let escape = pressed.contains(&Key::Escape);
-        if escape && !map_ui.open && !pda_active {
+        if escape && !any_overlay_active {
             break;
         }
         let pad = if target_frames.is_none() {
@@ -490,7 +493,7 @@ pub fn run(
             crate::gamepad::Input::default()
         };
         pad_connected = pad.connected;
-        if !map_ui.open && !pda_active && pad.chord(crate::gamepad::START | crate::gamepad::B) {
+        if !any_overlay_active && pad.chord(crate::gamepad::START | crate::gamepad::B) {
             break;
         }
         let capture_pressed = pressed.contains(&Key::F12) || pad.pressed(crate::gamepad::DPAD_LEFT);
@@ -499,7 +502,7 @@ pub fn run(
                 s.pda.toggle();
             }
         }
-        if !map_ui.open && !pda_active && (pressed.contains(&Key::P) || (pad.pressed(crate::gamepad::START) && !pad.held(crate::gamepad::LB))) {
+        if !any_overlay_active && (pressed.contains(&Key::P) || (pad.pressed(crate::gamepad::START) && !pad.held(crate::gamepad::LB))) {
             paused = !paused;
             accumulator = 0.;
             vault_pending = false;
@@ -612,7 +615,7 @@ pub fn run(
             previous_mouse = None;
             map_drag = None;
         }
-        let map_consumes = was_map_open || map_ui.open || pda_active;
+        let map_consumes = was_map_open || any_overlay_active;
         let mut gps_changed = false;
         if map_ui.open && window.is_active() {
             let key_axis = |positive: Key, negative: Key| {
@@ -737,6 +740,156 @@ pub fn run(
                         s.pda.selected_index = 0;
                     } else {
                         s.pda.open = false;
+                    }
+                }
+            }
+        }
+        if safehouse_active && window.is_active() {
+            if let Some(s) = scene.as_mut() {
+                if let Some(session) = &mut s.safehouse_session {
+                    if pressed.contains(&Key::Tab) {
+                        session.next_tab();
+                    }
+                    if pressed.contains(&Key::Key1) {
+                        session.set_tab(crate::safehouse::SafehouseTab::Bed);
+                    }
+                    if pressed.contains(&Key::Key2) {
+                        session.set_tab(crate::safehouse::SafehouseTab::DrugStash);
+                    }
+                    if pressed.contains(&Key::Key3) {
+                        session.set_tab(crate::safehouse::SafehouseTab::CashSafe);
+                    }
+                    if pressed.contains(&Key::Key4) {
+                        session.set_tab(crate::safehouse::SafehouseTab::Wardrobe);
+                    }
+                    if pressed.contains(&Key::Up) || pad.pressed(crate::gamepad::DPAD_UP) {
+                        session.navigate(-1);
+                    }
+                    if pressed.contains(&Key::Down) || pad.pressed(crate::gamepad::DPAD_DOWN) {
+                        session.navigate(1);
+                    }
+                    if pressed.contains(&Key::Left) {
+                        session.adjust_qty(-5);
+                    }
+                    if pressed.contains(&Key::Right) {
+                        session.adjust_qty(5);
+                    }
+                    if (pressed.contains(&Key::Enter) && !alt_enter) || pad.pressed(crate::gamepad::A) {
+                        match session.active_tab {
+                            crate::safehouse::SafehouseTab::Bed => {
+                                s.health = 127.0;
+                                s.stats.inc_number_of_times_saved();
+                                session.message = Some("LIT : SAUVEGARDE COMMANDEE (+6H)".to_string());
+                            }
+                            crate::safehouse::SafehouseTab::DrugStash => {
+                                let drug = match session.selected_item % 6 {
+                                    0 => crate::drugs::DrugType::Acid,
+                                    1 => crate::drugs::DrugType::Coke,
+                                    2 => crate::drugs::DrugType::Downers,
+                                    3 => crate::drugs::DrugType::Ecstasy,
+                                    4 => crate::drugs::DrugType::Heroin,
+                                    _ => crate::drugs::DrugType::Weed,
+                                };
+                                let qty = session.transfer_qty;
+                                if s.drugs.player_bag.get(drug) >= qty {
+                                    if s.drugs.stash_deposit(drug, qty) {
+                                        session.message = Some(format!("DEPOT {} x{} DANS LA PLANQUE", drug.name(), qty));
+                                    }
+                                } else if s.drugs.stash_box.get(drug) >= qty {
+                                    if s.drugs.stash_withdraw(drug, qty) {
+                                        session.message = Some(format!("RETRAIT {} x{} DANS LE SAC", drug.name(), qty));
+                                    }
+                                }
+                            }
+                            crate::safehouse::SafehouseTab::CashSafe => {
+                                let amount = match session.selected_item {
+                                    0 => 100,
+                                    1 => 1000,
+                                    _ => s.cash,
+                                };
+                                if s.cash >= amount && amount > 0 {
+                                    s.safehouses.deposit_cash(amount, &mut s.cash);
+                                    session.message = Some(format!("DEPOT ${} AU COFFRE", amount));
+                                } else {
+                                    let safe_cash = s.safehouses.properties[s.safehouses.current_safehouse_idx].stash_cash;
+                                    let withdraw_amt = amount.min(safe_cash);
+                                    if withdraw_amt > 0 {
+                                        s.safehouses.withdraw_cash(withdraw_amt, &mut s.cash);
+                                        session.message = Some(format!("RETRAIT ${} DU COFFRE", withdraw_amt));
+                                    }
+                                }
+                            }
+                            crate::safehouse::SafehouseTab::Wardrobe => {
+                                let outfit = match session.selected_item % 4 {
+                                    0 => crate::safehouse::PlayerOutfit::CivilianGreen,
+                                    1 => crate::safehouse::PlayerOutfit::TriadSuit,
+                                    2 => crate::safehouse::PlayerOutfit::Tracksuit,
+                                    _ => crate::safehouse::PlayerOutfit::Tourist,
+                                };
+                                s.safehouses.change_outfit(outfit);
+                                session.message = Some(format!("TENUE : {}", outfit.name()));
+                            }
+                        }
+                    }
+                    if escape || pressed.contains(&Key::Backspace) || pad.pressed(crate::gamepad::B) {
+                        s.safehouse_session = None;
+                    }
+                }
+            }
+        }
+        if trade_active && window.is_active() {
+            if let Some(s) = scene.as_mut() {
+                if let Some(session) = &mut s.trade_session {
+                    let d_idx = session.dealer_idx;
+                    if pressed.contains(&Key::Tab) {
+                        session.toggle_mode();
+                    }
+                    if pressed.contains(&Key::Up) || pad.pressed(crate::gamepad::DPAD_UP) {
+                        session.navigate(-1);
+                    }
+                    if pressed.contains(&Key::Down) || pad.pressed(crate::gamepad::DPAD_DOWN) {
+                        session.navigate(1);
+                    }
+                    if pressed.contains(&Key::Left) {
+                        session.adjust_qty(-5);
+                    }
+                    if pressed.contains(&Key::Right) {
+                        session.adjust_qty(5);
+                    }
+                    if (pressed.contains(&Key::Enter) && !alt_enter) || pad.pressed(crate::gamepad::A) {
+                        let drug = session.selected_drug();
+                        let qty = session.quantity;
+                        match session.mode {
+                            crate::drugs::TradeMode::Buy => {
+                                match s.drugs.player_buy(d_idx, drug, qty, &mut s.cash) {
+                                    Ok(cost) => {
+                                        s.stats.inc_trades_done();
+                                        s.stats.add_units_of_goods_bought(qty);
+                                        s.stats.add_value_of_goods_bought(cost);
+                                        session.message = Some(format!("ACHAT : {} x{} (-${})", drug.name(), qty, cost));
+                                    }
+                                    Err(err) => {
+                                        session.message = Some(err.to_string());
+                                    }
+                                }
+                            }
+                            crate::drugs::TradeMode::Sell => {
+                                match s.drugs.player_sell(d_idx, drug, qty, &mut s.cash) {
+                                    Ok(earned) => {
+                                        s.stats.inc_trades_done();
+                                        s.stats.add_units_of_goods_sold(qty);
+                                        s.stats.add_value_of_goods_sold(earned);
+                                        session.message = Some(format!("VENTE : {} x{} (+${})", drug.name(), qty, earned));
+                                    }
+                                    Err(err) => {
+                                        session.message = Some(err.to_string());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if escape || pressed.contains(&Key::Backspace) || pad.pressed(crate::gamepad::B) {
+                        s.trade_session = None;
                     }
                 }
             }

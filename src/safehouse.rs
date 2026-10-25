@@ -51,6 +51,89 @@ pub enum PlayerOutfit {
     Tourist,       // Undercover civilian disguise
 }
 
+impl PlayerOutfit {
+    pub fn name(self) -> &'static str {
+        match self {
+            PlayerOutfit::CivilianGreen => "Veste Civile Huang (Defaut)",
+            PlayerOutfit::TriadSuit => "Costume Enforceur de la Triade",
+            PlayerOutfit::Tracksuit => "Survetement Street Racer",
+            PlayerOutfit::Tourist => "Chemise Hawaiienne de Touriste",
+        }
+    }
+}
+
+/// Active tab in the Safehouse interior interface (`cSafehouseApp`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SafehouseTab {
+    Bed,
+    DrugStash,
+    CashSafe,
+    Wardrobe,
+}
+
+/// Interactive Safehouse Interior session modal (`cSafehouseApp`, `cSafehouseHandler`).
+#[derive(Debug, Clone)]
+pub struct SafehouseSession {
+    pub safehouse_id: u8,
+    pub active_tab: SafehouseTab,
+    pub selected_item: usize,
+    pub transfer_qty: u32,
+    pub message: Option<String>,
+}
+
+impl SafehouseSession {
+    pub fn new(safehouse_id: u8) -> Self {
+        Self {
+            safehouse_id,
+            active_tab: SafehouseTab::Bed,
+            selected_item: 0,
+            transfer_qty: 5,
+            message: None,
+        }
+    }
+
+    pub fn next_tab(&mut self) {
+        self.active_tab = match self.active_tab {
+            SafehouseTab::Bed => SafehouseTab::DrugStash,
+            SafehouseTab::DrugStash => SafehouseTab::CashSafe,
+            SafehouseTab::CashSafe => SafehouseTab::Wardrobe,
+            SafehouseTab::Wardrobe => SafehouseTab::Bed,
+        };
+        self.selected_item = 0;
+    }
+
+    pub fn prev_tab(&mut self) {
+        self.active_tab = match self.active_tab {
+            SafehouseTab::Bed => SafehouseTab::Wardrobe,
+            SafehouseTab::DrugStash => SafehouseTab::Bed,
+            SafehouseTab::CashSafe => SafehouseTab::DrugStash,
+            SafehouseTab::Wardrobe => SafehouseTab::CashSafe,
+        };
+        self.selected_item = 0;
+    }
+
+    pub fn set_tab(&mut self, tab: SafehouseTab) {
+        self.active_tab = tab;
+        self.selected_item = 0;
+    }
+
+    pub fn navigate(&mut self, delta: i32) {
+        let max_items = match self.active_tab {
+            SafehouseTab::Bed => 1,
+            SafehouseTab::DrugStash => 6,
+            SafehouseTab::CashSafe => 3,
+            SafehouseTab::Wardrobe => 4,
+        };
+        let new_sel = (self.selected_item as i32 + delta).rem_euclid(max_items as i32);
+        self.selected_item = new_sel as usize;
+    }
+
+    pub fn adjust_qty(&mut self, delta: i32) {
+        let new_qty = (self.transfer_qty as i32 + delta).clamp(1, 50);
+        self.transfer_qty = new_qty as u32;
+    }
+}
+
 /// Safehouse and Real Estate Manager.
 pub struct SafehouseManager {
     pub properties: Vec<Safehouse>,
@@ -215,5 +298,28 @@ mod tests {
 
         let mins = mgr.sleep_in_bed();
         assert_eq!(mins, 360, "Sleeping in bed advances clock by 6 hours");
+    }
+
+    #[test]
+    fn safehouse_session_tab_navigation_and_outfit_selection() {
+        let mut session = SafehouseSession::new(0);
+        assert_eq!(session.active_tab, SafehouseTab::Bed);
+
+        session.next_tab();
+        assert_eq!(session.active_tab, SafehouseTab::DrugStash);
+
+        session.next_tab();
+        assert_eq!(session.active_tab, SafehouseTab::CashSafe);
+
+        session.next_tab();
+        assert_eq!(session.active_tab, SafehouseTab::Wardrobe);
+
+        session.navigate(2);
+        assert_eq!(session.selected_item, 2);
+
+        session.adjust_qty(10);
+        assert_eq!(session.transfer_qty, 15);
+
+        assert_eq!(PlayerOutfit::TriadSuit.name(), "Costume Enforceur de la Triade");
     }
 }

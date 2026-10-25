@@ -311,6 +311,8 @@ pub struct Scene {
     pub swimming: bool,
     pub swim_timer: f32,
     pub ambient_boats: crate::vehicle::AmbientBoatManager,
+    pub safehouse_session: Option<crate::safehouse::SafehouseSession>,
+    pub trade_session: Option<crate::drugs::TradeSession>,
     stream_timer: f32,
 }
 
@@ -598,6 +600,8 @@ impl Scene {
             swimming: false,
             swim_timer: 0.0,
             ambient_boats: crate::vehicle::AmbientBoatManager::new(),
+            safehouse_session: None,
+            trade_session: None,
             driving: None,
             health: 127.,
             armour: 0,
@@ -1325,13 +1329,15 @@ impl Scene {
                 if safehouse.owned {
                     self.health = 127.0;
                     self.stats.inc_number_of_times_saved();
-                    self.banner = Some(("LIT DE SAUVEGARDE: SANTE RESTAUREE (+6H)".to_string(), 3.5));
+                    self.safehouse_session = Some(crate::safehouse::SafehouseSession::new(safehouse.id));
+                    self.banner = Some(("PLANQUE OUVERTE : LIT, PLANQUE & COFFRE".to_string(), 3.5));
                     return true;
                 } else if self.cash >= safehouse.price {
                     let price = safehouse.price;
                     safehouse.owned = true;
                     self.cash -= price;
                     self.stats.add_spent_on_property(price);
+                    self.safehouse_session = Some(crate::safehouse::SafehouseSession::new(safehouse.id));
                     self.banner = Some((format!("PLANQUE ACHETEE: {} (-${})", safehouse.name, price), 4.0));
                     return true;
                 } else {
@@ -1345,6 +1351,9 @@ impl Scene {
         for idx in 0..self.drugs.dealers.len() {
             let d_pos = self.drugs.dealers[idx].pos;
             if planar(player_pos, d_pos) < 4.0 {
+                self.drugs.dealers[idx].discovered = true;
+                self.save_progress.dealer[idx.min(self.save_progress.dealer.len() - 1)] = true;
+                self.trade_session = Some(crate::drugs::TradeSession::new(idx));
                 let dealer_gang = self.drugs.dealers[idx].gang;
                 let dealer_name = self.drugs.dealers[idx].name;
                 let want = dealer_gang.specialty_buy();
@@ -1369,7 +1378,7 @@ impl Scene {
                         return true;
                     }
                 }
-                self.banner = Some((format!("DEALER: {} ({}) - STOCK EPUISE", dealer_name, dealer_gang.name()), 2.5));
+                self.banner = Some((format!("MARCHE DE {} ({})", dealer_name, dealer_gang.name()), 3.0));
                 return true;
             }
         }
@@ -3262,6 +3271,8 @@ mod tests {
             swimming: false,
             swim_timer: 0.0,
             ambient_boats: crate::vehicle::AmbientBoatManager::new(),
+            safehouse_session: None,
+            trade_session: None,
             driving: None,
             health: 127.,
             armour: 0,
@@ -3945,6 +3956,7 @@ mod tests {
         let safehouse_pos = s.safehouses.properties[0].pos; // Cerveza Heights Apartment (owned)
         assert!(s.interact(safehouse_pos), "interaction with owned safehouse");
         assert_eq!(s.health, 127.0, "bed sleep restores health to 127");
+        assert!(s.safehouse_session.is_some(), "safehouse interior session active");
 
         // 3. Safehouse purchase: buy BOABO warehouse
         let unowned_pos = s.safehouses.properties[1].pos;
@@ -3963,6 +3975,7 @@ mod tests {
         // Trade with dealer
         let prev_cash = s.cash;
         assert!(s.interact(dealer_pos), "trade interaction executed");
+        assert!(s.trade_session.is_some(), "dealer trade session opened");
         assert!(s.cash != prev_cash || s.drugs.player_bag.total_units() > 0, "transaction took place");
     }
 

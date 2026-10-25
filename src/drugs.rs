@@ -243,6 +243,63 @@ impl Dealer {
     }
 }
 
+/// Active mode in the Drug Dealer trading window (`cTradeApp`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TradeMode {
+    Buy,
+    Sell,
+}
+
+/// Active wholesale dealer trade session (`cTradeApp`, `cTradeQuantity`, `cTradeManager`).
+#[derive(Debug, Clone)]
+pub struct TradeSession {
+    pub dealer_idx: usize,
+    pub mode: TradeMode,
+    pub selected_drug_idx: usize,
+    pub quantity: u32,
+    pub message: Option<String>,
+}
+
+impl TradeSession {
+    pub fn new(dealer_idx: usize) -> Self {
+        Self {
+            dealer_idx,
+            mode: TradeMode::Buy,
+            selected_drug_idx: 0,
+            quantity: 5,
+            message: None,
+        }
+    }
+
+    pub fn selected_drug(&self) -> DrugType {
+        match self.selected_drug_idx % 6 {
+            0 => DrugType::Acid,
+            1 => DrugType::Coke,
+            2 => DrugType::Downers,
+            3 => DrugType::Ecstasy,
+            4 => DrugType::Heroin,
+            _ => DrugType::Weed,
+        }
+    }
+
+    pub fn toggle_mode(&mut self) {
+        self.mode = match self.mode {
+            TradeMode::Buy => TradeMode::Sell,
+            TradeMode::Sell => TradeMode::Buy,
+        };
+    }
+
+    pub fn navigate(&mut self, delta: i32) {
+        let new_idx = (self.selected_drug_idx as i32 + delta).rem_euclid(6);
+        self.selected_drug_idx = new_idx as usize;
+    }
+
+    pub fn adjust_qty(&mut self, delta: i32) {
+        let new_q = (self.quantity as i32 + delta).clamp(1, 100);
+        self.quantity = new_q as u32;
+    }
+}
+
 /// Drug economy manager orchestrating all 81 dealers, market fluctuations, and player transactions.
 pub struct DrugEconomy {
     pub dealers: Vec<Dealer>,
@@ -474,5 +531,21 @@ mod tests {
         assert!(econ.stash_withdraw(DrugType::Coke, 10));
         assert_eq!(econ.player_bag.get(DrugType::Coke), 10);
         assert_eq!(econ.stash_box.get(DrugType::Coke), 5);
+    }
+
+    #[test]
+    fn trade_session_navigation_and_transactions() {
+        let mut session = TradeSession::new(0);
+        assert_eq!(session.mode, TradeMode::Buy);
+        assert_eq!(session.selected_drug(), DrugType::Acid);
+
+        session.navigate(1);
+        assert_eq!(session.selected_drug(), DrugType::Coke);
+
+        session.adjust_qty(15);
+        assert_eq!(session.quantity, 20);
+
+        session.toggle_mode();
+        assert_eq!(session.mode, TradeMode::Sell);
     }
 }

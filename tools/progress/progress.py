@@ -71,8 +71,8 @@ RUST_MODULE_MAP = {
     'weather.rs': ['cWeather', 'cTimeCycle', 'cLightManager', 'Fire', 'cFire', 'cParticleEmitterFire'],
     'races.rs': ['CRaces_Algon', 'CRaces_East', 'CRaces_North', 'cRace', 'cCheckpointTT'],
     'collectibles.rs': ['CRampage', 'CTurretRampage', 'cSecurityCamera'],
-    'safehouse.rs': ['cSafehouse', 'cStash', 'cWardrobe'],
-    'drugs.rs': ['cDrugSystem', 'cDealer', 'cTrade', 'cBaseTradeApp'],
+    'safehouse.rs': ['cSafehouse', 'cStash', 'cWardrobe', 'cSafehouseApp', 'cSafehouseManager', 'cSafehouseInfo', 'cSafehouseHandler', 'cSafehouseSaleHandler'],
+    'drugs.rs': ['cDrugSystem', 'cDealer', 'cTrade', 'cBaseTradeApp', 'cTradeApp', 'cTradeQuantity', 'cTradeItem', 'cTradeManager', 'cTradeStorageApp', 'cAmbDealer', 'cDealerInfo'],
     'jobs.rs': ['cOddJob', 'Taxi', 'cParamedic', 'cFleeOnFoot'],
     'police.rs': [
         'cWantedManager', 'cWantedRating', 'cPoliceChase', 'cMonitorWantedLevel',

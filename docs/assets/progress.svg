@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" font-family="Verdana,DejaVu Sans,sans-serif">
 <rect width="1000" height="560" fill="#16191c"/>
-<text x="8" y="18" font-size="13" fill="#e6e8ea">Original game code ported in Rust: 2.69% (743 / 25988 routines, by code size)</text>
+<text x="8" y="18" font-size="13" fill="#e6e8ea">Original game code ported in Rust: 2.86% (770 / 25988 routines, by code size)</text>
 <rect x="3.0" y="42.0" width="115.8" height="70.5" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <text x="6.0" y="53.0" font-size="9" fill="#e6e8ea">cIntro</text>
 <rect x="118.8" y="42.0" width="102.9" height="70.5" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
@@ -318,7 +318,7 @@
 <rect x="583.1" y="195.5" width="56.6" height="8.0" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <text x="586.1" y="165.3" font-size="9" fill="#e6e8ea">cEmailApp</text>
 <rect x="583.1" y="203.5" width="56.6" height="46.3" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
-<rect x="583.1" y="235.2" width="56.6" height="14.6" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
+<rect x="583.1" y="246.9" width="56.6" height="2.8" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="583.1" y="249.8" width="56.6" height="39.6" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="639.8" y="42.0" width="49.3" height="42.8" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="689.1" y="42.0" width="40.9" height="42.8" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
@@ -341,6 +341,7 @@
 <rect x="814.5" y="84.8" width="30.0" height="34.5" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="844.5" y="84.8" width="28.9" height="34.5" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="679.3" y="119.4" width="32.1" height="31.1" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
+<rect x="679.3" y="122.8" width="32.1" height="27.6" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="679.3" y="150.5" width="32.1" height="29.8" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="679.3" y="180.3" width="32.1" height="28.6" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="679.3" y="208.9" width="32.1" height="27.1" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
@@ -356,6 +357,7 @@
 <rect x="711.4" y="179.0" width="23.5" height="28.5" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="711.4" y="207.5" width="23.5" height="27.6" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="711.4" y="235.1" width="23.5" height="27.4" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
+<rect x="711.4" y="235.1" width="23.5" height="27.4" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="711.4" y="262.5" width="23.5" height="26.9" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="734.9" y="149.2" width="24.1" height="24.9" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="758.9" y="149.2" width="23.7" height="24.9" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
@@ -407,7 +409,7 @@
 <rect x="830.0" y="245.4" width="43.5" height="43.9" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="830.0" y="286.5" width="43.5" height="2.8" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="582.1" y="26.0" width="292.3" height="264.4" fill="none" stroke="#e6e8ea" stroke-opacity="0.55" stroke-width="1.2"/>
-<text x="586.1" y="38.0" font-size="11" font-weight="bold" fill="#e6e8ea">Minigames 2.9%</text>
+<text x="586.1" y="38.0" font-size="11" font-weight="bold" fill="#e6e8ea">Minigames 4.1%</text>
 <rect x="875.5" y="42.0" width="52.4" height="47.1" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="875.5" y="64.9" width="52.4" height="24.2" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="927.9" y="42.0" width="36.4" height="47.1" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>

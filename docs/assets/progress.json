@@ -1,9 +1,9 @@
 {
-  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 1006 Rust functions)",
+  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 1023 Rust functions)",
   "bytes": 6469472,
-  "portedBytes": 173740,
+  "portedBytes": 185116,
   "routines": 25988,
-  "portedRoutines": 743,
+  "portedRoutines": 770,
   "subsystems": [
     {
       "name": "Missions",
@@ -1914,9 +1914,9 @@
     {
       "name": "Minigames",
       "bytes": 943456,
-      "portedBytes": 27452,
+      "portedBytes": 38828,
       "routines": 2639,
-      "portedRoutines": 84,
+      "portedRoutines": 111,
       "classes": [
         {
           "name": "(free functions)",
@@ -2013,8 +2013,8 @@
           "name": "cAmbDealer",
           "bytes": 8448,
           "routines": 26,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 8448,
+          "portedRoutines": 26
         },
         {
           "name": "cAmbDealerHandler",
@@ -2062,8 +2062,8 @@
           "name": "cBaseTradeApp",
           "bytes": 34420,
           "routines": 74,
-          "portedBytes": 10848,
-          "portedRoutines": 29
+          "portedBytes": 2108,
+          "portedRoutines": 9
         },
         {
           "name": "cBombDisposalApp",
@@ -2461,8 +2461,8 @@
           "name": "cSafehouseApp",
           "bytes": 13112,
           "routines": 24,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 11668,
+          "portedRoutines": 21
         },
         {
           "name": "cScratchCardApp",

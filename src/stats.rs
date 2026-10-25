@@ -415,6 +415,10 @@ impl Stats {
         self.data.set_word_c8(w);
     }
 
+    pub fn number_of_times_saved(&self) -> u32 {
+        field(self.data.get_word_c8(), 20, 12) as u32
+    }
+
     pub fn inc_warehouse_raids_pulled_off(&mut self) {
         let mut w = self.data.get_word_c8();
         inc_field(&mut w, 44, 8);

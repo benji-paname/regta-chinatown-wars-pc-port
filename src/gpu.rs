@@ -2541,6 +2541,12 @@ impl Renderer {
                 if let Some(scene) = scene.filter(|s| s.pda.open && !paused) {
                     self.draw_pda(&scene.pda, scene.cash, ticks);
                 }
+                if let Some(s) = scene.filter(|s| s.safehouse_session.is_some() && !paused) {
+                    self.draw_safehouse_ui(s, ticks);
+                }
+                if let Some(s) = scene.filter(|s| s.trade_session.is_some() && !paused) {
+                    self.draw_dealer_trade_ui(s, ticks);
+                }
                 if scene.is_some_and(|s| s.health <= 0.) {
                     rounded([W as f32 / 2. - 200., 245., 400., 96.], 4., ink);
                     self.psp_text(
@@ -3116,6 +3122,250 @@ impl Renderer {
         // 4. Footer navigation hint
         rounded([px + 8., py + ph - 42., pw - 16., 34.], 4., [0.10, 0.12, 0.15]);
         self.psp_text(px + 16., py + ph - 34., "HAUT/BAS: CHOISIR | ENTREE: OUVRIR | RETOUR/I: RETOUR", 1.6, [0.80, 0.85, 0.88]);
+    }
+
+    unsafe fn draw_safehouse_ui(&self, s: &crate::actors::Scene, _ticks: usize) {
+        let Some(session) = &s.safehouse_session else { return };
+        let sh_idx = s.safehouses.properties.iter().position(|sh| sh.id == session.safehouse_id).unwrap_or(0);
+        let safehouse = &s.safehouses.properties[sh_idx];
+
+        let pw = 720.0;
+        let ph = 460.0;
+        let px = (W as f32 - pw) * 0.5;
+        let py = (H as f32 - ph) * 0.5;
+
+        // Dark chassis
+        rounded([px - 4., py - 4., pw + 8., ph + 8.], 10.0, [0.08, 0.12, 0.16]);
+        rounded([px, py, pw, ph], 8.0, [0.05, 0.07, 0.09]);
+
+        // Header
+        let header = format!("PLANQUE : {}  |  {}, {}", safehouse.name, safehouse.district, safehouse.borough);
+        self.psp_text(px + 20., py + 26., &header, 2.0, [1.0, 0.88, 0.20]);
+        let cash_str = format!("PORTEFEUILLE : ${}", s.cash);
+        self.psp_text(px + pw - 200., py + 26., &cash_str, 1.8, [0.35, 0.90, 0.45]);
+
+        // 4 Tabs Bar
+        let tabs = [
+            (crate::safehouse::SafehouseTab::Bed, "[ 1 ] LIT & SAUVEGARDE"),
+            (crate::safehouse::SafehouseTab::DrugStash, "[ 2 ] PLANQUE DROGUES"),
+            (crate::safehouse::SafehouseTab::CashSafe, "[ 3 ] COFFRE-FORT"),
+            (crate::safehouse::SafehouseTab::Wardrobe, "[ 4 ] PENDERIE"),
+        ];
+        let tab_w = (pw - 40.) / 4.;
+        for (i, (tab_kind, tab_label)) in tabs.iter().enumerate() {
+            let tx = px + 20. + (i as f32) * tab_w;
+            let active = session.active_tab == *tab_kind;
+            let col = if active { [0.14, 0.28, 0.38] } else { [0.08, 0.10, 0.13] };
+            let text_col = if active { [1.0, 0.95, 0.30] } else { [0.65, 0.70, 0.75] };
+            rounded([tx, py + 45., tab_w - 4., 28.], 4.0, col);
+            self.psp_text(tx + 8., py + 64., tab_label, 1.5, text_col);
+        }
+
+        // Active Tab Body
+        match session.active_tab {
+            crate::safehouse::SafehouseTab::Bed => {
+                rounded([px + 20., py + 85., pw - 40., 315.], 6.0, [0.07, 0.09, 0.12]);
+                self.psp_text(px + 40., py + 125., "CHAMBRE PRINCIPALE - LIT DE SAUVEGARDE", 2.2, [0.30, 0.85, 0.95]);
+                self.psp_text(px + 40., py + 165., "Dormir avance le temps de 6 heures (+360 min), restaure la sante", 1.8, [0.85, 0.88, 0.90]);
+                self.psp_text(px + 40., py + 195., "de Huang Lee a 127 HP (100%) et sauvegarde la progression.", 1.8, [0.85, 0.88, 0.90]);
+
+                let times_saved = format!("Sauvegardes effectuees au total : {}", s.stats.number_of_times_saved());
+                self.psp_text(px + 40., py + 245., &times_saved, 1.7, [0.95, 0.85, 0.20]);
+                let cur_hp = format!("Sante actuelle : {:.0} / 127 HP", s.health);
+                self.psp_text(px + 40., py + 275., &cur_hp, 1.7, [0.95, 0.35, 0.35]);
+
+                rounded([px + 40., py + 325., 320., 45.], 4.0, [0.12, 0.35, 0.22]);
+                self.psp_text(px + 55., py + 355., "[ ENTREE ] DORMIR & COMMETTRE SAUVEGARDE", 1.7, [1.0, 1.0, 1.0]);
+            }
+            crate::safehouse::SafehouseTab::DrugStash => {
+                rounded([px + 20., py + 85., pw - 40., 315.], 6.0, [0.07, 0.09, 0.12]);
+                let bag_total = s.drugs.player_bag.total_units();
+                let stash_total = safehouse.stash_drugs.total_units();
+                let bag_hdr = format!("SAC A DOS HUANG ({} / 100 U)", bag_total);
+                let stash_hdr = format!("PLANQUE SECURISEE ({} / 500 U)", stash_total);
+                self.psp_text(px + 35., py + 115., &bag_hdr, 1.8, [0.30, 0.85, 0.40]);
+                self.psp_text(px + 390., py + 115., &stash_hdr, 1.8, [0.35, 0.75, 0.95]);
+
+                let drugs = [
+                    crate::drugs::DrugType::Acid,
+                    crate::drugs::DrugType::Coke,
+                    crate::drugs::DrugType::Downers,
+                    crate::drugs::DrugType::Ecstasy,
+                    crate::drugs::DrugType::Heroin,
+                    crate::drugs::DrugType::Weed,
+                ];
+                for (i, drug) in drugs.iter().enumerate() {
+                    let ry = py + 135. + (i as f32) * 36.;
+                    let selected = session.selected_item == i;
+                    let row_col = if selected { [0.16, 0.22, 0.28] } else { [0.09, 0.11, 0.14] };
+                    rounded([px + 30., ry, pw - 60., 32.], 3.0, row_col);
+
+                    let bag_qty = s.drugs.player_bag.get(*drug);
+                    let stash_qty = safehouse.stash_drugs.get(*drug);
+                    let cursor = if selected { "> " } else { "  " };
+                    let drug_lbl = format!("{}{:<12} | Sac : {:>3} u", cursor, drug.name(), bag_qty);
+                    let stash_lbl = format!("| Planque : {:>3} u (Valeur ~${})", stash_qty, stash_qty * drug.base_price());
+                    self.psp_text(px + 38., ry + 22., &drug_lbl, 1.6, if selected { [1.0, 0.92, 0.30] } else { [0.88, 0.90, 0.92] });
+                    self.psp_text(px + 390., ry + 22., &stash_lbl, 1.6, [0.70, 0.85, 0.95]);
+                }
+                let qty_hint = format!("Transfert : x{} u  ([ GAUCHE/DROITE ] ajuster)", session.transfer_qty);
+                self.psp_text(px + 40., py + 380., &qty_hint, 1.6, [1.0, 0.85, 0.20]);
+                self.psp_text(px + 390., py + 380., "[ ENTREE ] DEPOSER (SAC->PLANQUE) / RETIRER", 1.5, [0.85, 0.95, 0.85]);
+            }
+            crate::safehouse::SafehouseTab::CashSafe => {
+                rounded([px + 20., py + 85., pw - 40., 315.], 6.0, [0.07, 0.09, 0.12]);
+                self.psp_text(px + 40., py + 125., "COFFRE-FORT DE LA PLANQUE", 2.2, [1.0, 0.85, 0.20]);
+                let w_cash = format!("Liquide sur vous : ${}", s.cash);
+                let s_cash = format!("Tresor dans le coffre : ${}", safehouse.stash_cash);
+                self.psp_text(px + 40., py + 165., &w_cash, 1.8, [0.40, 0.90, 0.45]);
+                self.psp_text(px + 40., py + 195., &s_cash, 1.8, [0.35, 0.75, 0.95]);
+
+                let options = ["1. Transferer $100", "2. Transferer $1,000", "3. Transferer la Totalite"];
+                for (i, opt) in options.iter().enumerate() {
+                    let oy = py + 235. + (i as f32) * 40.;
+                    let selected = session.selected_item == i;
+                    rounded([px + 40., oy, 320., 34.], 3.0, if selected { [0.18, 0.26, 0.32] } else { [0.10, 0.12, 0.15] });
+                    self.psp_text(px + 55., oy + 24., opt, 1.6, if selected { [1.0, 0.95, 0.30] } else { [0.85, 0.88, 0.90] });
+                }
+                self.psp_text(px + 40., py + 380., "[ ENTREE ] DEPOSER DANS LE COFFRE  (ou RETIRER si portefeuille vide)", 1.5, [0.85, 0.95, 0.85]);
+            }
+            crate::safehouse::SafehouseTab::Wardrobe => {
+                rounded([px + 20., py + 85., pw - 40., 315.], 6.0, [0.07, 0.09, 0.12]);
+                self.psp_text(px + 40., py + 125., "PENDERIE & GARDEROBE", 2.2, [0.95, 0.45, 0.85]);
+                let outfits = [
+                    (crate::safehouse::PlayerOutfit::CivilianGreen, "Veste Civile Huang (Defaut) - Veste kaki et jean urbain"),
+                    (crate::safehouse::PlayerOutfit::TriadSuit, "Costume Enforceur de la Triade - Costume cravate noir"),
+                    (crate::safehouse::PlayerOutfit::Tracksuit, "Survetement Street Racer - Tenue de course jaune et noire"),
+                    (crate::safehouse::PlayerOutfit::Tourist, "Chemise Hawaiienne de Touriste - Chemise a fleurs sous couverture"),
+                ];
+                for (i, (outfit, desc)) in outfits.iter().enumerate() {
+                    let oy = py + 155. + (i as f32) * 48.;
+                    let selected = session.selected_item == i;
+                    let is_active = s.safehouses.current_outfit == *outfit;
+                    rounded([px + 40., oy, pw - 80., 40.], 3.0, if selected { [0.20, 0.18, 0.26] } else { [0.09, 0.11, 0.14] });
+                    let tag = if is_active { " [ EQUIPE ]" } else { "" };
+                    let lbl = format!("{}{}", desc, tag);
+                    let col = if is_active { [0.35, 0.95, 0.45] } else if selected { [1.0, 0.90, 0.30] } else { [0.85, 0.88, 0.90] };
+                    self.psp_text(px + 55., oy + 26., &lbl, 1.6, col);
+                }
+                self.psp_text(px + 40., py + 380., "[ ENTREE ] ENFILER LA TENUE SELECTIONNEE", 1.6, [1.0, 0.85, 0.20]);
+            }
+        }
+
+        // Notification / feedback banner
+        if let Some(msg) = &session.message {
+            rounded([px + 20., py + ph - 75., pw - 40., 28.], 3.0, [0.15, 0.35, 0.20]);
+            self.psp_text(px + 32., py + ph - 56., msg, 1.6, [1.0, 1.0, 0.90]);
+        }
+
+        // Footer hint
+        rounded([px + 8., py + ph - 42., pw - 16., 34.], 4.0, [0.10, 0.12, 0.15]);
+        self.psp_text(px + 16., py + ph - 34., "1..4/TAB: ONGLETS | HAUT/BAS: CHOISIR | GAUCHE/DROITE: QUANTITE | ENTREE: VALIDER | ECHAP: QUITTER", 1.5, [0.80, 0.85, 0.88]);
+    }
+
+    unsafe fn draw_dealer_trade_ui(&self, s: &crate::actors::Scene, _ticks: usize) {
+        let Some(session) = &s.trade_session else { return };
+        let dealer = &s.drugs.dealers[session.dealer_idx.min(s.drugs.dealers.len() - 1)];
+
+        let pw = 740.0;
+        let ph = 470.0;
+        let px = (W as f32 - pw) * 0.5;
+        let py = (H as f32 - ph) * 0.5;
+
+        // Dark chassis
+        rounded([px - 4., py - 4., pw + 8., ph + 8.], 10.0, [0.14, 0.10, 0.08]);
+        rounded([px, py, pw, ph], 8.0, [0.07, 0.06, 0.08]);
+
+        // Header
+        let d_hdr = format!("DEALER : {}  |  GANG : {}  |  QUARTIER : {}", dealer.name, dealer.gang.name(), dealer.district);
+        self.psp_text(px + 20., py + 26., &d_hdr, 1.9, [1.0, 0.85, 0.20]);
+
+        // Mode switch tabs
+        let buy_active = session.mode == crate::drugs::TradeMode::Buy;
+        let buy_col = if buy_active { [0.15, 0.38, 0.22] } else { [0.09, 0.12, 0.14] };
+        let sell_col = if !buy_active { [0.38, 0.18, 0.15] } else { [0.09, 0.12, 0.14] };
+        rounded([px + 20., py + 45., 220., 28.], 4.0, buy_col);
+        rounded([px + 250., py + 45., 220., 28.], 4.0, sell_col);
+        self.psp_text(px + 32., py + 64., "[ TAB ] ACHAT (DEALER->SAC)", 1.5, if buy_active { [1.0, 1.0, 1.0] } else { [0.65, 0.70, 0.75] });
+        self.psp_text(px + 262., py + 64., "[ TAB ] VENTE (SAC->DEALER)", 1.5, if !buy_active { [1.0, 1.0, 1.0] } else { [0.65, 0.70, 0.75] });
+
+        let bag_total = s.drugs.player_bag.total_units();
+        let bag_str = format!("SAC : {}/100 U  |  ${}", bag_total, s.cash);
+        self.psp_text(px + pw - 240., py + 64., &bag_str, 1.7, [0.35, 0.90, 0.45]);
+
+        // 6 Drug rows
+        let drugs = [
+            (crate::drugs::DrugType::Acid, "Acide (LSD)", [0.45, 0.85, 0.95]),
+            (crate::drugs::DrugType::Coke, "Cocaine", [0.95, 0.95, 0.98]),
+            (crate::drugs::DrugType::Downers, "Downers", [0.85, 0.45, 0.35]),
+            (crate::drugs::DrugType::Ecstasy, "Extasy", [0.95, 0.40, 0.85]),
+            (crate::drugs::DrugType::Heroin, "Heroine", [0.75, 0.65, 0.30]),
+            (crate::drugs::DrugType::Weed, "Weed", [0.30, 0.85, 0.40]),
+        ];
+
+        let tip = s.drugs.active_tips.iter().find(|t| match t {
+            crate::drugs::MarketTip::Shortage { district, .. } => *district == dealer.district,
+            crate::drugs::MarketTip::Surplus { district, .. } => *district == dealer.district,
+        });
+
+        rounded([px + 20., py + 82., pw - 40., 240.], 4.0, [0.06, 0.07, 0.09]);
+        for (idx, (drug, name, color)) in drugs.iter().enumerate() {
+            let ry = py + 88. + (idx as f32) * 38.;
+            let selected = session.selected_drug_idx % 6 == idx;
+            let row_col = if selected { [0.18, 0.22, 0.28] } else { [0.08, 0.09, 0.11] };
+            rounded([px + 25., ry, pw - 50., 34.], 3.0, row_col);
+
+            let unit_price = if buy_active {
+                dealer.sell_price(*drug, tip)
+            } else {
+                dealer.buy_price(*drug, tip)
+            };
+
+            let in_bag = s.drugs.player_bag.get(*drug);
+            let in_stock = dealer.stock.get(*drug);
+
+            let is_discount = dealer.gang.specialty_sale() == *drug;
+            let is_demand = dealer.gang.specialty_buy() == *drug;
+
+            let cursor = if selected { "> " } else { "  " };
+            let lbl = format!("{}{:<10}  |  Prix/u : ${}", cursor, name, unit_price);
+            self.psp_text(px + 32., ry + 24., &lbl, 1.7, if selected { [1.0, 0.95, 0.30] } else { *color });
+
+            if is_discount {
+                rounded([px + 280., ry + 6., 120., 22.], 2.0, [0.15, 0.45, 0.22]);
+                self.psp_text(px + 286., ry + 22., "AU RABAIS !", 1.4, [0.40, 1.0, 0.50]);
+            } else if is_demand {
+                rounded([px + 280., ry + 6., 140., 22.], 2.0, [0.45, 0.18, 0.18]);
+                self.psp_text(px + 286., ry + 22., "FORTE DEMANDE !", 1.4, [1.0, 0.40, 0.40]);
+            }
+
+            let quant_str = format!("Sac : {:>2} u  |  Stock : {:>2} u", in_bag, in_stock);
+            self.psp_text(px + pw - 240., ry + 24., &quant_str, 1.6, [0.80, 0.85, 0.90]);
+        }
+
+        // Transaction Summary Box
+        rounded([px + 20., py + 330., pw - 40., 70.], 4.0, [0.09, 0.11, 0.14]);
+        let sel_drug = session.selected_drug();
+        let sel_price = if buy_active {
+            dealer.sell_price(sel_drug, tip)
+        } else {
+            dealer.buy_price(sel_drug, tip)
+        };
+        let total_val = sel_price * session.quantity;
+        let action_name = if buy_active { "COUT TOTAL" } else { "REVENU TOTAL" };
+        let act_str = format!("QUANTITE : {} u  ([ GAUCHE/DROITE ])    |    {} : ${}", session.quantity, action_name, total_val);
+        self.psp_text(px + 35., py + 360., &act_str, 1.8, [1.0, 0.92, 0.30]);
+
+        if let Some(msg) = &session.message {
+            self.psp_text(px + 35., py + 388., msg, 1.6, [0.35, 0.95, 0.45]);
+        } else {
+            let prompt = if buy_active { "[ ENTREE ] ACHETER AU DEALER" } else { "[ ENTREE ] VENDRE AU DEALER" };
+            self.psp_text(px + 35., py + 388., prompt, 1.6, [0.85, 0.90, 0.95]);
+        }
+
+        // Footer hint
+        rounded([px + 8., py + ph - 42., pw - 16., 34.], 4.0, [0.10, 0.12, 0.15]);
+        self.psp_text(px + 16., py + ph - 34., "TAB: ACHAT/VENTE | HAUT/BAS: DROGUE | GAUCHE/DROITE: QUANTITE | ENTREE: VALIDER | ECHAP: QUITTER", 1.5, [0.80, 0.85, 0.88]);
     }
     pub fn set_fullscreen(&mut self, enable: bool) {
         if enable == self.fullscreen || self.window.is_null() {

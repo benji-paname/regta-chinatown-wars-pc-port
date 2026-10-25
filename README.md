@@ -8,7 +8,7 @@
 **by Benji Paname**
 
 [![Version](https://img.shields.io/badge/milestone-0.1.4--alpha-orange)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/local_tests-160_passed-brightgreen)](docs/STATUS.md)
+[![Tests](https://img.shields.io/badge/local_tests-163_passed-brightgreen)](docs/STATUS.md)
 [![Warnings](https://img.shields.io/badge/compiler_warnings-0-brightgreen)](docs/STATUS.md)
 [![Platform](https://img.shields.io/badge/platform-Windows_x64-blue)](#build-and-run)
 [![Language](https://img.shields.io/badge/runtime-Rust-dea584)](#repository-layout)
@@ -18,7 +18,7 @@ ReGTA CTW is an independent reverse-engineering and native-port project for **Gr
 
 > **Pre-alpha — no public playable download.** No game executable, ROM, ISO or proprietary game assets are offered for download. The local prototype is unfinished; no release date or complete gameplay parity is promised. Building from source requires the tools and personal game copy described below.
 
-The city, player movement, cameras, navigation, vehicles and combat already have prototype implementations. The work ahead is to verify their behaviour against the PSP original and connect them into a complete game. **160 passing tests and 166 indexed code overlays are progress measurements, not proof of full-game equivalence.**
+The city, player movement, cameras, navigation, vehicles and combat already have prototype implementations. The work ahead is to verify their behaviour against the PSP original and connect them into a complete game. **163 passing tests and 166 indexed code overlays are progress measurements, not proof of full-game equivalence.**
 
 **[Support on Tipeee](https://fr.tipeee.com/benji-paname/)** · [Support via PayPal](https://paypal.me/BenjiLsg)
 Support helps sustain Benji Paname's reverse engineering, native development and documentation. It does not buy the game, game assets or early access, and does not guarantee completion or a release date.
@@ -53,7 +53,7 @@ From the repository root, in PowerShell:
 .\outputs\CTW-Rust\CTW-Rust.exe --iso "D:\Games\Chinatown-Wars-PSP.iso" --slice
 ```
 
-The compiler runs with warnings treated as errors, tests the workspace, and updates the executable only after success. Unit tests use generated synthetic fixtures and do not require an ISO or extracted game tables. Local validation on **24 October 2026: 160 passed, 0 failed, 0 ignored, 0 compiler warnings**. This is a local result, not a hosted CI badge.
+The compiler runs with warnings treated as errors, tests the workspace, and updates the executable only after success. Unit tests use generated synthetic fixtures and do not require an ISO or extracted game tables. Local validation on **25 October 2026: 163 passed, 0 failed, 0 ignored, 0 compiler warnings**. This is a local result, not a hosted CI badge.
 
 For desktop launchers, set `CTW_ISO` in the launching environment or pass `--iso` to a launcher:
 
@@ -87,7 +87,7 @@ The three camera profiles, French/English interface, keyboard/XInput controls an
 
 | Metric | Measured Value | Verification Method |
 |---|---|---|
-| **Passing Unit Tests** | **160 tests / 0 failures** | `Compiler.ps1 -Test` (100% deterministic synthetic fixtures) |
+| **Passing Unit Tests** | **163 tests / 0 failures** | `Compiler.ps1 -Test` (100% deterministic synthetic fixtures) |
 | **Compiler Warnings** | **0 warnings** | Enforced via `-D warnings` in Cargo build profile |
 | **Active Rust Modules** | **45 modules** (25,018 lines) | Pure native Rust x86_64 in `src/` |
 | **PSP Code Overlays Indexed** | **166 overlays** | Verified against `OVERLAYS.PAK` directory table |

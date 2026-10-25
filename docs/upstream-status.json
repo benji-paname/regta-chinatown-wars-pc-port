@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-10-24T23:15:32+00:00",
-  "task": "verification-and-progress-audit",
+  "checked_at": "2026-10-25T00:04:15+00:00",
+  "task": "Continue gameplay and mission implementation",
   "repositories": [
     {
       "id": "ctw-native",
@@ -9,8 +9,8 @@
       "use": "Gameplay algorithms, class names and porting methodology; verify PSP Europe differences.",
       "status": "checked",
       "revision": "b0506abc786fea229101c56e0a64726aa8b4ac97",
-      "previous_revision": null,
-      "changed_files": null,
+      "previous_revision": "b0506abc786fea229101c56e0a64726aa8b4ac97",
+      "changed_files": [],
       "local_changes_present": false,
       "recent_commits": [
         {
@@ -52,8 +52,8 @@
       "use": "Overlay analysis, original control flow and rendering/audio research; validate against ULES-01347 1.01.",
       "status": "checked",
       "revision": "6562163b6f504a1db93e1be5ce580d8cd6f024a7",
-      "previous_revision": null,
-      "changed_files": null,
+      "previous_revision": "6562163b6f504a1db93e1be5ce580d8cd6f024a7",
+      "changed_files": [],
       "local_changes_present": false,
       "recent_commits": [
         {

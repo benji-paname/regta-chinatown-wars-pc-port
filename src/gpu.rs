@@ -1179,6 +1179,7 @@ impl Renderer {
                             crate::missions::MissionObjective::LoseWantedLevel { .. } => "Semez la police !",
                             crate::missions::MissionObjective::SurviveFrames { .. } => "Survivez aux assaillants !",
                             crate::missions::MissionObjective::CompleteMinigame { .. } => "Terminez le mini-jeu !",
+                            crate::missions::MissionObjective::TailVehicle { description, .. } => *description,
                         };
                         let ox = 24.;
                         let oy = 60. + top;

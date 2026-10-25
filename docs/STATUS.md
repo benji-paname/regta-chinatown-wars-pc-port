@@ -36,7 +36,7 @@ This corrects older statements that called those files “authentic PSP” or sa
 ## What this release validates
 
 - A compilable monorepo with zero emitted compiler warnings.
-- 160 passing unit tests independent of proprietary files.
+- 163 passing unit tests independent of proprietary files.
 - Optional private table integration checks, original-ISO graph checks and a short native rendering smoke test, recorded separately.
 - Source-only Git tracking and preservation of private research.
 

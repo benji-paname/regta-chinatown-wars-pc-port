@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" font-family="Verdana,DejaVu Sans,sans-serif">
 <rect width="1000" height="560" fill="#16191c"/>
-<text x="8" y="18" font-size="13" fill="#e6e8ea">Original game code ported in Rust: 2.41% (611 / 25988 routines, by code size)</text>
+<text x="8" y="18" font-size="13" fill="#e6e8ea">Original game code ported in Rust: 2.46% (625 / 25988 routines, by code size)</text>
 <rect x="3.0" y="42.0" width="115.8" height="70.5" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <text x="6.0" y="53.0" font-size="9" fill="#e6e8ea">cIntro</text>
 <rect x="118.8" y="42.0" width="102.9" height="70.5" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
@@ -93,7 +93,7 @@
 <rect x="250.2" y="345.1" width="25.6" height="24.6" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="275.8" y="345.1" width="24.8" height="24.6" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="300.6" y="345.1" width="23.8" height="24.6" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
-<rect x="300.6" y="361.2" width="23.8" height="8.4" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
+<rect x="300.6" y="350.1" width="23.8" height="19.6" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="139.9" y="369.7" width="24.3" height="24.1" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="164.2" y="369.7" width="24.1" height="24.1" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="188.3" y="369.7" width="23.7" height="24.1" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
@@ -126,7 +126,7 @@
 <rect x="170.7" y="414.1" width="153.7" height="142.9" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="170.7" y="556.8" width="153.7" height="0.2" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="2.0" y="26.0" width="323.4" height="532.0" fill="none" stroke="#e6e8ea" stroke-opacity="0.55" stroke-width="1.2"/>
-<text x="6.0" y="38.0" font-size="11" font-weight="bold" fill="#e6e8ea">Missions 0.1%</text>
+<text x="6.0" y="38.0" font-size="11" font-weight="bold" fill="#e6e8ea">Missions 0.3%</text>
 <rect x="326.4" y="42.0" width="125.3" height="49.7" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <text x="329.4" y="53.0" font-size="9" fill="#e6e8ea">(free functions)</text>
 <rect x="451.7" y="42.0" width="23.0" height="49.7" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>

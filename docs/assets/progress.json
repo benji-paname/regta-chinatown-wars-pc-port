@@ -1,16 +1,16 @@
 {
-  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 888 Rust functions)",
+  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 902 Rust functions)",
   "bytes": 6469472,
-  "portedBytes": 155852,
+  "portedBytes": 159220,
   "routines": 25988,
-  "portedRoutines": 611,
+  "portedRoutines": 625,
   "subsystems": [
     {
       "name": "Missions",
       "bytes": 2100704,
-      "portedBytes": 2968,
+      "portedBytes": 6336,
       "routines": 7690,
-      "portedRoutines": 19,
+      "portedRoutines": 33,
       "classes": [
         {
           "name": "(free functions)",
@@ -37,8 +37,8 @@
           "name": "CScriptMain",
           "bytes": 7428,
           "routines": 36,
-          "portedBytes": 2548,
-          "portedRoutines": 11
+          "portedBytes": 5916,
+          "portedRoutines": 25
         },
         {
           "name": "CTurretRampage",

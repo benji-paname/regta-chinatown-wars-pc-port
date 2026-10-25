@@ -38,7 +38,7 @@ SOURCE_DIR = ROOT / 'src'
 # original Chinatown Wars classes.
 RUST_MODULE_MAP = {
     'camera.rs': ['cCamera', 'cBaseCam', 'cFollowPedCam', 'cCam'],
-    'vehicle.rs': ['cVehicle', 'cWheeledVehicle', 'cCar', 'cBike', 'Vehicle', 'VehicleType'],
+    'vehicle.rs': ['cVehicle', 'cWheeledVehicle', 'cCar', 'cBike', 'Vehicle', 'VehicleType', 'cSeats'],
     'ped.rs': ['cPed', 'cPlayer', 'cPopulationManager', 'cPedSprite', 'cAnimation'],
     'actors.rs': ['cAIGang', 'cAITaskHub', 'cSimpleMover', 'cPlayerOnFoot'],
     'vault.rs': ['cTaskVault', 'cSimpleTrail'],
@@ -65,7 +65,7 @@ RUST_MODULE_MAP = {
     'police.rs': ['cWantedManager', 'cWantedRating', 'cPoliceChase', 'cMonitorWantedLevel'],
     'stats.rs': ['cStatsManager', 'StatsImpl', 'PopulationProfile'],
     'save.rs': ['SaveGameImpl', 'cSaveGameMgr'],
-    'missions.rs': ['CScriptInit', 'CScriptMain', 'ScriptHnd', 'cMission'],
+    'missions.rs': ['CScriptInit', 'CScriptMain', 'ScriptHnd', 'cMission', 'cActStructure', 'cCutscene_Intro', 'cCutscene_Outro', 'cCutscene_AtKennys', 'cDeathArrestApp'],
     'minigames.rs': ['cHotWiringApp', 'cScratchCardApp', 'cShootingRange', 'cTattooApp'],
 }
 

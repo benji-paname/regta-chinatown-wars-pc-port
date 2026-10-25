@@ -1,9 +1,9 @@
 {
-  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 972 Rust functions)",
+  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 984 Rust functions)",
   "bytes": 6469472,
-  "portedBytes": 164712,
+  "portedBytes": 167024,
   "routines": 25988,
-  "portedRoutines": 695,
+  "portedRoutines": 707,
   "subsystems": [
     {
       "name": "Missions",
@@ -3922,9 +3922,9 @@
     {
       "name": "Vehicles",
       "bytes": 396136,
-      "portedBytes": 4616,
+      "portedBytes": 6608,
       "routines": 1623,
-      "portedRoutines": 43,
+      "portedRoutines": 52,
       "classes": [
         {
           "name": "(free functions)",
@@ -4434,8 +4434,8 @@
           "name": "cRoadBlock",
           "bytes": 1992,
           "routines": 9,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 1992,
+          "portedRoutines": 9
         },
         {
           "name": "cRoadBlocks",
@@ -4722,9 +4722,9 @@
     {
       "name": "Saves and wanted level",
       "bytes": 45700,
-      "portedBytes": 11104,
+      "portedBytes": 11288,
       "routines": 419,
-      "portedRoutines": 129,
+      "portedRoutines": 130,
       "classes": [
         {
           "name": "(free functions)",
@@ -4772,8 +4772,8 @@
           "name": "cPoliceChase",
           "bytes": 5500,
           "routines": 16,
-          "portedBytes": 3440,
-          "portedRoutines": 10
+          "portedBytes": 3624,
+          "portedRoutines": 11
         },
         {
           "name": "cProfileObject",
@@ -6254,9 +6254,9 @@
     {
       "name": "Audio",
       "bytes": 55744,
-      "portedBytes": 1980,
+      "portedBytes": 2116,
       "routines": 331,
-      "portedRoutines": 53,
+      "portedRoutines": 55,
       "classes": [
         {
           "name": "(free functions)",
@@ -6290,8 +6290,8 @@
           "name": "cAudioBase",
           "bytes": 3788,
           "routines": 20,
-          "portedBytes": 180,
-          "portedRoutines": 2
+          "portedBytes": 316,
+          "portedRoutines": 4
         },
         {
           "name": "cAudioBaseOAL",

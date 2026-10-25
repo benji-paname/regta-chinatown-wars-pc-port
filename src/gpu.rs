@@ -1184,6 +1184,173 @@ impl Renderer {
                     glPopMatrix();
                 }
 
+                // Chinatown Wars authentic Tactical Police Helicopter & Searchlight (cPoliceHeli, cHeliSearchLight)
+                if let Some(ref heli) = scene.police.heli_manager.heli {
+                    glPushMatrix();
+                    glTranslatef(heli.p[0], heli.p[1], heli.p[2]);
+                    glRotatef(heli.angle.to_degrees(), 0.0, 0.0, 1.0);
+
+                    // 1. Aerodynamic Fuselage (LCPD Navy Blue & White)
+                    // Cabin body
+                    glColor4f(0.12, 0.22, 0.45, 1.0);
+                    glBegin(7);
+                    glVertex3f(-1.1, -1.8, 0.9);
+                    glVertex3f(1.1, -1.8, 0.9);
+                    glVertex3f(1.1, 1.6, 0.7);
+                    glVertex3f(-1.1, 1.6, 0.7);
+                    glVertex3f(-1.1, -1.8, -0.6);
+                    glVertex3f(1.1, -1.8, -0.6);
+                    glVertex3f(1.1, 1.6, -0.4);
+                    glVertex3f(-1.1, 1.6, -0.4);
+                    glEnd();
+
+                    // White side stripe with LCPD livery
+                    glColor4f(0.95, 0.96, 0.98, 1.0);
+                    glBegin(7);
+                    glVertex3f(-1.12, -1.4, 0.3);
+                    glVertex3f(1.12, -1.4, 0.3);
+                    glVertex3f(1.12, 1.2, 0.2);
+                    glVertex3f(-1.12, 1.2, 0.2);
+                    glVertex3f(-1.12, -1.4, -0.1);
+                    glVertex3f(1.12, -1.4, -0.1);
+                    glVertex3f(1.12, 1.2, -0.2);
+                    glVertex3f(-1.12, 1.2, -0.2);
+                    glEnd();
+
+                    // Front Nose & Cockpit Canopy (Dark Tinted Glass)
+                    glColor4f(0.08, 0.12, 0.18, 0.85);
+                    glBegin(7);
+                    glVertex3f(-0.9, 1.6, 0.65);
+                    glVertex3f(0.9, 1.6, 0.65);
+                    glVertex3f(0.6, 2.8, -0.1);
+                    glVertex3f(-0.6, 2.8, -0.1);
+                    glEnd();
+
+                    // Tail Boom extending backward
+                    glColor4f(0.12, 0.22, 0.45, 1.0);
+                    glBegin(7);
+                    glVertex3f(-0.35, -1.8, 0.4);
+                    glVertex3f(0.35, -1.8, 0.4);
+                    glVertex3f(0.15, -6.8, 0.6);
+                    glVertex3f(-0.15, -6.8, 0.6);
+                    glVertex3f(-0.35, -1.8, -0.2);
+                    glVertex3f(0.35, -1.8, -0.2);
+                    glVertex3f(0.15, -6.8, 0.2);
+                    glVertex3f(-0.15, -6.8, 0.2);
+                    glEnd();
+
+                    // Vertical Fin & Horizontal Stabilizers
+                    glColor4f(0.95, 0.96, 0.98, 1.0);
+                    glBegin(7);
+                    glVertex3f(-0.06, -6.8, 0.2);
+                    glVertex3f(0.06, -6.8, 0.2);
+                    glVertex3f(0.06, -7.4, 1.6);
+                    glVertex3f(-0.06, -7.4, 1.6);
+                    glEnd();
+
+                    // Landing Skids (Steel tubular skids)
+                    glColor4f(0.35, 0.38, 0.42, 1.0);
+                    for &side in &[-1.1, 1.1] {
+                        glBegin(7);
+                        glVertex3f(side - 0.08, -2.2, -0.85);
+                        glVertex3f(side + 0.08, -2.2, -0.85);
+                        glVertex3f(side + 0.08, 2.2, -0.85);
+                        glVertex3f(side - 0.08, 2.2, -0.85);
+                        glEnd();
+                    }
+
+                    // Spinning Main Rotor Blade Disc (Blur effect)
+                    glPushMatrix();
+                    glTranslatef(0.0, 0.0, 1.1);
+                    glRotatef(heli.rotor_angle.to_degrees(), 0.0, 0.0, 1.0);
+                    glColor4f(0.15, 0.16, 0.18, 0.70);
+                    let blade_len = 5.2;
+                    let blade_w = 0.22;
+                    for _ in 0..4 {
+                        glRotatef(90.0, 0.0, 0.0, 1.0);
+                        glBegin(7);
+                        glVertex3f(-blade_w, 0.2, 0.0);
+                        glVertex3f(blade_w, 0.2, 0.0);
+                        glVertex3f(blade_w, blade_len, 0.0);
+                        glVertex3f(-blade_w, blade_len, 0.0);
+                        glEnd();
+                    }
+                    glPopMatrix();
+
+                    // Spinning Tail Rotor
+                    glPushMatrix();
+                    glTranslatef(0.12, -7.2, 1.2);
+                    glRotatef(heli.tail_rotor_angle.to_degrees(), 1.0, 0.0, 0.0);
+                    glColor4f(0.2, 0.2, 0.22, 0.75);
+                    for _ in 0..2 {
+                        glRotatef(90.0, 1.0, 0.0, 0.0);
+                        glBegin(7);
+                        glVertex3f(0.0, -0.08, -0.8);
+                        glVertex3f(0.0, 0.08, -0.8);
+                        glVertex3f(0.0, 0.08, 0.8);
+                        glVertex3f(0.0, -0.08, 0.8);
+                        glEnd();
+                    }
+                    glPopMatrix();
+
+                    // If helicopter is in death spiral / smoking
+                    if heli.is_crashing || heli.health < 200.0 {
+                        glColor4f(0.15, 0.15, 0.15, 0.85);
+                        glBegin(7);
+                        for sm in 0..4 {
+                            let sz = 0.4 + sm as f32 * 0.3;
+                            glVertex3f(-sz, -2.5 - sm as f32 * 0.8, sz);
+                            glVertex3f(sz, -2.5 - sm as f32 * 0.8, sz);
+                            glVertex3f(sz, -2.5 - sm as f32 * 0.8, -sz);
+                            glVertex3f(-sz, -2.5 - sm as f32 * 0.8, -sz);
+                        }
+                        glEnd();
+                    }
+
+                    glPopMatrix();
+
+                    // 2. Volumetric 3D Tactical Searchlight Cone
+                    let apex = [heli.p[0], heli.p[1], heli.p[2] - 0.7];
+                    let beam_center = heli.searchlight.beam_pos;
+                    let beam_radius = heli.searchlight.radius;
+                    let is_alert = heli.searchlight.player_illuminated;
+
+                    let (cr, cg, cb) = if is_alert {
+                        (0.95, 0.98, 1.0)
+                    } else {
+                        (0.75, 0.88, 1.0)
+                    };
+
+                    glEnable(0x0be2);
+
+                    // Volumetric Light Cone
+                    glBegin(6);
+                    glColor4f(cr, cg, cb, 0.40);
+                    glVertex3f(apex[0], apex[1], apex[2]);
+                    glColor4f(cr, cg, cb, 0.02);
+                    for i in 0..=16 {
+                        let a = (i as f32) * (std::f32::consts::TAU / 16.0);
+                        let gx = beam_center[0] + a.cos() * beam_radius;
+                        let gy = beam_center[1] + a.sin() * beam_radius;
+                        glVertex3f(gx, gy, beam_center[2] + 0.04);
+                    }
+                    glEnd();
+
+                    // Bright Ground Spotlight Disc on asphalt
+                    glBegin(6);
+                    let spot_alpha = if is_alert { 0.55 } else { 0.35 };
+                    glColor4f(cr, cg, cb, spot_alpha);
+                    glVertex3f(beam_center[0], beam_center[1], beam_center[2] + 0.05);
+                    glColor4f(cr, cg, cb, 0.0);
+                    for i in 0..=16 {
+                        let a = (i as f32) * (std::f32::consts::TAU / 16.0);
+                        let gx = beam_center[0] + a.cos() * beam_radius;
+                        let gy = beam_center[1] + a.sin() * beam_radius;
+                        glVertex3f(gx, gy, beam_center[2] + 0.05);
+                    }
+                    glEnd();
+                }
+
                 for car in &scene.cars {
                     shadow(car.p, [car.h[0] * 1.44, car.h[1] * 0.92], car.angle, 0.28);
                     if distance2(car.p, walker.p) > 180. * 180. && !cam.is_free() {

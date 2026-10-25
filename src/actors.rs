@@ -1066,6 +1066,7 @@ impl Scene {
                     max_life: 0.22,
                     kind: 2,
                 });
+                self.police.heli_manager.check_projectile_hit(target_pos, damage);
                 if let Some(idx) = hit_idx {
                     let ped = &mut self.peds[idx];
                     ped.health = (ped.health - damage).max(0.0);
@@ -1129,6 +1130,7 @@ impl Scene {
                 ),
             };
 
+            let damage = 28.0;
             self.bullet_traces.push(crate::weapons::BulletTrace {
                 start: muzzle,
                 end: target_pos,
@@ -1136,6 +1138,7 @@ impl Scene {
                 max_life: 0.12,
                 kind: 0,
             });
+            self.police.heli_manager.check_projectile_hit(target_pos, damage);
 
             if self.particles.len() < 160 {
                 self.particles.push(Particle {
@@ -2532,6 +2535,12 @@ impl Scene {
             [0.0, 1.0]
         };
         self.police.update(dt, focus, forward, &mut self.cars);
+
+        // Chinatown Wars authentic Police Helicopter Crash & Shootdown Resolution
+        if let Some(crash_p) = self.police.heli_manager.crash_explosion.take() {
+            self.explosions.trigger(crash_p, crate::explosions::ExplosionType::Helicopter, 1.8);
+            self.banner = Some(("HELICOPTERE DE POLICE ABATTU ! TAKEDOWN CONFIRME".to_string(), 4.0));
+        }
 
         // Chinatown Wars authentic In-Car Radio & Dynamic Weather updates
         self.radio.update(dt, self.driving.is_some());

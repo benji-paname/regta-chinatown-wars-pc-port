@@ -1104,6 +1104,11 @@ pub fn run(
                     }
                     sound.update_radio(&s.radio);
                     sound.update_sirens(&s.police, &s.cars, player.p, [-player.heading.sin(), player.heading.cos()]);
+                    sound.update_helicopter(
+                        s.police.heli_manager.heli.as_ref().map(|h| h.p),
+                        player.p,
+                        [-player.heading.sin(), player.heading.cos()],
+                    );
                     for (pos, lethal) in s.drain_pending_impact_sounds() {
                         sound.play_ped_impact(pos, lethal, player.p, [-player.heading.sin(), player.heading.cos()]);
                     }

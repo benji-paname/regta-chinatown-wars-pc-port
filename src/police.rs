@@ -170,6 +170,220 @@ impl RoadBlockManager {
     }
 }
 
+/// Tactical motorized searchlight mounted on police helicopter (cHeliSearchLight).
+#[derive(Clone, Debug)]
+pub struct HeliSearchLight {
+    pub beam_pos: [f32; 3],
+    pub target_pos: [f32; 3],
+    pub radius: f32,
+    pub player_illuminated: bool,
+    pub alert_flash: f32,
+    pub slew_speed: f32,
+}
+
+impl Default for HeliSearchLight {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl HeliSearchLight {
+    pub fn new() -> Self {
+        Self {
+            beam_pos: [0.0, 0.0, 0.0],
+            target_pos: [0.0, 0.0, 0.0],
+            radius: 8.5,
+            player_illuminated: false,
+            alert_flash: 0.0,
+            slew_speed: 18.0,
+        }
+    }
+
+    pub fn update(&mut self, dt: f32, _heli_pos: [f32; 3], player_pos: [f32; 3]) {
+        self.target_pos = player_pos;
+        let dx = self.target_pos[0] - self.beam_pos[0];
+        let dy = self.target_pos[1] - self.beam_pos[1];
+        let dist = dx.hypot(dy);
+        if dist > 0.05 {
+            let step = (self.slew_speed * dt).min(dist);
+            self.beam_pos[0] += (dx / dist) * step;
+            self.beam_pos[1] += (dy / dist) * step;
+            self.beam_pos[2] = player_pos[2];
+        }
+
+        // Check if player is caught in spotlight
+        let pdx = player_pos[0] - self.beam_pos[0];
+        let pdy = player_pos[1] - self.beam_pos[1];
+        self.player_illuminated = (pdx * pdx + pdy * pdy) < (self.radius * self.radius);
+        if self.player_illuminated {
+            self.alert_flash = (self.alert_flash + dt * 6.0).rem_euclid(std::f32::consts::TAU);
+        } else {
+            self.alert_flash = 0.0;
+        }
+    }
+}
+
+/// LCPD Police Patrol Helicopter tracking and pursuing player at 3+ stars (cPoliceHeli).
+#[derive(Clone, Debug)]
+pub struct PoliceHeli {
+    pub p: [f32; 3],
+    pub vel: [f32; 3],
+    pub angle: f32,
+    pub rotor_angle: f32,
+    pub tail_rotor_angle: f32,
+    pub health: f32,
+    pub max_health: f32,
+    pub is_crashing: bool,
+    pub spin_rate: f32,
+    pub searchlight: HeliSearchLight,
+    pub orbit_angle: f32,
+    pub orbit_radius: f32,
+    pub altitude: f32,
+}
+
+impl PoliceHeli {
+    pub fn new(spawn_p: [f32; 3]) -> Self {
+        Self {
+            p: [spawn_p[0], spawn_p[1], spawn_p[2] + 32.0],
+            vel: [0.0; 3],
+            angle: 0.0,
+            rotor_angle: 0.0,
+            tail_rotor_angle: 0.0,
+            health: 450.0,
+            max_health: 450.0,
+            is_crashing: false,
+            spin_rate: 0.0,
+            searchlight: HeliSearchLight::new(),
+            orbit_angle: 0.0,
+            orbit_radius: 26.0,
+            altitude: 32.0,
+        }
+    }
+
+    pub fn apply_damage(&mut self, damage: f32) -> bool {
+        self.health = (self.health - damage).max(0.0);
+        if self.health <= 0.0 && !self.is_crashing {
+            self.is_crashing = true;
+            self.spin_rate = 14.0;
+            return true;
+        }
+        false
+    }
+
+    pub fn update(&mut self, dt: f32, player_p: [f32; 3]) -> Option<[f32; 3]> {
+        self.rotor_angle = (self.rotor_angle + dt * 48.0).rem_euclid(std::f32::consts::TAU);
+        self.tail_rotor_angle = (self.tail_rotor_angle + dt * 64.0).rem_euclid(std::f32::consts::TAU);
+
+        if self.is_crashing {
+            self.angle += self.spin_rate * dt;
+            self.p[2] -= 9.5 * dt;
+            self.p[0] += self.vel[0] * dt;
+            self.p[1] += self.vel[1] * dt;
+
+            if self.p[2] <= player_p[2] + 0.5 {
+                return Some(self.p);
+            }
+            return None;
+        }
+
+        self.orbit_angle = (self.orbit_angle + dt * 0.45).rem_euclid(std::f32::consts::TAU);
+        let target_x = player_p[0] + self.orbit_angle.cos() * self.orbit_radius;
+        let target_y = player_p[1] + self.orbit_angle.sin() * self.orbit_radius;
+        let target_z = player_p[2] + self.altitude;
+
+        let dx = target_x - self.p[0];
+        let dy = target_y - self.p[1];
+        let dz = target_z - self.p[2];
+
+        self.vel[0] = dx * 1.8;
+        self.vel[1] = dy * 1.8;
+        self.vel[2] = dz * 1.5;
+
+        self.p[0] += self.vel[0] * dt;
+        self.p[1] += self.vel[1] * dt;
+        self.p[2] += self.vel[2] * dt;
+
+        self.angle = (self.orbit_angle + std::f32::consts::FRAC_PI_2).rem_euclid(std::f32::consts::TAU);
+        self.searchlight.update(dt, self.p, player_p);
+
+        None
+    }
+}
+
+/// Global Police Helicopter Dispatch and Tactical Tracking Manager (cHelicopterManager).
+#[derive(Clone, Debug, Default)]
+pub struct HelicopterManager {
+    pub heli: Option<PoliceHeli>,
+    pub spawn_timer: f32,
+    pub crash_explosion: Option<[f32; 3]>,
+}
+
+impl HelicopterManager {
+    pub fn new() -> Self {
+        Self {
+            heli: None,
+            spawn_timer: 0.0,
+            crash_explosion: None,
+        }
+    }
+
+    pub fn update(
+        &mut self,
+        dt: f32,
+        stars: u8,
+        player_p: [f32; 3],
+        takedowns_done: &mut u8,
+        stars_val: &mut u8,
+        recent_flash: &mut f32,
+    ) {
+        if stars < 3 {
+            if let Some(ref mut h) = self.heli {
+                if !h.is_crashing {
+                    self.heli = None;
+                }
+            }
+            return;
+        }
+
+        if self.heli.is_none() {
+            self.spawn_timer += dt;
+            if self.spawn_timer >= 6.0 {
+                self.spawn_timer = 0.0;
+                let spawn_p = [player_p[0] + 60.0, player_p[1] + 60.0, player_p[2]];
+                self.heli = Some(PoliceHeli::new(spawn_p));
+            }
+        }
+
+        if let Some(ref mut h) = self.heli {
+            if let Some(impact_pos) = h.update(dt, player_p) {
+                self.crash_explosion = Some(impact_pos);
+                // Epic shootdown takedown: award takedown and drop star!
+                *takedowns_done = takedowns_done.saturating_add(1);
+                *recent_flash = 1.8;
+                *stars_val = stars_val.saturating_sub(1);
+                self.heli = None;
+                self.spawn_timer = 0.0;
+            }
+        }
+    }
+
+    pub fn check_projectile_hit(&mut self, hit_pos: [f32; 3], damage: f32) -> bool {
+        if let Some(ref mut h) = self.heli {
+            if h.is_crashing {
+                return false;
+            }
+            let dx = (hit_pos[0] - h.p[0]).abs();
+            let dy = (hit_pos[1] - h.p[1]).abs();
+            let dz = (hit_pos[2] - h.p[2]).abs();
+            if dx < 4.8 && dy < 4.8 && dz < 3.8 {
+                h.apply_damage(damage);
+                return true;
+            }
+        }
+        false
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct PoliceManager {
     pub stars: u8,
@@ -183,6 +397,7 @@ pub struct PoliceManager {
     pub cop_car_indices: Vec<usize>,
     pub spawn_cooldown: f32,
     pub roadblocks: RoadBlockManager,
+    pub heli_manager: HelicopterManager,
 }
 
 impl Default for PoliceManager {
@@ -205,6 +420,7 @@ impl PoliceManager {
             cop_car_indices: Vec::new(),
             spawn_cooldown: 0.0,
             roadblocks: RoadBlockManager::new(),
+            heli_manager: HelicopterManager::new(),
         }
     }
 
@@ -313,6 +529,16 @@ impl PoliceManager {
 
         // Update tactical roadblocks
         self.roadblocks.update(dt, self.stars, player_p, player_forward, cars);
+
+        // Update tactical police helicopter and searchlight tracking
+        self.heli_manager.update(
+            dt,
+            self.stars,
+            player_p,
+            &mut self.takedowns_done,
+            &mut self.stars,
+            &mut self.recent_takedown_flash,
+        );
 
         if self.stars == 0 {
             for &idx in &self.cop_car_indices {
@@ -446,5 +672,50 @@ mod tests {
         police.update(10.5, [0.0, 0.0, 0.0], [0.0, 1.0], &mut cars);
         assert!(!police.is_cooling_down());
         assert_eq!(police.stars, 0, "Stars cleared when cooldown expires peacefully");
+    }
+
+    #[test]
+    fn police_helicopter_searchlight_tracking_and_shootdown_takedown() {
+        let mut police = PoliceManager::new();
+        police.set_stars(4);
+        assert_eq!(police.stars, 4);
+
+        let mut cars = Vec::new();
+        let player_p = [50.0, 50.0, 0.0];
+
+        // Step past 6s spawn timer to deploy police chopper
+        police.update(6.5, player_p, [0.0, 1.0], &mut cars);
+        assert!(police.heli_manager.heli.is_some(), "Chopper dispatched at 4 stars");
+
+        let heli = police.heli_manager.heli.as_ref().unwrap();
+        assert_eq!(heli.max_health, 450.0);
+        assert!(heli.p[2] >= 28.0, "Chopper maintains high altitude above street");
+
+        // Step searchlight slewing towards player
+        police.update(2.0, player_p, [0.0, 1.0], &mut cars);
+        let heli_p = police.heli_manager.heli.as_ref().unwrap().p;
+        assert!(police.heli_manager.heli.as_ref().unwrap().searchlight.player_illuminated, "Searchlight locks onto player position");
+
+        // Player shoots helicopter with sniper rifle (2x 250 dmg)
+        let hit1 = police.heli_manager.check_projectile_hit(heli_p, 250.0);
+        assert!(hit1, "Sniper round hits helicopter");
+        assert_eq!(police.heli_manager.heli.as_ref().unwrap().health, 200.0);
+
+        // Second shot drops health to 0 -> triggers death spiral
+        let hit2 = police.heli_manager.check_projectile_hit(heli_p, 250.0);
+        assert!(hit2);
+        assert!(police.heli_manager.heli.as_ref().unwrap().is_crashing, "Enters death spiral");
+
+        // Step descent until ground impact
+        for _ in 0..30 {
+            if police.heli_manager.heli.is_none() {
+                break;
+            }
+            police.update(0.2, player_p, [0.0, 1.0], &mut cars);
+        }
+
+        assert!(police.heli_manager.heli.is_none(), "Helicopter destroyed on crash");
+        assert!(police.heli_manager.crash_explosion.is_some(), "Explosion triggered at crash site");
+        assert_eq!(police.stars, 3, "Drops 1 star upon helicopter takedown");
     }
 }

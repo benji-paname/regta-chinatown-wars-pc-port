@@ -40,7 +40,8 @@ RUST_MODULE_MAP = {
     'camera.rs': ['cCamera', 'cBaseCam', 'cFollowPedCam', 'cCam'],
     'vehicle.rs': [
         'cVehicle', 'cWheeledVehicle', 'cCar', 'cBike', 'Vehicle', 'VehicleType', 'cSeats',
-        'cTrafficLight', 'cTrafficLightManager', 'cTrafficManager', 'cWanderRoads', 'cCarController'
+        'cTrafficLight', 'cTrafficLightManager', 'cTrafficManager', 'cWanderRoads', 'cCarController',
+        'cPayNSpray', 'cPayNSprayManager'
     ],
     'ped.rs': ['cPed', 'cPlayer', 'cPopulationManager', 'cPedSprite', 'cAnimation'],
     'actors.rs': ['cAIGang', 'cAITaskHub', 'cSimpleMover', 'cPlayerOnFoot'],
@@ -70,7 +71,10 @@ RUST_MODULE_MAP = {
     'safehouse.rs': ['cSafehouse', 'cStash', 'cWardrobe'],
     'drugs.rs': ['cDrugSystem', 'cDealer', 'cTrade', 'cBaseTradeApp'],
     'jobs.rs': ['cOddJob', 'Taxi', 'cParamedic', 'cFleeOnFoot'],
-    'police.rs': ['cWantedManager', 'cWantedRating', 'cPoliceChase', 'cMonitorWantedLevel'],
+    'police.rs': [
+        'cWantedManager', 'cWantedRating', 'cPoliceChase', 'cMonitorWantedLevel',
+        'cPoliceHeli', 'cHeliSearchLight', 'cHelicopterManager', 'cRoadBlock', 'cSpikeStrip'
+    ],
     'stats.rs': ['cStatsManager', 'StatsImpl', 'PopulationProfile'],
     'save.rs': ['SaveGameImpl', 'cSaveGameMgr'],
     'missions.rs': ['CScriptInit', 'CScriptMain', 'ScriptHnd', 'cMission', 'cActStructure', 'cCutscene_Intro', 'cCutscene_Outro', 'cCutscene_AtKennys', 'cDeathArrestApp'],

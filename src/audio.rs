@@ -556,8 +556,10 @@ pub struct SoundSystem {
     // Emergency siren state
     pub siren_voice: u32,
     pub siren_yelp_voice: u32,
+    pub heli_rotor_voice: u32,
     cached_siren_wail: Vec<u8>,
     cached_siren_yelp: Vec<u8>,
+    cached_heli_rotor: Vec<u8>,
     cached_car_horn: Vec<u8>,
     cached_ped_pain: Vec<u8>,
     cached_ped_scream: Vec<u8>,
@@ -585,8 +587,10 @@ impl SoundSystem {
             cached_radio_loops: HashMap::new(),
             siren_voice: 0,
             siren_yelp_voice: 0,
+            heli_rotor_voice: 0,
             cached_siren_wail: synth_siren_wail(),
             cached_siren_yelp: synth_siren_yelp(),
+            cached_heli_rotor: synth_heli_rotor(),
             cached_car_horn: synth_car_horn(),
             cached_ped_pain: synth_ped_pain(),
             cached_ped_scream: synth_ped_scream(),
@@ -986,6 +990,38 @@ impl SoundSystem {
         }
     }
 
+    /// Updates dynamic 3D audio loop for overhead police pursuit helicopter.
+    pub fn update_helicopter(
+        &mut self,
+        heli_pos: Option<[f32; 3]>,
+        listener_p: [f32; 3],
+        listener_fwd: [f32; 2],
+    ) {
+        if let Some(pos) = heli_pos {
+            let dx = pos[0] - listener_p[0];
+            let dy = pos[1] - listener_p[1];
+            let dz = pos[2] - listener_p[2];
+            let dist = (dx * dx + dy * dy + dz * dz).sqrt();
+            let atten = (1.0 - (dist / 140.0)).clamp(0.0, 1.0);
+            let vol = (atten * 0.85).clamp(0.08, 0.90);
+            let cside = [-listener_fwd[1], listener_fwd[0]];
+            let pan = ((dx * cside[0] + dy * cside[1]) / 45.0).clamp(-1.0, 1.0);
+
+            if let Ok(mut m) = self.mixer.lock() {
+                if !m.is_playing(self.heli_rotor_voice) {
+                    self.heli_rotor_voice = m.play_sfx(&self.cached_heli_rotor, 22050, vol, pan, 1.0, true);
+                } else {
+                    m.set_voice(self.heli_rotor_voice, vol, pan, 1.0);
+                }
+            }
+        } else if self.heli_rotor_voice != 0 {
+            if let Ok(mut m) = self.mixer.lock() {
+                m.stop_voice(self.heli_rotor_voice);
+            }
+            self.heli_rotor_voice = 0;
+        }
+    }
+
     /// Plays pedestrian reaction vocalization (pain grunt or scream).
     pub fn play_ped_impact(
         &self,
@@ -1251,6 +1287,29 @@ pub fn synth_car_horn() -> Vec<u8> {
         let s2 = (t * 440.0 * std::f32::consts::TAU).sin();
         let s3 = (t * 740.0 * std::f32::consts::TAU).sin() * 0.25;
         let val = (s1 * 0.45 + s2 * 0.45 + s3) * env * 0.8;
+        out.push(((val * 120.0) + 128.0).clamp(0.0, 255.0) as u8);
+    }
+    out
+}
+
+/// Synthesizes procedural low-frequency rhythmic rotor blade passage and turbulent whoosh for police chopper.
+pub fn synth_heli_rotor() -> Vec<u8> {
+    let rate = 22050;
+    let dur = 1.0;
+    let samples = (rate as f32 * dur) as usize;
+    let mut out = Vec::with_capacity(samples);
+    let mut lfsr: u32 = 0xA751;
+    for i in 0..samples {
+        let t = i as f32 / rate as f32;
+        // 4 blades at ~5.5 rev/s = 22 Hz pulses
+        let pulse_phase = (t * 22.0).fract();
+        let pulse = (1.0 - pulse_phase * 2.8).max(0.0).powi(2);
+        lfsr = (lfsr >> 1) ^ (-(lfsr as i32 & 1) as u32 & 0x9800);
+        let noise = ((lfsr & 0xFF) as f32 / 128.0) - 1.0;
+        let thud = (t * 22.0 * std::f32::consts::TAU).sin() * 0.55 * pulse
+            + (t * 88.0 * std::f32::consts::TAU).sin() * 0.35 * pulse
+            + noise * 0.20 * pulse;
+        let val = thud.clamp(-1.0, 1.0);
         out.push(((val * 120.0) + 128.0).clamp(0.0, 255.0) as u8);
     }
     out

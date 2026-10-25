@@ -212,6 +212,7 @@ pub struct Ped {
     pub pose: Pose,
     pub health: f32,
     pub hit_flash: f32,
+    pub on_fire: f32,
     pub appearance: usize,
     pub attacking: f32,
     pub fall_forward: bool,
@@ -220,7 +221,7 @@ pub struct Ped {
     pub evading: bool,
     target: [f32; 3],
     home: [f32; 3],
-    panic: f32,
+    pub panic: f32,
     pub hostile: bool,
     cooldown: f32,
     blocked: f32,
@@ -269,6 +270,9 @@ pub struct Scene {
     pub bullet_traces: Vec<crate::weapons::BulletTrace>,
     pub targeting: crate::weapons::TargetingSystem,
     pub weapons: Option<crate::weapons::WeaponManager>,
+    pub projectiles: crate::weapons::ProjectileManager,
+    pub fire_manager: crate::weapons::FireManager,
+    pub sniper_scope: crate::weapons::SniperScope,
     pub police: crate::police::PoliceManager,
     pub explosions: crate::explosions::ExplosionManager,
     pub radio: crate::radio::RadioManager,
@@ -489,6 +493,7 @@ pub(crate) fn make_ped(p: [f32; 3], target: [f32; 3], appearance: usize) -> Ped 
         pose: Pose::for_appearance(appearance),
         health: 60.,
         hit_flash: 0.,
+        on_fire: 0.,
         appearance,
         attacking: 0.,
         fall_forward: false,
@@ -527,6 +532,9 @@ impl Scene {
             bullet_traces: Vec::new(),
             targeting: crate::weapons::TargetingSystem::new(),
             weapons: None,
+            projectiles: crate::weapons::ProjectileManager::new(),
+            fire_manager: crate::weapons::FireManager::new(),
+            sniper_scope: crate::weapons::SniperScope::new(),
             police: crate::police::PoliceManager::new(),
             explosions: crate::explosions::ExplosionManager::new(),
             radio: crate::radio::RadioManager::new(None),
@@ -923,6 +931,135 @@ impl Scene {
             return false;
         }
         let f = forward(angle);
+
+        let cur_wpn_type = self.weapons.as_ref().and_then(|wm| wm.current()).map(|w| w.type_id);
+
+        if let Some(wtype) = cur_wpn_type {
+            if matches!(wtype, 13 | 14 | 15 | 20 | 21) {
+                if let Some(wm) = &mut self.weapons {
+                    let Some(w) = wm.current_mut() else { return false; };
+                    if w.ammo == 0 { return false; }
+                    if w.ammo > 0 { w.ammo -= 1; }
+                    if w.clip > 0 { w.clip = (w.clip - 1).min(w.ammo.max(0) as u8); }
+                    w.timer = 0.55;
+                    self.attack_timer = 0.55;
+                }
+                match wtype {
+                    13 => self.projectiles.spawn_grenade(player, [f[0], f[1]], 1.0, true),
+                    20 => self.projectiles.spawn_flashbang(player, [f[0], f[1]], 1.0, true),
+                    14 | 21 => self.projectiles.spawn_molotov(player, [f[0], f[1]], 1.0, true),
+                    15 => {
+                        self.projectiles.list.push(crate::weapons::Projectile {
+                            kind: crate::weapons::ProjectileKind::Mine,
+                            pos: [player[0], player[1], player[2] + 0.1],
+                            vel: [0.0; 3],
+                            fuse_timer: 0.6,
+                            max_fuse: 0.6,
+                            bounces: 0,
+                            radius: 0.3,
+                            active: true,
+                            owner_is_player: true,
+                        });
+                    }
+                    _ => {}
+                }
+                self.police.report_crime(crate::police::CrimeType::PedHit);
+                return true;
+            } else if wtype == 10 {
+                // Rocket Launcher RPG
+                if let Some(wm) = &mut self.weapons {
+                    let Some(w) = wm.current_mut() else { return false; };
+                    if w.ammo == 0 { return false; }
+                    if w.ammo > 0 { w.ammo -= 1; }
+                    if w.clip > 0 { w.clip = (w.clip - 1).min(w.ammo.max(0) as u8); }
+                    w.timer = 0.85;
+                    self.attack_timer = 0.85;
+                }
+                self.projectiles.spawn_rocket(player, [f[0], f[1]], true);
+                self.police.report_crime(crate::police::CrimeType::Explosion);
+                return true;
+            } else if wtype == 11 {
+                // Flamethrower
+                if let Some(wm) = &mut self.weapons {
+                    let Some(w) = wm.current_mut() else { return false; };
+                    if w.ammo == 0 { return false; }
+                    if w.ammo > 0 { w.ammo = (w.ammo - 2).max(0); }
+                    w.timer = 0.12;
+                    self.attack_timer = 0.12;
+                }
+                let muzzle = [player[0] + f[0] * 0.9, player[1] + f[1] * 0.9, player[2] + 1.2];
+                self.fire_manager.emit_flamethrower_stream(muzzle, [f[0], f[1]], &mut self.peds, &mut self.cars);
+                if self.particles.len() < 160 {
+                    self.particles.push(Particle {
+                        p: muzzle,
+                        v: [f[0] * 8.0, f[1] * 8.0, 0.4],
+                        life: 0.0,
+                        max_life: 0.45,
+                        size: 0.4,
+                        grow: 1.2,
+                        kind: 1,
+                    });
+                }
+                self.police.report_crime(crate::police::CrimeType::PedHit);
+                return true;
+            } else if wtype == 9 {
+                // Sniper Rifle
+                let damage = 250.0;
+                let delay = 0.9;
+                if let Some(wm) = &mut self.weapons {
+                    let Some(w) = wm.current_mut() else { return false; };
+                    if w.timer > 0.0 { return false; }
+                    if w.clip == 0 {
+                        if w.ammo != 0 {
+                            w.state = crate::weapons::WeaponState::Reloading;
+                            w.timer = 1.8;
+                        }
+                        return false;
+                    }
+                    w.clip -= 1;
+                    if w.ammo > 0 { w.ammo -= 1; }
+                    w.timer = delay;
+                    w.state = crate::weapons::WeaponState::FireDelay;
+                    self.attack_timer = delay;
+                }
+                let muzzle = [player[0] + f[0] * 1.1, player[1] + f[1] * 1.1, player[2] + 1.3];
+                let (target_pos, hit_idx) = match self.targeting.locked_target {
+                    Some(crate::weapons::TargetKind::Ped(idx)) if idx < self.peds.len() => {
+                        (self.peds[idx].p, Some(idx))
+                    }
+                    _ => (
+                        [player[0] + f[0] * 64.0, player[1] + f[1] * 64.0, player[2] + 1.0],
+                        None,
+                    ),
+                };
+                self.bullet_traces.push(crate::weapons::BulletTrace {
+                    start: muzzle,
+                    end: target_pos,
+                    life: 0.22,
+                    max_life: 0.22,
+                    kind: 2,
+                });
+                if let Some(idx) = hit_idx {
+                    let ped = &mut self.peds[idx];
+                    ped.health = (ped.health - damage).max(0.0);
+                    ped.hit_flash = 0.4;
+                    ped.panic = 8.0;
+                    self.hits += 1;
+                    self.police.report_crime(crate::police::CrimeType::PedHit);
+                    let lethal = ped.health <= 0.0;
+                    self.pending_impact_sounds.push((ped.p, lethal));
+                    if lethal {
+                        let pf = forward(ped.heading);
+                        ped.fall_forward = f[0] * pf[0] + f[1] * pf[1] > 0.0;
+                        ped.dead_timer = 0.0;
+                        ped.evade_roll = None;
+                        self.kills += 1;
+                        self.police.report_crime(crate::police::CrimeType::PedKill);
+                    }
+                }
+                return true;
+            }
+        }
 
         let is_firearm = self
             .weapons
@@ -2182,6 +2319,23 @@ impl Scene {
             }
         }
 
+        // Chinatown Wars authentic Projectiles, Fire & Ballistics Simulation
+        self.projectiles.update(
+            dt,
+            c,
+            &mut self.peds,
+            &mut self.cars,
+            &mut self.fire_manager,
+            &mut self.explosions,
+        );
+        self.fire_manager.update(dt, &mut self.peds, &mut self.cars);
+        let locked_pos = match self.targeting.locked_target {
+            Some(crate::weapons::TargetKind::Ped(i)) if i < self.peds.len() => Some(self.peds[i].p),
+            Some(crate::weapons::TargetKind::Car(i)) if i < self.cars.len() => Some(self.cars[i].p),
+            _ => None,
+        };
+        self.sniper_scope.update(dt, locked_pos, focus);
+
         // Chinatown Wars authentic Explosion Shockwaves & Blast Resolution
         self.explosions.update(dt);
         let mut new_blasts = Vec::new();
@@ -2304,6 +2458,17 @@ impl Scene {
                     } else {
                         format!("[ E / Y ] TATOUER LE POCHOIR ({}%)", (stencil_progress * 100.0) as u32)
                     }
+                }
+                crate::minigames::MinigameKind::SniperAssembly { current_step, step_progress, .. } => {
+                    let part_name = match current_step {
+                        0 => "CROSSE / BOITIER",
+                        1 => "CANON RAYE",
+                        2 => "CULASSE",
+                        3 => "LUNETTE TELESCOPIQUE",
+                        4 => "SILENCIEUX",
+                        _ => "ASSEMBLAGE COMPLET",
+                    };
+                    format!("[ E / Y ] ASSEMBLER : {} ({}%)", part_name, (step_progress * 100.0) as u32)
                 }
             };
             self.prompt = Some(action_hint);
@@ -2839,6 +3004,9 @@ mod tests {
             bullet_traces: vec![],
             targeting: crate::weapons::TargetingSystem::new(),
             weapons: None,
+            projectiles: crate::weapons::ProjectileManager::new(),
+            fire_manager: crate::weapons::FireManager::new(),
+            sniper_scope: crate::weapons::SniperScope::new(),
             police: crate::police::PoliceManager::new(),
             explosions: crate::explosions::ExplosionManager::new(),
             radio: crate::radio::RadioManager::new(None),

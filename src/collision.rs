@@ -67,6 +67,13 @@ pub struct Cell {
 pub struct Collision {
     pub cells: Vec<Cell>,
 }
+impl Default for Collision {
+    fn default() -> Self {
+        Self {
+            cells: (0..14000).map(|_| Cell::default()).collect(),
+        }
+    }
+}
 #[derive(Clone, Copy, Debug)]
 pub struct Ground {
     pub z: f32,

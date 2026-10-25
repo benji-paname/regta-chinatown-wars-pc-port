@@ -1,9 +1,9 @@
 {
-  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 918 Rust functions)",
+  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 942 Rust functions)",
   "bytes": 6469472,
-  "portedBytes": 160932,
+  "portedBytes": 159616,
   "routines": 25988,
-  "portedRoutines": 641,
+  "portedRoutines": 665,
   "subsystems": [
     {
       "name": "Missions",
@@ -1914,9 +1914,9 @@
     {
       "name": "Minigames",
       "bytes": 943456,
-      "portedBytes": 32800,
+      "portedBytes": 27452,
       "routines": 2639,
-      "portedRoutines": 82,
+      "portedRoutines": 84,
       "classes": [
         {
           "name": "(free functions)",
@@ -2090,8 +2090,8 @@
           "name": "cCarBombFittingApp",
           "bytes": 6132,
           "routines": 23,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 5648,
+          "portedRoutines": 21
         },
         {
           "name": "cContactsApp",
@@ -2237,8 +2237,8 @@
           "name": "cHotWiringApp",
           "bytes": 23004,
           "routines": 43,
-          "portedBytes": 10996,
-          "portedRoutines": 19
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cHudApp",
@@ -2756,9 +2756,9 @@
     {
       "name": "Weapons",
       "bytes": 142532,
-      "portedBytes": 10932,
+      "portedBytes": 14944,
       "routines": 663,
-      "portedRoutines": 33,
+      "portedRoutines": 54,
       "classes": [
         {
           "name": "(free functions)",
@@ -2785,8 +2785,8 @@
           "name": "cAIRocket",
           "bytes": 5304,
           "routines": 22,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 5304,
+          "portedRoutines": 22
         },
         {
           "name": "cAISensorCone",
@@ -2813,8 +2813,8 @@
           "name": "cBaseProjectile",
           "bytes": 2564,
           "routines": 13,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 2564,
+          "portedRoutines": 13
         },
         {
           "name": "cBaseWeaponPickup",
@@ -2834,8 +2834,8 @@
           "name": "cBulletBasedWeapon",
           "bytes": 4684,
           "routines": 17,
-          "portedBytes": 4528,
-          "portedRoutines": 16
+          "portedBytes": 672,
+          "portedRoutines": 2
         },
         {
           "name": "cBulletTrace",
@@ -6333,9 +6333,9 @@
     {
       "name": "World and engine",
       "bytes": 398740,
-      "portedBytes": 39124,
+      "portedBytes": 39144,
       "routines": 1888,
-      "portedRoutines": 100,
+      "portedRoutines": 101,
       "classes": [
         {
           "name": "(free functions)",
@@ -6355,8 +6355,8 @@
           "name": "CCollision",
           "bytes": 32760,
           "routines": 64,
-          "portedBytes": 16836,
-          "portedRoutines": 34
+          "portedBytes": 16856,
+          "portedRoutines": 35
         },
         {
           "name": "CCollisionBox",

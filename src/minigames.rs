@@ -63,6 +63,13 @@ pub enum MinigameKind {
         ink_level: f32,        // 0.0 to 1.0 (machine ink supply)
         reloads_done: u8,
     },
+    /// Sniper rifle field assembly minigame (Overlay 126 cRifleConstructionApp).
+    SniperAssembly {
+        current_step: u8, // 0: Receiver, 1: Barrel, 2: Bolt, 3: Scope, 4: Suppressor
+        step_progress: f32, // 0.0 to 1.0
+        parts_fitted: [bool; 5],
+        alignment_error: f32,
+    },
 }
 
 /// Authentic Chinatown Wars tattoo motifs for Triad and gang artwork.
@@ -209,6 +216,21 @@ impl MinigameSession {
         }
     }
 
+    pub fn new_sniper_assembly() -> Self {
+        Self {
+            kind: MinigameKind::SniperAssembly {
+                current_step: 0,
+                step_progress: 0.0,
+                parts_fitted: [false; 5],
+                alignment_error: 0.5,
+            },
+            completed: false,
+            failed: false,
+            reward_cash: 1000,
+            reward_message: Some("FUSIL DE PRECISION ASSEMBLE ! Arme prete a l'emploi (+1000$)".to_string()),
+        }
+    }
+
     /// Replenish tattoo machine ink reservoir from cap.
     pub fn dip_ink(&mut self) {
         if let MinigameKind::Tattooing { ink_level, pain_level, reloads_done, .. } = &mut self.kind {
@@ -349,6 +371,21 @@ impl MinigameSession {
                     self.apply_needle_stroke(true);
                 }
             }
+            MinigameKind::SniperAssembly { current_step, step_progress, parts_fitted, alignment_error } => {
+                if *current_step < 5 {
+                    *step_progress += 0.35;
+                    *alignment_error = (*alignment_error * 0.7).max(0.0);
+                    if *step_progress >= 1.0 {
+                        parts_fitted[*current_step as usize] = true;
+                        *current_step += 1;
+                        *step_progress = 0.0;
+                        *alignment_error = 0.4;
+                        if *current_step >= 5 {
+                            self.completed = true;
+                        }
+                    }
+                }
+            }
         }
 
         self.completed
@@ -380,6 +417,9 @@ impl MinigameSession {
             }
             MinigameKind::Tattooing { pain_level, .. } => {
                 *pain_level = (*pain_level - dt * 0.15).max(0.0);
+            }
+            MinigameKind::SniperAssembly { alignment_error, .. } => {
+                *alignment_error = (*alignment_error + dt * 0.05).min(1.0);
             }
             _ => {}
         }
@@ -523,5 +563,28 @@ mod tests {
         assert!(tat.failed);
         assert!(!tat.completed);
         assert!(tat.reward_message.unwrap().contains("Le client s'est enfui"));
+    }
+
+    #[test]
+    fn sniper_rifle_assembly_c_rifle_construction_app() {
+        let mut game = MinigameSession::new_sniper_assembly();
+        assert!(!game.completed);
+        assert_eq!(game.reward_cash, 1000);
+
+        // Advance through the 5 assembly stages (3 actions per part)
+        for step in 0..5 {
+            if let MinigameKind::SniperAssembly { current_step, .. } = game.kind {
+                assert_eq!(current_step, step);
+            }
+            game.trigger_action();
+            game.trigger_action();
+            game.trigger_action();
+        }
+
+        assert!(game.completed);
+        if let MinigameKind::SniperAssembly { parts_fitted, .. } = game.kind {
+            assert_eq!(parts_fitted, [true; 5], "All 5 sniper rifle components fitted");
+        }
+        assert!(game.reward_message.unwrap().contains("FUSIL DE PRECISION ASSEMBLE"));
     }
 }

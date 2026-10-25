@@ -272,7 +272,9 @@ pub fn run(
             wm.give(4, wt);  // Fusil a pompe
             wm.give(6, wt);  // SMG
             wm.give(7, wt);  // Fusil d'assaut
+            wm.give(9, wt);  // Fusil sniper
             wm.give(10, wt); // Lance-roquettes
+            wm.give(11, wt); // Lance-flammes
             wm.give(13, wt); // Grenades
             wm.give(14, wt); // Cocktail Molotov
             s.weapons = Some(wm);
@@ -889,6 +891,17 @@ pub fn run(
                             wm.cycle_next();
                         }
                     }
+                }
+            }
+            if !driving {
+                if pressed.contains(&Key::Z) || pad.pressed(crate::gamepad::RSTICK) {
+                    if let Some(s) = scene.as_mut() {
+                        s.sniper_scope.toggle();
+                    }
+                }
+                if let Some(s) = scene.as_mut() {
+                    let hold = window.is_key_down(Key::LeftShift) || pad.held(crate::gamepad::LSTICK);
+                    s.sniper_scope.hold_breath(hold);
                 }
             }
             if driving {

@@ -229,16 +229,15 @@ impl WeaponManager {
         let rec = tables.records.get(type_id as usize).copied().unwrap_or_default();
         let slot = (rec.slot as usize).min(NUM_SLOTS - 1);
         self.slots[slot] = Some(Weapon::new(type_id, tables));
-        if slot <= 7 {
-            self.cur_slot = slot;
-        } else {
+        self.cur_slot = slot;
+        if slot > 7 {
             self.secondary_slot = slot;
         }
     }
 
     pub fn cycle_next(&mut self) {
-        for step in 1..=8 {
-            let next = (self.cur_slot + step) % 8;
+        for step in 1..=NUM_SLOTS {
+            let next = (self.cur_slot + step) % NUM_SLOTS;
             if self.slots[next].is_some() {
                 self.cur_slot = next;
                 break;
@@ -247,8 +246,8 @@ impl WeaponManager {
     }
 
     pub fn cycle_prev(&mut self) {
-        for step in 1..=8 {
-            let prev = (self.cur_slot + 8 - step) % 8;
+        for step in 1..=NUM_SLOTS {
+            let prev = (self.cur_slot + NUM_SLOTS - (step % NUM_SLOTS)) % NUM_SLOTS;
             if self.slots[prev].is_some() {
                 self.cur_slot = prev;
                 break;
@@ -361,6 +360,547 @@ impl TargetingSystem {
         self.locked_target = best_target;
         self.reticle_health = best_health;
         self.reticle_pos = best_pos;
+    }
+}
+
+// ============================================================================
+// Chinatown Wars authentic Projectiles Engine (cBaseProjectile, cGrenade, cMolotov, cRocket, cAIRocket)
+// ============================================================================
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProjectileKind {
+    Grenade = 0,
+    Molotov = 1,
+    Rocket = 2,
+    Flashbang = 3,
+    Mine = 4,
+}
+
+#[derive(Clone, Debug)]
+pub struct Projectile {
+    pub kind: ProjectileKind,
+    pub pos: [f32; 3],
+    pub vel: [f32; 3],
+    pub fuse_timer: f32,
+    pub max_fuse: f32,
+    pub bounces: u8,
+    pub radius: f32,
+    pub active: bool,
+    pub owner_is_player: bool,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ProjectileManager {
+    pub list: Vec<Projectile>,
+}
+
+impl ProjectileManager {
+    pub fn new() -> Self {
+        Self { list: Vec::new() }
+    }
+
+    pub fn spawn_grenade(&mut self, pos: [f32; 3], fwd: [f32; 2], power: f32, from_player: bool) {
+        let p = power.clamp(0.4, 2.0);
+        self.list.push(Projectile {
+            kind: ProjectileKind::Grenade,
+            pos: [pos[0], pos[1], pos[2] + 1.2],
+            vel: [fwd[0] * 16.0 * p, fwd[1] * 16.0 * p, 4.5 * p],
+            fuse_timer: 2.2,
+            max_fuse: 2.2,
+            bounces: 0,
+            radius: 0.25,
+            active: true,
+            owner_is_player: from_player,
+        });
+    }
+
+    pub fn spawn_molotov(&mut self, pos: [f32; 3], fwd: [f32; 2], power: f32, from_player: bool) {
+        let p = power.clamp(0.4, 2.0);
+        self.list.push(Projectile {
+            kind: ProjectileKind::Molotov,
+            pos: [pos[0], pos[1], pos[2] + 1.2],
+            vel: [fwd[0] * 14.0 * p, fwd[1] * 14.0 * p, 4.0 * p],
+            fuse_timer: 4.0,
+            max_fuse: 4.0,
+            bounces: 0,
+            radius: 0.22,
+            active: true,
+            owner_is_player: from_player,
+        });
+    }
+
+    pub fn spawn_rocket(&mut self, pos: [f32; 3], fwd: [f32; 2], from_player: bool) {
+        self.list.push(Projectile {
+            kind: ProjectileKind::Rocket,
+            pos: [pos[0] + fwd[0] * 1.0, pos[1] + fwd[1] * 1.0, pos[2] + 1.2],
+            vel: [fwd[0] * 38.0, fwd[1] * 38.0, -0.4],
+            fuse_timer: 3.0,
+            max_fuse: 3.0,
+            bounces: 0,
+            radius: 0.35,
+            active: true,
+            owner_is_player: from_player,
+        });
+    }
+
+    pub fn spawn_flashbang(&mut self, pos: [f32; 3], fwd: [f32; 2], power: f32, from_player: bool) {
+        let p = power.clamp(0.4, 2.0);
+        self.list.push(Projectile {
+            kind: ProjectileKind::Flashbang,
+            pos: [pos[0], pos[1], pos[2] + 1.2],
+            vel: [fwd[0] * 15.0 * p, fwd[1] * 15.0 * p, 4.2 * p],
+            fuse_timer: 1.8,
+            max_fuse: 1.8,
+            bounces: 0,
+            radius: 0.22,
+            active: true,
+            owner_is_player: from_player,
+        });
+    }
+
+    pub fn update(
+        &mut self,
+        dt: f32,
+        collision: &crate::collision::Collision,
+        peds: &mut [crate::actors::Ped],
+        cars: &mut [crate::actors::Car],
+        fire_mgr: &mut FireManager,
+        explosions: &mut crate::explosions::ExplosionManager,
+    ) {
+        let mut exploded = Vec::new();
+
+        for proj in &mut self.list {
+            if !proj.active {
+                continue;
+            }
+
+            match proj.kind {
+                ProjectileKind::Rocket => {
+                    proj.pos[0] += proj.vel[0] * dt;
+                    proj.pos[1] += proj.vel[1] * dt;
+                    proj.pos[2] += proj.vel[2] * dt;
+                    proj.fuse_timer -= dt;
+
+                    let mut hit = proj.fuse_timer <= 0.0;
+
+                    // Building collision check
+                    if !collision.body_clear(proj.pos, proj.radius, 0.5) {
+                        hit = true;
+                    }
+
+                    // Vehicle collision check
+                    if !hit {
+                        for car in cars.iter() {
+                            let dx = car.p[0] - proj.pos[0];
+                            let dy = car.p[1] - proj.pos[1];
+                            let dz = car.p[2] - proj.pos[2];
+                            if dx * dx + dy * dy + dz * dz < (car.h[0] + 0.8) * (car.h[0] + 0.8) {
+                                hit = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Ped collision check
+                    if !hit {
+                        for ped in peds.iter() {
+                            if ped.health <= 0.0 {
+                                continue;
+                            }
+                            let dx = ped.p[0] - proj.pos[0];
+                            let dy = ped.p[1] - proj.pos[1];
+                            let dz = ped.p[2] - proj.pos[2];
+                            if dx * dx + dy * dy + dz * dz < 1.44 {
+                                hit = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if hit {
+                        proj.active = false;
+                        exploded.push((proj.pos, crate::explosions::ExplosionType::Rocket, 1.0));
+                    }
+                }
+                ProjectileKind::Grenade | ProjectileKind::Flashbang => {
+                    proj.vel[2] -= 9.81 * dt;
+                    proj.pos[0] += proj.vel[0] * dt;
+                    proj.pos[1] += proj.vel[1] * dt;
+                    proj.pos[2] += proj.vel[2] * dt;
+                    proj.fuse_timer -= dt;
+
+                    let g = collision.ground(proj.pos[0], proj.pos[1], proj.pos[2]);
+                    if proj.pos[2] <= g.z + 0.08 {
+                        proj.pos[2] = g.z + 0.08;
+                        if proj.vel[2] < 0.0 {
+                            proj.vel[2] = -proj.vel[2] * 0.42;
+                            proj.vel[0] *= 0.68;
+                            proj.vel[1] *= 0.68;
+                            proj.bounces += 1;
+                        }
+                        if proj.vel[2].abs() < 0.25 {
+                            proj.vel[2] = 0.0;
+                        }
+                    }
+
+                    // Wall bounce
+                    if !collision.body_clear(proj.pos, proj.radius, 0.4) {
+                        proj.vel[0] = -proj.vel[0] * 0.5;
+                        proj.vel[1] = -proj.vel[1] * 0.5;
+                    }
+
+                    if proj.fuse_timer <= 0.0 {
+                        proj.active = false;
+                        let kind = crate::explosions::ExplosionType::Generic;
+                        let scale = if proj.kind == ProjectileKind::Grenade { 1.0 } else { 0.6 };
+                        exploded.push((proj.pos, kind, scale));
+                        if proj.kind == ProjectileKind::Flashbang {
+                            for ped in peds.iter_mut() {
+                                let dx = ped.p[0] - proj.pos[0];
+                                let dy = ped.p[1] - proj.pos[1];
+                                if dx * dx + dy * dy < 64.0 {
+                                    ped.hit_flash = 1.0;
+                                    ped.panic = 6.0;
+                                }
+                            }
+                        }
+                    }
+                }
+                ProjectileKind::Molotov => {
+                    proj.vel[2] -= 9.81 * dt;
+                    proj.pos[0] += proj.vel[0] * dt;
+                    proj.pos[1] += proj.vel[1] * dt;
+                    proj.pos[2] += proj.vel[2] * dt;
+                    proj.fuse_timer -= dt;
+
+                    let g = collision.ground(proj.pos[0], proj.pos[1], proj.pos[2]);
+                    let mut shattered = proj.pos[2] <= g.z + 0.1 || proj.fuse_timer <= 0.0;
+
+                    // Vehicle impact check
+                    if !shattered {
+                        for car in cars.iter() {
+                            let dx = car.p[0] - proj.pos[0];
+                            let dy = car.p[1] - proj.pos[1];
+                            let dz = car.p[2] - proj.pos[2];
+                            if dx * dx + dy * dy + dz * dz < (car.h[0] + 0.6) * (car.h[0] + 0.6) {
+                                shattered = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Ped impact check
+                    if !shattered {
+                        for ped in peds.iter_mut() {
+                            if ped.health <= 0.0 {
+                                continue;
+                            }
+                            let dx = ped.p[0] - proj.pos[0];
+                            let dy = ped.p[1] - proj.pos[1];
+                            let dz = ped.p[2] - proj.pos[2];
+                            if dx * dx + dy * dy + dz * dz < 1.2 {
+                                ped.on_fire = 6.0;
+                                shattered = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if shattered {
+                        proj.active = false;
+                        exploded.push((proj.pos, crate::explosions::ExplosionType::Molotov, 1.0));
+                        if !g.water {
+                            fire_mgr.spawn_fire(proj.pos, 2.4, 7.0);
+                        }
+                    }
+                }
+                ProjectileKind::Mine => {
+                    proj.vel[2] -= 9.81 * dt;
+                    let g = collision.ground(proj.pos[0], proj.pos[1], proj.pos[2]);
+                    proj.pos[2] = (proj.pos[2] + proj.vel[2] * dt).max(g.z + 0.05);
+                    proj.fuse_timer = (proj.fuse_timer - dt).max(0.0);
+                    if proj.fuse_timer <= 0.0 {
+                        let mut triggered = false;
+                        for ped in peds.iter() {
+                            if ped.health > 0.0 {
+                                let dx = ped.p[0] - proj.pos[0];
+                                let dy = ped.p[1] - proj.pos[1];
+                                if dx * dx + dy * dy < 4.0 {
+                                    triggered = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if !triggered {
+                            for car in cars.iter() {
+                                let dx = car.p[0] - proj.pos[0];
+                                let dy = car.p[1] - proj.pos[1];
+                                if dx * dx + dy * dy < (car.h[0] + 0.5) * (car.h[0] + 0.5) {
+                                    triggered = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if triggered {
+                            proj.active = false;
+                            exploded.push((proj.pos, crate::explosions::ExplosionType::Barrel, 1.0));
+                        }
+                    }
+                }
+            }
+        }
+
+        for (pos, kind, scale) in exploded {
+            explosions.trigger(pos, kind, scale);
+        }
+
+        self.list.retain(|p| p.active);
+    }
+}
+
+// ============================================================================
+// Chinatown Wars authentic Flamethrower & Fire Manager (cFlameThrower, cFire, Fire, cParticleEmitterFlameThrower)
+// ============================================================================
+
+#[derive(Clone, Debug)]
+pub struct FirePatch {
+    pub pos: [f32; 3],
+    pub radius: f32,
+    pub life: f32,
+    pub max_life: f32,
+    pub intensity: f32,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct FireManager {
+    pub patches: Vec<FirePatch>,
+}
+
+impl FireManager {
+    pub fn new() -> Self {
+        Self { patches: Vec::new() }
+    }
+
+    pub fn spawn_fire(&mut self, pos: [f32; 3], radius: f32, duration: f32) {
+        if self.patches.len() < 32 {
+            self.patches.push(FirePatch {
+                pos,
+                radius: radius.max(0.5),
+                life: duration,
+                max_life: duration,
+                intensity: 1.0,
+            });
+        }
+    }
+
+    pub fn extinguish_near(&mut self, pos: [f32; 3], radius: f32) -> usize {
+        let r2 = radius * radius;
+        let mut count = 0;
+        for patch in &mut self.patches {
+            let dx = patch.pos[0] - pos[0];
+            let dy = patch.pos[1] - pos[1];
+            if dx * dx + dy * dy < r2 {
+                patch.life = 0.0;
+                count += 1;
+            }
+        }
+        self.patches.retain(|p| p.life > 0.0);
+        count
+    }
+
+    pub fn emit_flamethrower_stream(
+        &mut self,
+        muzzle: [f32; 3],
+        fwd: [f32; 2],
+        peds: &mut [crate::actors::Ped],
+        cars: &mut [crate::actors::Car],
+    ) {
+        let reach = 7.5;
+        for ped in peds.iter_mut() {
+            if ped.health <= 0.0 {
+                continue;
+            }
+            let dx = ped.p[0] - muzzle[0];
+            let dy = ped.p[1] - muzzle[1];
+            let dist = dx.hypot(dy);
+            if dist < reach && dist > 0.2 {
+                let dot = (dx * fwd[0] + dy * fwd[1]) / dist;
+                if dot > 0.82 {
+                    ped.on_fire = (ped.on_fire + 3.0).min(7.0);
+                    ped.health = (ped.health - 22.0).max(0.0);
+                    ped.panic = 7.0;
+                    ped.hit_flash = 0.3;
+                }
+            }
+        }
+
+        for car in cars.iter_mut() {
+            let dx = car.p[0] - muzzle[0];
+            let dy = car.p[1] - muzzle[1];
+            let dist = dx.hypot(dy);
+            if dist < reach {
+                let dot = (dx * fwd[0] + dy * fwd[1]) / dist.max(0.01);
+                if dot > 0.82 {
+                    car.speed *= 0.95;
+                }
+            }
+        }
+
+        let flame_ground = [muzzle[0] + fwd[0] * 4.0, muzzle[1] + fwd[1] * 4.0, muzzle[2]];
+        self.spawn_fire(flame_ground, 1.4, 4.0);
+    }
+
+    pub fn update(
+        &mut self,
+        dt: f32,
+        peds: &mut [crate::actors::Ped],
+        cars: &mut [crate::actors::Car],
+    ) {
+        for patch in &mut self.patches {
+            patch.life = (patch.life - dt).max(0.0);
+            patch.intensity = if patch.max_life > 0.0 {
+                patch.life / patch.max_life
+            } else {
+                0.0
+            };
+
+            let r2 = patch.radius * patch.radius;
+            for ped in peds.iter_mut() {
+                if ped.health <= 0.0 {
+                    continue;
+                }
+                let dx = ped.p[0] - patch.pos[0];
+                let dy = ped.p[1] - patch.pos[1];
+                if dx * dx + dy * dy < r2 {
+                    ped.on_fire = (ped.on_fire + 2.5 * dt).min(6.0);
+                    ped.panic = 6.0;
+                }
+            }
+
+            for car in cars.iter_mut() {
+                let dx = car.p[0] - patch.pos[0];
+                let dy = car.p[1] - patch.pos[1];
+                if dx * dx + dy * dy < (patch.radius + car.h[0]) * (patch.radius + car.h[0]) {
+                    car.speed *= (1.0 - 0.2 * dt).max(0.5);
+                }
+            }
+        }
+        self.patches.retain(|p| p.life > 0.0);
+
+        for ped in peds.iter_mut() {
+            if ped.on_fire > 0.0 {
+                ped.on_fire = (ped.on_fire - dt).max(0.0);
+                ped.health = (ped.health - 28.0 * dt).max(0.0);
+                ped.panic = 5.0;
+                ped.hit_flash = 0.2;
+                if ped.health <= 0.0 {
+                    ped.dead_timer = 0.0;
+                }
+            }
+        }
+    }
+}
+
+// ============================================================================
+// Chinatown Wars authentic Sniper Rifle Scope & Camera (cSniperRifle, cPlayerAsSniper, cSniperCam)
+// ============================================================================
+
+#[derive(Clone, Debug)]
+pub struct SniperScope {
+    pub active: bool,
+    pub zoom: f32,
+    pub target_zoom: f32,
+    pub sway_time: f32,
+    pub sway_offset: [f32; 2],
+    pub held_breath: bool,
+    pub breath_meter: f32,
+    pub reticle_range: f32,
+}
+
+impl Default for SniperScope {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl SniperScope {
+    pub fn new() -> Self {
+        Self {
+            active: false,
+            zoom: 1.0,
+            target_zoom: 1.0,
+            sway_time: 0.0,
+            sway_offset: [0.0; 2],
+            held_breath: false,
+            breath_meter: 1.0,
+            reticle_range: 0.0,
+        }
+    }
+
+    pub fn toggle(&mut self) {
+        self.active = !self.active;
+        if self.active {
+            self.target_zoom = 2.0;
+        } else {
+            self.target_zoom = 1.0;
+            self.held_breath = false;
+        }
+    }
+
+    pub fn zoom_in(&mut self) {
+        if self.active {
+            self.target_zoom = (self.target_zoom + 0.5).min(4.0);
+        }
+    }
+
+    pub fn zoom_out(&mut self) {
+        if self.active {
+            self.target_zoom = (self.target_zoom - 0.5).max(1.0);
+        }
+    }
+
+    pub fn hold_breath(&mut self, hold: bool) {
+        self.held_breath = hold;
+    }
+
+    pub fn update(&mut self, dt: f32, target_pos: Option<[f32; 3]>, player_pos: [f32; 3]) {
+        if !self.active {
+            self.zoom = 1.0;
+            self.sway_offset = [0.0; 2];
+            self.breath_meter = (self.breath_meter + dt * 0.5).min(1.0);
+            return;
+        }
+
+        self.zoom += (self.target_zoom - self.zoom) * (dt * 8.0).min(1.0);
+
+        if self.held_breath && self.breath_meter > 0.0 {
+            self.breath_meter = (self.breath_meter - dt * 0.28).max(0.0);
+            if self.breath_meter == 0.0 {
+                self.held_breath = false;
+            }
+        } else {
+            self.breath_meter = (self.breath_meter + dt * 0.35).min(1.0);
+        }
+
+        self.sway_time += dt;
+        let factor = if self.held_breath && self.breath_meter > 0.0 {
+            0.12
+        } else {
+            1.0
+        };
+
+        let sx = (self.sway_time * 1.35).sin() * 0.042 * factor;
+        let sy = (self.sway_time * 2.10).cos() * 0.024 * factor;
+        self.sway_offset = [sx, sy];
+
+        if let Some(tp) = target_pos {
+            let dx = tp[0] - player_pos[0];
+            let dy = tp[1] - player_pos[1];
+            let dz = tp[2] - player_pos[2];
+            self.reticle_range = (dx * dx + dy * dy + dz * dz).sqrt();
+        } else {
+            self.reticle_range = 0.0;
+        }
     }
 }
 
@@ -566,5 +1106,102 @@ mod tests {
         let cleared = police.on_cop_takedown();
         assert!(cleared);
         assert_eq!(police.stars, 0);
+    }
+
+    #[test]
+    fn projectile_ballistics_and_bounce_mechanics() {
+        let mut proj_mgr = ProjectileManager::new();
+        let mut fire_mgr = FireManager::new();
+        let mut explosions = crate::explosions::ExplosionManager::new();
+        let mut peds = Vec::new();
+        let mut cars = Vec::new();
+
+        // 1. Spawn Grenade
+        proj_mgr.spawn_grenade([10.0, 10.0, 0.0], [0.0, 1.0], 1.0, true);
+        assert_eq!(proj_mgr.list.len(), 1);
+        let g = &proj_mgr.list[0];
+        assert_eq!(g.kind, ProjectileKind::Grenade);
+        assert_eq!(g.vel[1], 16.0);
+        assert!(g.vel[2] > 0.0, "Grenade has positive vertical toss impulse");
+
+        // Parse minimal collision box
+        let collision = crate::collision::Collision::parse(b"").unwrap_or_default();
+
+        // Step physics forward 0.1s
+        proj_mgr.update(0.1, &collision, &mut peds, &mut cars, &mut fire_mgr, &mut explosions);
+        assert_eq!(proj_mgr.list.len(), 1);
+        let g_updated = &proj_mgr.list[0];
+        assert!(g_updated.pos[1] > 10.0, "Grenade moved forward along Y");
+        assert!(g_updated.fuse_timer < 2.2, "Fuse timer decremented");
+
+        // 2. Spawn Molotov cocktail
+        proj_mgr.spawn_molotov([20.0, 20.0, 0.0], [1.0, 0.0], 1.0, true);
+        assert_eq!(proj_mgr.list.len(), 2);
+
+        // 3. Spawn RPG Rocket
+        proj_mgr.spawn_rocket([30.0, 30.0, 0.0], [0.0, 1.0], true);
+        assert_eq!(proj_mgr.list.len(), 3);
+        let rocket = &proj_mgr.list[2];
+        assert_eq!(rocket.kind, ProjectileKind::Rocket);
+        assert_eq!(rocket.vel[1], 38.0);
+    }
+
+    #[test]
+    fn flamethrower_and_fire_damage_propagation() {
+        let mut fire_mgr = FireManager::new();
+        let mut peds = vec![
+            crate::actors::make_ped([5.0, 8.0, 0.0], [5.0, 9.0, 0.0], 0),
+        ];
+        peds[0].health = 100.0;
+        let mut cars = Vec::new();
+
+        // Flamethrower stream directed at ped at (5, 8) from (5, 5)
+        let muzzle = [5.0, 5.0, 1.0];
+        let fwd = [0.0, 1.0];
+        fire_mgr.emit_flamethrower_stream(muzzle, fwd, &mut peds, &mut cars);
+
+        assert!(peds[0].on_fire > 0.0, "Ped catches fire from flamethrower stream");
+        assert!(peds[0].health < 100.0, "Ped takes direct flame impact damage");
+        assert_eq!(fire_mgr.patches.len(), 1, "Ground fire patch spawned along stream");
+
+        // Update fire simulation: ped takes continuous burn damage
+        let prev_health = peds[0].health;
+        fire_mgr.update(0.2, &mut peds, &mut cars);
+        assert!(peds[0].health < prev_health, "Burning ped suffers damage over time");
+
+        // Extinguish fire near patch
+        let extinguished = fire_mgr.extinguish_near([5.0, 9.0, 0.0], 3.0);
+        assert!(extinguished >= 1, "Fire patch extinguished by water/extinguisher");
+        assert_eq!(fire_mgr.patches.len(), 0);
+    }
+
+    #[test]
+    fn sniper_scope_sway_and_breath_hold() {
+        let mut scope = SniperScope::new();
+        assert!(!scope.active);
+        assert_eq!(scope.zoom, 1.0);
+
+        // Toggle scope on
+        scope.toggle();
+        assert!(scope.active);
+        assert_eq!(scope.target_zoom, 2.0);
+
+        // Update scope animation to zoom in and simulate natural breathing sway
+        scope.update(0.2, Some([50.0, 50.0, 0.0]), [0.0, 0.0, 0.0]);
+        assert!(scope.zoom > 1.0, "Zoom interpolates smoothly toward target");
+        assert!(scope.reticle_range > 70.0, "Calculates accurate 3D distance to target");
+        let free_sway = scope.sway_offset[0].abs();
+
+        // Hold breath: sway is dampened by ~85%
+        scope.hold_breath(true);
+        scope.update(0.1, Some([50.0, 50.0, 0.0]), [0.0, 0.0, 0.0]);
+        assert!(scope.breath_meter < 1.0, "Breath meter depletes while holding breath");
+        let steady_sway = scope.sway_offset[0].abs();
+        assert!(steady_sway < free_sway * 0.4, "Steady aim dampens organic breath sway");
+
+        // Release breath
+        scope.hold_breath(false);
+        scope.update(0.1, Some([50.0, 50.0, 0.0]), [0.0, 0.0, 0.0]);
+        assert!(!scope.held_breath);
     }
 }

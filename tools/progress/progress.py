@@ -43,7 +43,12 @@ RUST_MODULE_MAP = {
     'actors.rs': ['cAIGang', 'cAITaskHub', 'cSimpleMover', 'cPlayerOnFoot'],
     'vault.rs': ['cTaskVault', 'cSimpleTrail'],
     'roll.rs': ['cTaskRoll', 'cOneShotAnimationTask'],
-    'weapons.rs': ['cWeapon', 'cWeaponManager', 'cBulletBasedWeapon', 'cAK47', 'cTazer', 'cSensorCone'],
+    'weapons.rs': [
+        'cWeapon', 'cWeaponManager', 'cBulletBasedWeapon', 'cAK47', 'cTazer', 'cSensorCone',
+        'cBaseProjectile', 'cGrenade', 'cMolotov', 'cMolotovManager', 'cRocket', 'cRocketLauncher',
+        'cAIRocket', 'cFlameThrower', 'cSniperRifle', 'cPlayerAsSniper', 'cSniperCam',
+        'cBulletTrace', 'cBulletTraces', 'cParticleEmitterFlameThrower'
+    ],
     'explosions.rs': ['Explosion', 'cBaseExplosion', 'FadeExplosion'],
     'collision.rs': ['CCollision', 'CCollisionBox', 'CCollisionMesh'],
     'world.rs': ['WorldImpl', 'cWorldSector', 'Area', 'cPhysicalIntegrator', 'cPhysical'],
@@ -56,7 +61,7 @@ RUST_MODULE_MAP = {
     'pda.rs': ['PDAImpl', 'cPda', 'cEmailApp', 'cPhoneApp'],
     'audio.rs': ['cAudio', 'cAudioManager', 'cAudioBase', 'SoundImpl', 'cSoundEvents'],
     'radio.rs': ['cRadioApp', 'cSoundStream', 'cAudioBaseOAL'],
-    'weather.rs': ['cWeather', 'cTimeCycle', 'cLightManager', 'Fire', 'cFire'],
+    'weather.rs': ['cWeather', 'cTimeCycle', 'cLightManager', 'Fire', 'cFire', 'cParticleEmitterFire'],
     'races.rs': ['CRaces_Algon', 'CRaces_East', 'CRaces_North', 'cRace', 'cCheckpointTT'],
     'collectibles.rs': ['CRampage', 'CTurretRampage', 'cSecurityCamera'],
     'safehouse.rs': ['cSafehouse', 'cStash', 'cWardrobe'],
@@ -66,7 +71,11 @@ RUST_MODULE_MAP = {
     'stats.rs': ['cStatsManager', 'StatsImpl', 'PopulationProfile'],
     'save.rs': ['SaveGameImpl', 'cSaveGameMgr'],
     'missions.rs': ['CScriptInit', 'CScriptMain', 'ScriptHnd', 'cMission', 'cActStructure', 'cCutscene_Intro', 'cCutscene_Outro', 'cCutscene_AtKennys', 'cDeathArrestApp'],
-    'minigames.rs': ['cHotWiringApp', 'cScratchCardApp', 'cShootingRange', 'cTattooApp'],
+    'minigames.rs': [
+        'cHotWiringApp', 'cScratchCardApp', 'cShootingRange', 'cTattooingApp',
+        'cSinkingCarApp', 'cSafeCrackingApp', 'cDumpsterWeaponStashApp', 'cCarBombFittingApp',
+        'cMolotovApp', 'cRifleConstructionApp'
+    ],
 }
 
 GREEN = '#3fa34d'

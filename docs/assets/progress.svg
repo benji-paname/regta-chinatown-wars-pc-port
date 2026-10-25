@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" font-family="Verdana,DejaVu Sans,sans-serif">
 <rect width="1000" height="560" fill="#16191c"/>
-<text x="8" y="18" font-size="13" fill="#e6e8ea">Original game code ported in Rust: 2.49% (641 / 25988 routines, by code size)</text>
+<text x="8" y="18" font-size="13" fill="#e6e8ea">Original game code ported in Rust: 2.47% (665 / 25988 routines, by code size)</text>
 <rect x="3.0" y="42.0" width="115.8" height="70.5" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <text x="6.0" y="53.0" font-size="9" fill="#e6e8ea">cIntro</text>
 <rect x="118.8" y="42.0" width="102.9" height="70.5" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
@@ -322,7 +322,6 @@
 <rect x="583.1" y="249.8" width="56.6" height="39.6" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="639.8" y="42.0" width="49.3" height="42.8" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="689.1" y="42.0" width="40.9" height="42.8" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
-<rect x="689.1" y="64.4" width="40.9" height="20.5" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="729.9" y="42.0" width="37.4" height="42.8" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="767.4" y="42.0" width="35.6" height="42.8" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="803.0" y="42.0" width="35.5" height="42.8" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
@@ -374,6 +373,7 @@
 <rect x="757.7" y="221.4" width="21.2" height="23.3" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="757.7" y="244.7" width="21.2" height="22.6" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="757.7" y="267.3" width="21.2" height="22.0" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
+<rect x="757.7" y="269.1" width="21.2" height="20.3" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="778.8" y="174.1" width="24.2" height="19.1" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="803.1" y="174.1" width="23.6" height="19.1" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="826.6" y="174.1" width="23.5" height="19.1" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
@@ -407,7 +407,7 @@
 <rect x="830.0" y="245.4" width="43.5" height="43.9" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="830.0" y="286.5" width="43.5" height="2.8" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="582.1" y="26.0" width="292.3" height="264.4" fill="none" stroke="#e6e8ea" stroke-opacity="0.55" stroke-width="1.2"/>
-<text x="586.1" y="38.0" font-size="11" font-weight="bold" fill="#e6e8ea">Minigames 3.5%</text>
+<text x="586.1" y="38.0" font-size="11" font-weight="bold" fill="#e6e8ea">Minigames 2.9%</text>
 <rect x="875.5" y="42.0" width="52.4" height="47.1" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="875.5" y="64.9" width="52.4" height="24.2" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="927.9" y="42.0" width="36.4" height="47.1" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
@@ -753,10 +753,11 @@
 <rect x="808.5" y="458.7" width="24.9" height="25.4" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="833.4" y="416.3" width="20.5" height="17.8" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="833.4" y="434.1" width="20.5" height="16.7" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
+<rect x="833.4" y="434.1" width="20.5" height="16.7" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="833.4" y="450.8" width="20.5" height="16.7" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="833.4" y="467.5" width="20.5" height="16.6" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="853.9" y="416.3" width="15.4" height="19.7" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
-<rect x="853.9" y="417.0" width="15.4" height="19.0" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
+<rect x="853.9" y="433.2" width="15.4" height="2.8" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="853.9" y="436.0" width="15.4" height="17.4" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="853.9" y="442.1" width="15.4" height="11.3" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="853.9" y="453.4" width="15.4" height="15.6" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
@@ -766,6 +767,7 @@
 <rect x="869.3" y="445.6" width="13.3" height="13.1" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="869.3" y="458.7" width="13.3" height="12.9" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="869.3" y="471.7" width="13.3" height="12.4" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
+<rect x="869.3" y="471.7" width="13.3" height="12.4" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="882.6" y="416.3" width="14.1" height="11.0" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="896.7" y="416.3" width="13.9" height="11.0" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="910.5" y="416.3" width="12.5" height="11.0" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
@@ -834,7 +836,7 @@
 <rect x="934.0" y="472.6" width="10.3" height="1.8" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="934.0" y="474.4" width="10.3" height="9.6" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="807.5" y="400.3" width="137.8" height="84.7" fill="none" stroke="#e6e8ea" stroke-opacity="0.55" stroke-width="1.2"/>
-<text x="811.5" y="412.3" font-size="11" font-weight="bold" fill="#e6e8ea">Weapons 7.7%</text>
+<text x="811.5" y="412.3" font-size="11" font-weight="bold" fill="#e6e8ea">Weapons 10.5%</text>
 <rect x="808.5" y="501.1" width="23.8" height="20.8" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="808.5" y="521.8" width="23.8" height="18.0" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="808.5" y="539.9" width="23.8" height="17.1" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>

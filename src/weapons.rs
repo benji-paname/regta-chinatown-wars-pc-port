@@ -904,6 +904,634 @@ impl SniperScope {
     }
 }
 
+// ============================================================================
+// GTA: Chinatown Wars Authentic Pickup System
+// Matching reverse-engineered classes:
+// cBasePickup, cBaseWeaponPickup, cPickupManager, cPickupBat, cPickupChainsaw,
+// cPickupColt, cPickupDesertEagle, cPickupDualPistol, cPickupFlameThrower,
+// cPickupGrenade, cPickupMinigun, cPickupMolotov, cPickupMp5, cPickupNiteStick,
+// cPickupPistol, cPickupProximityMine, cPickupRocketLauncher, cPickupShotgun,
+// cPickupSniperRifle, cPickupSword, cPickupTazer, cPickupUzi, cPickupAk47,
+// cPickupDoubleBarrelShot, cPickupSawnOffShot, cPickupFlashBang, cPickupHealth,
+// cPickupArmour, cPickupBribe, cPickupMoney, cPickupGen, cPickupGeneric,
+// cPickupLuckLion, cPickupRandomStuff, cPickupListener, cCollectedAmbientPickupStore
+// ============================================================================
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PickupKind {
+    // Melee weapons
+    Bat,
+    NiteStick,
+    Chainsaw,
+    Sword,
+    Tazer,
+    // Pistols
+    Pistol,
+    DualPistol,
+    DesertEagle,
+    // Shotguns
+    Shotgun,
+    DoubleBarrelShotgun,
+    SawnOffShotgun,
+    // SMGs
+    Uzi,
+    Mp5,
+    // Assault Rifles
+    Ak47,
+    // Heavy / Specialized
+    SniperRifle,
+    RocketLauncher,
+    FlameThrower,
+    Minigun,
+    // Thrown projectiles
+    Grenade,
+    Molotov,
+    Flashbang,
+    Mine,
+    // Support & collectibles
+    Health,
+    Armour,
+    Bribe,
+    Money(u32),
+    LuckLion(u8),
+}
+
+impl PickupKind {
+    pub fn name(&self) -> &'static str {
+        match self {
+            PickupKind::Bat => "Batte de baseball",
+            PickupKind::NiteStick => "Matraque de police",
+            PickupKind::Chainsaw => "Tronçonneuse",
+            PickupKind::Sword => "Épée Yu Jian / Katana",
+            PickupKind::Tazer => "Taser incapacitant",
+            PickupKind::Pistol => "Pistolet 9mm",
+            PickupKind::DualPistol => "Pistolets doubles (.45)",
+            PickupKind::DesertEagle => "Desert Eagle .50",
+            PickupKind::Shotgun => "Fusil à pompe",
+            PickupKind::DoubleBarrelShotgun => "Fusil à double canon",
+            PickupKind::SawnOffShotgun => "Fusil à canon scié",
+            PickupKind::Uzi => "Micro-SMG (Uzi)",
+            PickupKind::Mp5 => "Pistolet-mitrailleur (MP5)",
+            PickupKind::Ak47 => "Fusil d'assaut AK-47",
+            PickupKind::SniperRifle => "Fusil de précision (Sniper)",
+            PickupKind::RocketLauncher => "Lance-roquettes (RPG)",
+            PickupKind::FlameThrower => "Lance-flammes",
+            PickupKind::Minigun => "Minigun rotatif",
+            PickupKind::Grenade => "Grenades à fragmentation",
+            PickupKind::Molotov => "Cocktail Molotov",
+            PickupKind::Flashbang => "Grenade assourdissante",
+            PickupKind::Mine => "Mine de proximité",
+            PickupKind::Health => "Soin médical (+50 HP)",
+            PickupKind::Armour => "Gilet pare-balles (Kevlar 100%)",
+            PickupKind::Bribe => "Pot-de-vin de police (-1 étoile)",
+            PickupKind::Money(_) => "Liasse de billets",
+            PickupKind::LuckLion(_) => "Lion de Fo impérial",
+        }
+    }
+
+    pub fn weapon_type_id(&self) -> Option<u8> {
+        match self {
+            PickupKind::Bat | PickupKind::NiteStick | PickupKind::Chainsaw => Some(1),
+            PickupKind::Pistol | PickupKind::DesertEagle | PickupKind::Tazer => Some(2),
+            PickupKind::Sword => Some(3),
+            PickupKind::Shotgun | PickupKind::DoubleBarrelShotgun | PickupKind::SawnOffShotgun => Some(4),
+            PickupKind::DualPistol => Some(5),
+            PickupKind::Uzi | PickupKind::Mp5 => Some(6),
+            PickupKind::Ak47 => Some(7),
+            PickupKind::SniperRifle => Some(9),
+            PickupKind::RocketLauncher | PickupKind::Minigun => Some(10),
+            PickupKind::FlameThrower => Some(11),
+            PickupKind::Grenade | PickupKind::Flashbang | PickupKind::Mine => Some(13),
+            PickupKind::Molotov => Some(14),
+            _ => None,
+        }
+    }
+
+    pub fn default_ammo(&self) -> u16 {
+        match self {
+            PickupKind::Pistol | PickupKind::DesertEagle | PickupKind::Tazer => 30,
+            PickupKind::DualPistol => 60,
+            PickupKind::Shotgun | PickupKind::DoubleBarrelShotgun | PickupKind::SawnOffShotgun => 16,
+            PickupKind::Uzi | PickupKind::Mp5 => 90,
+            PickupKind::Ak47 => 120,
+            PickupKind::SniperRifle => 10,
+            PickupKind::RocketLauncher => 4,
+            PickupKind::FlameThrower => 150,
+            PickupKind::Minigun => 200,
+            PickupKind::Grenade | PickupKind::Molotov | PickupKind::Flashbang | PickupKind::Mine => 5,
+            _ => 0,
+        }
+    }
+
+    pub fn glow_color(&self) -> [f32; 4] {
+        match self {
+            PickupKind::Health => [0.95, 0.18, 0.18, 0.85],
+            PickupKind::Armour => [0.22, 0.62, 0.98, 0.85],
+            PickupKind::Bribe => [1.00, 0.85, 0.18, 0.90],
+            PickupKind::Money(_) => [0.18, 0.88, 0.38, 0.85],
+            PickupKind::LuckLion(_) => [0.15, 0.92, 0.70, 0.92],
+            _ => [1.00, 0.58, 0.15, 0.85],
+        }
+    }
+
+    pub fn is_weapon(&self) -> bool {
+        self.weapon_type_id().is_some()
+    }
+
+    pub fn is_support(&self) -> bool {
+        matches!(self, PickupKind::Health | PickupKind::Armour | PickupKind::Bribe)
+    }
+
+    pub fn is_collectible(&self) -> bool {
+        matches!(self, PickupKind::LuckLion(_))
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct WorldPickup {
+    pub id: usize,
+    pub kind: PickupKind,
+    pub pos: [f32; 3],
+    pub rotation: f32,
+    pub bob_phase: f32,
+    pub respawn_timer: f32,
+    pub respawn_delay: f32,
+    pub active: bool,
+    pub is_dropped: bool,
+    pub life_timer: f32,
+}
+
+impl WorldPickup {
+    pub fn new(id: usize, kind: PickupKind, pos: [f32; 3], respawn_delay: f32) -> Self {
+        Self {
+            id,
+            kind,
+            pos,
+            rotation: 0.0,
+            bob_phase: 0.0,
+            respawn_timer: 0.0,
+            respawn_delay,
+            active: true,
+            is_dropped: false,
+            life_timer: 0.0,
+        }
+    }
+
+    pub fn new_dropped(id: usize, kind: PickupKind, pos: [f32; 3]) -> Self {
+        Self {
+            id,
+            kind,
+            pos,
+            rotation: 0.0,
+            bob_phase: 0.0,
+            respawn_timer: 0.0,
+            respawn_delay: 0.0,
+            active: true,
+            is_dropped: true,
+            life_timer: 45.0,
+        }
+    }
+
+    pub fn update(&mut self, dt: f32) -> bool {
+        self.rotation = (self.rotation + 2.2 * dt) % std::f32::consts::TAU;
+        self.bob_phase = (self.bob_phase + 3.5 * dt) % std::f32::consts::TAU;
+
+        if !self.active && self.respawn_delay > 0.0 {
+            self.respawn_timer = (self.respawn_timer - dt).max(0.0);
+            if self.respawn_timer == 0.0 {
+                self.active = true;
+            }
+        }
+
+        if self.is_dropped && self.active {
+            self.life_timer = (self.life_timer - dt).max(0.0);
+            if self.life_timer == 0.0 {
+                self.active = false;
+                return false;
+            }
+        }
+        true
+    }
+
+    pub fn collect(&mut self) -> PickupKind {
+        self.active = false;
+        if self.respawn_delay > 0.0 {
+            self.respawn_timer = self.respawn_delay;
+        }
+        self.kind
+    }
+
+    pub fn render_pos(&self) -> [f32; 3] {
+        [
+            self.pos[0],
+            self.pos[1],
+            self.pos[2] + 0.35 + 0.12 * self.bob_phase.sin(),
+        ]
+    }
+
+    pub fn halo_radius(&self) -> f32 {
+        0.65 + 0.08 * (self.bob_phase * 1.5).sin()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct PickupManager {
+    pub pickups: Vec<WorldPickup>,
+    pub next_id: usize,
+    pub collected_count: usize,
+    pub weapons_collected: usize,
+    pub cash_looted: u32,
+    pub lions_found: u8,
+}
+
+impl Default for PickupManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl PickupManager {
+    pub fn new() -> Self {
+        let mut mgr = Self {
+            pickups: Vec::with_capacity(64),
+            next_id: 1,
+            collected_count: 0,
+            weapons_collected: 0,
+            cash_looted: 0,
+            lions_found: 0,
+        };
+        mgr.init_world_spawns();
+        mgr
+    }
+
+    pub fn init_world_spawns(&mut self) {
+        // Algonquin - Middle Park & Central
+        self.spawn_static(PickupKind::Health, [260.0, 310.0, 5.0], 45.0);
+        self.spawn_static(PickupKind::Armour, [270.0, 320.0, 5.0], 60.0);
+        self.spawn_static(PickupKind::Sword, [265.0, 315.0, 5.0], 90.0);
+        self.spawn_static(PickupKind::Bribe, [240.0, 290.0, 5.0], 60.0);
+
+        // Algonquin - Star Junction
+        self.spawn_static(PickupKind::Uzi, [210.0, 220.0, 5.0], 60.0);
+        self.spawn_static(PickupKind::Pistol, [195.0, 240.0, 5.0], 45.0);
+        self.spawn_static(PickupKind::Money(250), [205.0, 235.0, 5.0], 90.0);
+
+        // Algonquin - Chinatown & Easton
+        self.spawn_static(PickupKind::Ak47, [245.0, 160.0, 5.0], 90.0);
+        self.spawn_static(PickupKind::DualPistol, [230.0, 175.0, 5.0], 60.0);
+        self.spawn_static(PickupKind::LuckLion(1), [255.0, 165.0, 5.0], 0.0);
+
+        // Algonquin - Castle Garden & Financial
+        self.spawn_static(PickupKind::Shotgun, [180.0, 95.0, 4.5], 60.0);
+        self.spawn_static(PickupKind::Armour, [190.0, 105.0, 4.5], 60.0);
+        self.spawn_static(PickupKind::Bribe, [170.0, 85.0, 4.5], 60.0);
+
+        // Algonquin - Northwood & Rooftops
+        self.spawn_static(PickupKind::RocketLauncher, [280.0, 450.0, 8.0], 120.0);
+        self.spawn_static(PickupKind::SniperRifle, [260.0, 470.0, 9.5], 90.0);
+        self.spawn_static(PickupKind::FlameThrower, [290.0, 430.0, 6.0], 90.0);
+
+        // Broker & Dukes - Cerveza Heights & Kennys territory
+        self.spawn_static(PickupKind::Bat, [470.0, 260.0, 6.0], 30.0);
+        self.spawn_static(PickupKind::Molotov, [495.0, 285.0, 6.0], 60.0);
+        self.spawn_static(PickupKind::Health, [480.0, 270.0, 6.0], 45.0);
+
+        // Broker - BOABO Docks & Industrial
+        self.spawn_static(PickupKind::Grenade, [410.0, 180.0, 4.0], 60.0);
+        self.spawn_static(PickupKind::SawnOffShotgun, [425.0, 195.0, 4.0], 60.0);
+        self.spawn_static(PickupKind::Armour, [430.0, 170.0, 4.0], 60.0);
+
+        // Dukes - Steinway & Airport
+        self.spawn_static(PickupKind::LuckLion(2), [520.0, 390.0, 5.5], 0.0);
+        self.spawn_static(PickupKind::Bribe, [560.0, 420.0, 6.0], 60.0);
+        self.spawn_static(PickupKind::SniperRifle, [580.0, 450.0, 7.0], 90.0);
+
+        // Bohan - Industrial alleys & Boulevard
+        self.spawn_static(PickupKind::Chainsaw, [340.0, 520.0, 5.0], 90.0);
+        self.spawn_static(PickupKind::Mine, [360.0, 540.0, 5.0], 60.0);
+        self.spawn_static(PickupKind::Bribe, [325.0, 510.0, 5.0], 60.0);
+        self.spawn_static(PickupKind::Health, [350.0, 530.0, 5.0], 45.0);
+    }
+
+    pub fn spawn_static(&mut self, kind: PickupKind, pos: [f32; 3], respawn_delay: f32) -> usize {
+        let id = self.next_id;
+        self.next_id += 1;
+        self.pickups.push(WorldPickup::new(id, kind, pos, respawn_delay));
+        id
+    }
+
+    pub fn spawn_dropped(&mut self, kind: PickupKind, pos: [f32; 3]) -> usize {
+        let id = self.next_id;
+        self.next_id += 1;
+        self.pickups.push(WorldPickup::new_dropped(id, kind, pos));
+        id
+    }
+
+    pub fn on_ped_killed(&mut self, pos: [f32; 3], hostile: bool, appearance: usize) {
+        let cash_amt = if hostile {
+            80 + (appearance as u32 % 5) * 35
+        } else {
+            15 + (appearance as u32 % 4) * 12
+        };
+        self.spawn_dropped(PickupKind::Money(cash_amt), pos);
+
+        if hostile {
+            let drop_kind = match appearance % 5 {
+                0 => PickupKind::Pistol,
+                1 => PickupKind::Uzi,
+                2 => PickupKind::Shotgun,
+                3 => PickupKind::Bat,
+                _ => PickupKind::Grenade,
+            };
+            let drop_pos = [pos[0] + 0.35, pos[1] + 0.25, pos[2]];
+            self.spawn_dropped(drop_kind, drop_pos);
+        }
+    }
+
+    pub fn update(&mut self, dt: f32) {
+        self.pickups.retain_mut(|p| p.update(dt));
+    }
+
+    pub fn try_collect(
+        &mut self,
+        player_pos: [f32; 3],
+        player_health: &mut f32,
+        player_armour: &mut u8,
+        player_cash: &mut u32,
+        mut weapons: Option<&mut WeaponManager>,
+        wanted_level: &mut u8,
+        tables: &WeaponTables,
+    ) -> Option<String> {
+        let radius_sq = 1.45 * 1.45;
+        let z_threshold = 1.9;
+
+        for p in &mut self.pickups {
+            if !p.active {
+                continue;
+            }
+            let dx = p.pos[0] - player_pos[0];
+            let dy = p.pos[1] - player_pos[1];
+            let dz = (p.pos[2] - player_pos[2]).abs();
+
+            if dx * dx + dy * dy <= radius_sq && dz <= z_threshold {
+                let kind = p.collect();
+                self.collected_count += 1;
+
+                match kind {
+                    PickupKind::Health => {
+                        *player_health = (*player_health + 50.0).min(127.0);
+                        return Some("Santé restaurée (+50 HP)".into());
+                    }
+                    PickupKind::Armour => {
+                        *player_armour = 100;
+                        return Some("Gilet pare-balles équipé (Kevlar 100%)".into());
+                    }
+                    PickupKind::Bribe => {
+                        if *wanted_level > 0 {
+                            *wanted_level = wanted_level.saturating_sub(1);
+                            return Some("Pot-de-vin ramassé : indice de recherche réduit !".into());
+                        } else {
+                            return Some("Pot-de-vin ramassé".into());
+                        }
+                    }
+                    PickupKind::Money(amt) => {
+                        *player_cash += amt;
+                        self.cash_looted += amt;
+                        return Some(format!("+${amt} ramassés"));
+                    }
+                    PickupKind::LuckLion(id) => {
+                        self.lions_found += 1;
+                        return Some(format!("Lion de Fo impérial découvert ! (#{id}/100)"));
+                    }
+                    _ => {
+                        if let Some(wtype) = kind.weapon_type_id() {
+                            self.weapons_collected += 1;
+                            if let Some(wm) = weapons.as_deref_mut() {
+                                wm.give(wtype, tables);
+                            }
+                            let ammo = kind.default_ammo();
+                            if ammo > 0 {
+                                return Some(format!("{}: +{ammo} munitions", kind.name()));
+                            } else {
+                                return Some(format!("Arme obtenue : {}", kind.name()));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    pub fn active_count(&self) -> usize {
+        self.pickups.iter().filter(|p| p.active).count()
+    }
+
+    pub fn total_count(&self) -> usize {
+        self.pickups.len()
+    }
+
+    pub fn reset(&mut self) {
+        self.pickups.clear();
+        self.init_world_spawns();
+    }
+}
+
+// Authentic Chinatown Wars classes matching reverse engineering
+#[derive(Clone, Debug)]
+pub struct BasePickup {
+    pub inner: WorldPickup,
+}
+
+impl BasePickup {
+    pub fn new(id: usize, kind: PickupKind, pos: [f32; 3], respawn: f32) -> Self {
+        Self { inner: WorldPickup::new(id, kind, pos, respawn) }
+    }
+    pub fn is_active(&self) -> bool { self.inner.active }
+    pub fn pos(&self) -> [f32; 3] { self.inner.pos }
+    pub fn set_pos(&mut self, pos: [f32; 3]) { self.inner.pos = pos; }
+    pub fn respawn(&mut self) { self.inner.active = true; }
+    pub fn deactivate(&mut self) { self.inner.active = false; }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct BaseWeaponPickup {
+    pub weapon_id: u8,
+    pub ammo: u16,
+}
+
+impl BaseWeaponPickup {
+    pub fn new(weapon_id: u8, ammo: u16) -> Self {
+        Self { weapon_id, ammo }
+    }
+    pub fn weapon_id(&self) -> u8 { self.weapon_id }
+    pub fn ammo(&self) -> u16 { self.ammo }
+}
+
+macro_rules! define_weapon_pickup_class {
+    ($struct_name:ident, $kind:expr) => {
+        #[derive(Clone, Copy, Debug)]
+        pub struct $struct_name {
+            pub base: BaseWeaponPickup,
+        }
+        impl Default for $struct_name {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
+        impl $struct_name {
+            pub fn new() -> Self {
+                Self {
+                    base: BaseWeaponPickup::new(
+                        $kind.weapon_type_id().unwrap_or(0),
+                        $kind.default_ammo(),
+                    ),
+                }
+            }
+            pub fn kind(&self) -> PickupKind {
+                $kind
+            }
+        }
+    };
+}
+
+define_weapon_pickup_class!(PickupBat, PickupKind::Bat);
+define_weapon_pickup_class!(PickupChainsaw, PickupKind::Chainsaw);
+define_weapon_pickup_class!(PickupColt, PickupKind::Pistol);
+define_weapon_pickup_class!(PickupDesertEagle, PickupKind::DesertEagle);
+define_weapon_pickup_class!(PickupDualPistol, PickupKind::DualPistol);
+define_weapon_pickup_class!(PickupFlameThrower, PickupKind::FlameThrower);
+define_weapon_pickup_class!(PickupGrenade, PickupKind::Grenade);
+define_weapon_pickup_class!(PickupMinigun, PickupKind::Minigun);
+define_weapon_pickup_class!(PickupMolotov, PickupKind::Molotov);
+define_weapon_pickup_class!(PickupMp5, PickupKind::Mp5);
+define_weapon_pickup_class!(PickupNiteStick, PickupKind::NiteStick);
+define_weapon_pickup_class!(PickupPistol, PickupKind::Pistol);
+define_weapon_pickup_class!(PickupProximityMine, PickupKind::Mine);
+define_weapon_pickup_class!(PickupRocketLauncher, PickupKind::RocketLauncher);
+define_weapon_pickup_class!(PickupShotgun, PickupKind::Shotgun);
+define_weapon_pickup_class!(PickupSniperRifle, PickupKind::SniperRifle);
+define_weapon_pickup_class!(PickupSword, PickupKind::Sword);
+define_weapon_pickup_class!(PickupTazer, PickupKind::Tazer);
+define_weapon_pickup_class!(PickupUzi, PickupKind::Uzi);
+define_weapon_pickup_class!(PickupAk47, PickupKind::Ak47);
+define_weapon_pickup_class!(PickupDoubleBarrelShot, PickupKind::DoubleBarrelShotgun);
+define_weapon_pickup_class!(PickupSawnOffShot, PickupKind::SawnOffShotgun);
+define_weapon_pickup_class!(PickupFlashBang, PickupKind::Flashbang);
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct PickupHealth;
+impl PickupHealth {
+    pub fn new() -> Self { Self }
+    pub fn apply(&self, health: &mut f32) {
+        *health = (*health + 50.0).min(127.0);
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct PickupArmour;
+impl PickupArmour {
+    pub fn new() -> Self { Self }
+    pub fn apply(&self, armour: &mut u8) {
+        *armour = 100;
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct PickupBribe;
+impl PickupBribe {
+    pub fn new() -> Self { Self }
+    pub fn apply(&self, wanted: &mut u8) {
+        *wanted = wanted.saturating_sub(1);
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct PickupMoney {
+    pub amount: u32,
+}
+impl PickupMoney {
+    pub fn new(amount: u32) -> Self { Self { amount } }
+    pub fn amount(&self) -> u32 { self.amount }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct PickupGenerator {
+    pub interval: f32,
+    pub timer: f32,
+}
+impl PickupGenerator {
+    pub fn new(interval: f32) -> Self {
+        Self { interval, timer: 0.0 }
+    }
+    pub fn generate(&mut self, dt: f32) -> bool {
+        self.timer += dt;
+        if self.timer >= self.interval {
+            self.timer = 0.0;
+            true
+        } else {
+            false
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct PickupGeneric {
+    pub label: &'static str,
+}
+impl PickupGeneric {
+    pub fn new(label: &'static str) -> Self { Self { label } }
+    pub fn is_generic(&self) -> bool { true }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct PickupLuckLion {
+    pub lion_id: u8,
+}
+impl PickupLuckLion {
+    pub fn new(lion_id: u8) -> Self { Self { lion_id } }
+    pub fn lion_id(&self) -> u8 { self.lion_id }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct PickupRandomStuff {
+    pub seed: u32,
+}
+impl PickupRandomStuff {
+    pub fn new(seed: u32) -> Self { Self { seed } }
+    pub fn roll(&mut self) -> u32 {
+        self.seed = self.seed.wrapping_mul(1103515245).wrapping_add(12345);
+        self.seed
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct PickupListener {
+    pub total_collected: usize,
+}
+impl PickupListener {
+    pub fn new() -> Self { Self { total_collected: 0 } }
+    pub fn on_pickup_collected(&mut self) {
+        self.total_collected += 1;
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct CollectedAmbientPickupStore {
+    pub collected_ids: Vec<usize>,
+}
+impl CollectedAmbientPickupStore {
+    pub fn new() -> Self { Self { collected_ids: Vec::new() } }
+    pub fn record(&mut self, id: usize) {
+        if !self.collected_ids.contains(&id) {
+            self.collected_ids.push(id);
+        }
+    }
+    pub fn is_recorded(&self, id: usize) -> bool {
+        self.collected_ids.contains(&id)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1203,5 +1831,106 @@ mod tests {
         scope.hold_breath(false);
         scope.update(0.1, Some([50.0, 50.0, 0.0]), [0.0, 0.0, 0.0]);
         assert!(!scope.held_breath);
+    }
+
+    #[test]
+    fn pickup_manager_world_spawns_and_rotation() {
+        let mut mgr = PickupManager::new();
+        assert!(mgr.total_count() >= 25, "World pickups properly populated across Liberty City");
+        assert_eq!(mgr.collected_count, 0);
+
+        let initial_active = mgr.active_count();
+        assert!(initial_active >= 25);
+
+        // Advance simulation by 0.5s
+        mgr.update(0.5);
+        for p in &mgr.pickups {
+            assert!(p.rotation > 0.0, "Pickup rotates continuously");
+            assert!(p.bob_phase > 0.0, "Pickup bobs up and down");
+            let render_p = p.render_pos();
+            assert!(render_p[2] > p.pos[2], "Hovering above ground");
+            assert!(p.halo_radius() > 0.5, "Pulsating ground halo ring");
+        }
+    }
+
+    #[test]
+    fn pickup_collection_and_respawn_cycle() {
+        let mut mgr = PickupManager::new();
+        let tables = WeaponTables::default();
+        let mut wm = WeaponManager::new(&tables);
+
+        let mut health = 50.0;
+        let mut armour = 20u8;
+        let mut cash = 100u32;
+        let mut wanted = 2u8;
+
+        // Middle Park Health Pickup is at [260.0, 310.0, 5.0]
+        let msg = mgr.try_collect([260.0, 310.0, 5.0], &mut health, &mut armour, &mut cash, Some(&mut wm), &mut wanted, &tables);
+        assert!(msg.is_some(), "Player collects health pickup in range");
+        assert_eq!(health, 100.0, "Health restored +50");
+        assert_eq!(mgr.collected_count, 1);
+
+        // Armour Pickup is at [270.0, 320.0, 5.0]
+        let msg2 = mgr.try_collect([270.0, 320.0, 5.0], &mut health, &mut armour, &mut cash, Some(&mut wm), &mut wanted, &tables);
+        assert!(msg2.is_some());
+        assert_eq!(armour, 100, "Armour restored to 100%");
+
+        // Bribe Pickup is at [240.0, 290.0, 5.0]
+        let msg3 = mgr.try_collect([240.0, 290.0, 5.0], &mut health, &mut armour, &mut cash, Some(&mut wm), &mut wanted, &tables);
+        assert!(msg3.is_some());
+        assert_eq!(wanted, 1, "Wanted rating reduced by 1 star");
+
+        // Star Junction Money is at [205.0, 235.0, 5.0]
+        let msg4 = mgr.try_collect([205.0, 235.0, 5.0], &mut health, &mut armour, &mut cash, Some(&mut wm), &mut wanted, &tables);
+        assert!(msg4.is_some());
+        assert_eq!(cash, 350, "Player received $250 cash");
+
+        // Lion of Fo #1 is at [255.0, 165.0, 5.0]
+        let msg5 = mgr.try_collect([255.0, 165.0, 5.0], &mut health, &mut armour, &mut cash, Some(&mut wm), &mut wanted, &tables);
+        assert!(msg5.is_some());
+        assert_eq!(mgr.lions_found, 1);
+
+        // Dropped pickup from dead ped
+        mgr.on_ped_killed([10.0, 10.0, 0.0], true, 0);
+        mgr.update(0.1);
+        let msg_drop = mgr.try_collect([10.0, 10.0, 0.0], &mut health, &mut armour, &mut cash, Some(&mut wm), &mut wanted, &tables);
+        assert!(msg_drop.is_some(), "Player collects dropped cash from dead enemy");
+    }
+
+    #[test]
+    fn authentic_pickup_classes_contract() {
+        let bat = PickupBat::new();
+        assert_eq!(bat.kind(), PickupKind::Bat);
+        let ak = PickupAk47::new();
+        assert_eq!(ak.kind(), PickupKind::Ak47);
+        let rpg = PickupRocketLauncher::new();
+        assert_eq!(rpg.kind(), PickupKind::RocketLauncher);
+
+        let mut h = 70.0;
+        PickupHealth::new().apply(&mut h);
+        assert_eq!(h, 120.0);
+
+        let mut arm = 50;
+        PickupArmour::new().apply(&mut arm);
+        assert_eq!(arm, 100);
+
+        let mut w = 3;
+        PickupBribe::new().apply(&mut w);
+        assert_eq!(w, 2);
+
+        let money = PickupMoney::new(500);
+        assert_eq!(money.amount(), 500);
+
+        let mut gen = PickupGenerator::new(10.0);
+        assert!(!gen.generate(5.0));
+        assert!(gen.generate(6.0));
+
+        let lion = PickupLuckLion::new(7);
+        assert_eq!(lion.lion_id(), 7);
+
+        let mut store = CollectedAmbientPickupStore::new();
+        assert!(!store.is_recorded(42));
+        store.record(42);
+        assert!(store.is_recorded(42));
     }
 }

@@ -70,6 +70,16 @@ pub enum MinigameKind {
         parts_fitted: [bool; 5],
         alignment_error: f32,
     },
+    /// Authentic cSearchingBodiesApp (Overlay 133): Searching fallen pedestrian or dead enemy corpse for cash, contraband, and ammo.
+    BodySearch {
+        ped_index: usize,
+        search_timer: f32, // 0.0 to duration
+        duration: f32,     // 1.2s authentic search time
+        searched: bool,
+        looted_cash: u32,
+        looted_drug: Option<(crate::drugs::DrugType, u32)>,
+        looted_ammo: Option<(u8, u16)>, // (weapon_type_id, rounds)
+    },
 }
 
 /// Authentic Chinatown Wars tattoo motifs for Triad and gang artwork.
@@ -231,6 +241,61 @@ impl MinigameSession {
         }
     }
 
+    pub fn new_body_search(
+        ped_index: usize,
+        cash: u32,
+        drug: Option<(crate::drugs::DrugType, u32)>,
+        ammo: Option<(u8, u16)>,
+    ) -> Self {
+        let mut msg = format!("CORPS FOUILLÉ : +${cash}");
+        if let Some((d, q)) = drug {
+            msg.push_str(&format!(" & {q}x {}", d.name()));
+        }
+        if let Some((w, a)) = ammo {
+            msg.push_str(&format!(" & Arme #{w} (+{a})"));
+        }
+        Self {
+            kind: MinigameKind::BodySearch {
+                ped_index,
+                search_timer: 0.0,
+                duration: 1.2,
+                searched: false,
+                looted_cash: cash,
+                looted_drug: drug,
+                looted_ammo: ammo,
+            },
+            completed: false,
+            failed: false,
+            reward_cash: cash,
+            reward_message: Some(msg),
+        }
+    }
+
+    pub fn body_search_progress(&self) -> f32 {
+        match &self.kind {
+            MinigameKind::BodySearch { search_timer, duration, .. } => {
+                (search_timer / duration).clamp(0.0, 1.0)
+            }
+            _ => 0.0,
+        }
+    }
+
+    pub fn body_search_ped_index(&self) -> Option<usize> {
+        match &self.kind {
+            MinigameKind::BodySearch { ped_index, .. } => Some(*ped_index),
+            _ => None,
+        }
+    }
+
+    pub fn body_search_loot(&self) -> Option<(u32, Option<(crate::drugs::DrugType, u32)>, Option<(u8, u16)>)> {
+        match &self.kind {
+            MinigameKind::BodySearch { looted_cash, looted_drug, looted_ammo, .. } => {
+                Some((*looted_cash, *looted_drug, *looted_ammo))
+            }
+            _ => None,
+        }
+    }
+
     /// Replenish tattoo machine ink reservoir from cap.
     pub fn dip_ink(&mut self) {
         if let MinigameKind::Tattooing { ink_level, pain_level, reloads_done, .. } = &mut self.kind {
@@ -386,6 +451,11 @@ impl MinigameSession {
                     }
                 }
             }
+            MinigameKind::BodySearch { search_timer, duration, searched, .. } => {
+                *search_timer = *duration;
+                *searched = true;
+                self.completed = true;
+            }
         }
 
         self.completed
@@ -420,6 +490,13 @@ impl MinigameSession {
             }
             MinigameKind::SniperAssembly { alignment_error, .. } => {
                 *alignment_error = (*alignment_error + dt * 0.05).min(1.0);
+            }
+            MinigameKind::BodySearch { search_timer, duration, searched, .. } => {
+                *search_timer += dt;
+                if *search_timer >= *duration {
+                    *searched = true;
+                    self.completed = true;
+                }
             }
             _ => {}
         }
@@ -586,5 +663,32 @@ mod tests {
             assert_eq!(parts_fitted, [true; 5], "All 5 sniper rifle components fitted");
         }
         assert!(game.reward_message.unwrap().contains("FUSIL DE PRECISION ASSEMBLE"));
+    }
+
+    #[test]
+    fn body_searching_c_searching_bodies_app() {
+        let mut session = MinigameSession::new_body_search(
+            4,
+            120,
+            Some((crate::drugs::DrugType::Coke, 2)),
+            Some((6, 45)),
+        );
+        assert!(!session.completed);
+        assert_eq!(session.body_search_ped_index(), Some(4));
+        assert_eq!(session.body_search_progress(), 0.0);
+
+        // Simulation ticks forward 0.6s
+        session.tick(0.6);
+        assert!(!session.completed);
+        let prog = session.body_search_progress();
+        assert!(prog >= 0.49 && prog <= 0.51, "Progress at 50%");
+
+        // Simulation completes remaining 0.65s
+        session.tick(0.65);
+        assert!(session.completed);
+        assert_eq!(session.body_search_progress(), 1.0);
+
+        let loot = session.body_search_loot();
+        assert_eq!(loot, Some((120, Some((crate::drugs::DrugType::Coke, 2)), Some((6, 45)))));
     }
 }

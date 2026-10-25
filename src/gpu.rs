@@ -1604,6 +1604,155 @@ impl Renderer {
                     }
                 }
 
+                // Chinatown Wars authentic 3D Hovering Pickups & Glowing Halos (cPickupEffectRenderable)
+                glEnable(0x0be2);
+                glBlendFunc(0x0302, 0x0303);
+                for p in &scene.pickups.pickups {
+                    if !p.active {
+                        continue;
+                    }
+                    let dx = p.pos[0] - walker.p[0];
+                    let dy = p.pos[1] - walker.p[1];
+                    if dx * dx + dy * dy > 130.0 * 130.0 {
+                        continue;
+                    }
+                    let halo_r = p.halo_radius();
+                    let gc = p.kind.glow_color();
+
+                    // 1. Pulsating circular ground halo disc on pavement
+                    glColor4f(gc[0], gc[1], gc[2], gc[3] * 0.40);
+                    glBegin(6);
+                    glVertex3f(p.pos[0], p.pos[1], p.pos[2] + 0.03);
+                    glColor4f(gc[0], gc[1], gc[2], 0.0);
+                    for i in 0..=12 {
+                        let a = (i as f32) * (std::f32::consts::TAU / 12.0);
+                        glVertex3f(p.pos[0] + a.cos() * halo_r, p.pos[1] + a.sin() * halo_r, p.pos[2] + 0.02);
+                    }
+                    glEnd();
+
+                    // 2. Hovering 3D geometry with continuous rotation
+                    let rpos = p.render_pos();
+                    glPushMatrix();
+                    glTranslatef(rpos[0], rpos[1], rpos[2]);
+                    glRotatef(p.rotation.to_degrees(), 0.0, 0.0, 1.0);
+                    glRotatef(15.0, 1.0, 0.0, 0.0);
+
+                    match p.kind {
+                        crate::weapons::PickupKind::Health => {
+                            glColor4f(0.95, 0.15, 0.15, 1.0);
+                            let (cw, ch, cd) = (0.08, 0.28, 0.08);
+                            glBegin(7);
+                            glVertex3f(-cw, -ch, cd);
+                            glVertex3f(cw, -ch, cd);
+                            glVertex3f(cw, ch, cd);
+                            glVertex3f(-cw, ch, cd);
+                            glEnd();
+                            glBegin(7);
+                            glVertex3f(-ch, -cw, cd);
+                            glVertex3f(ch, -cw, cd);
+                            glVertex3f(ch, cw, cd);
+                            glVertex3f(-ch, cw, cd);
+                            glEnd();
+                            glColor4f(1.0, 1.0, 1.0, 1.0);
+                            let (iw, ih) = (0.04, 0.12);
+                            glBegin(7);
+                            glVertex3f(-iw, -ih, cd + 0.01);
+                            glVertex3f(iw, -ih, cd + 0.01);
+                            glVertex3f(iw, ih, cd + 0.01);
+                            glVertex3f(-iw, ih, cd + 0.01);
+                            glVertex3f(-ih, -iw, cd + 0.01);
+                            glVertex3f(ih, -iw, cd + 0.01);
+                            glVertex3f(ih, iw, cd + 0.01);
+                            glVertex3f(-ih, iw, cd + 0.01);
+                            glEnd();
+                        }
+                        crate::weapons::PickupKind::Armour => {
+                            glColor4f(0.20, 0.45, 0.85, 1.0);
+                            let (vw, vh, vd) = (0.24, 0.32, 0.06);
+                            glBegin(7);
+                            glVertex3f(-vw, -vh, vd);
+                            glVertex3f(vw, -vh, vd);
+                            glVertex3f(vw * 0.7, vh, vd);
+                            glVertex3f(-vw * 0.7, vh, vd);
+                            glEnd();
+                            glColor4f(0.12, 0.15, 0.22, 1.0);
+                            glBegin(7);
+                            glVertex3f(-vw * 0.5, -vh * 0.5, vd + 0.01);
+                            glVertex3f(vw * 0.5, -vh * 0.5, vd + 0.01);
+                            glVertex3f(vw * 0.4, vh * 0.4, vd + 0.01);
+                            glVertex3f(-vw * 0.4, vh * 0.4, vd + 0.01);
+                            glEnd();
+                        }
+                        crate::weapons::PickupKind::Bribe => {
+                            glColor4f(1.0, 0.85, 0.18, 1.0);
+                            let star_r = 0.30;
+                            glBegin(6);
+                            glVertex3f(0.0, 0.0, 0.04);
+                            for i in 0..=10 {
+                                let a = (i as f32) * (std::f32::consts::TAU / 10.0);
+                                let r = if i % 2 == 0 { star_r } else { star_r * 0.45 };
+                                glVertex3f(a.cos() * r, a.sin() * r, 0.0);
+                            }
+                            glEnd();
+                        }
+                        crate::weapons::PickupKind::Money(_) => {
+                            glColor4f(0.20, 0.82, 0.35, 1.0);
+                            let (mw, ml, mh) = (0.16, 0.28, 0.06);
+                            glBegin(7);
+                            glVertex3f(-mw, -ml, mh);
+                            glVertex3f(mw, -ml, mh);
+                            glVertex3f(mw, ml, mh);
+                            glVertex3f(-mw, ml, mh);
+                            glEnd();
+                            glColor4f(0.95, 0.95, 0.95, 1.0);
+                            let sw = 0.05;
+                            glBegin(7);
+                            glVertex3f(-mw - 0.01, -sw, mh + 0.01);
+                            glVertex3f(mw + 0.01, -sw, mh + 0.01);
+                            glVertex3f(mw + 0.01, sw, mh + 0.01);
+                            glVertex3f(-mw - 0.01, sw, mh + 0.01);
+                            glEnd();
+                        }
+                        crate::weapons::PickupKind::LuckLion(_) => {
+                            glColor4f(0.12, 0.88, 0.65, 1.0);
+                            let s = 0.22;
+                            glBegin(7);
+                            glVertex3f(-s, -s * 1.2, s);
+                            glVertex3f(s, -s * 1.2, s);
+                            glVertex3f(s, s * 0.8, s);
+                            glVertex3f(-s, s * 0.8, s);
+                            glEnd();
+                            glColor4f(0.85, 0.75, 0.20, 1.0);
+                            glBegin(7);
+                            glVertex3f(-s * 1.2, -s * 1.4, 0.0);
+                            glVertex3f(s * 1.2, -s * 1.4, 0.0);
+                            glVertex3f(s * 1.2, s * 1.0, 0.0);
+                            glVertex3f(-s * 1.2, s * 1.0, 0.0);
+                            glEnd();
+                        }
+                        _ => {
+                            glColor4f(0.25, 0.26, 0.28, 1.0);
+                            let (bw, bl, bh) = (0.05, 0.36, 0.08);
+                            glBegin(7);
+                            glVertex3f(-bw, -bl, bh);
+                            glVertex3f(bw, -bl, bh);
+                            glVertex3f(bw, bl, bh);
+                            glVertex3f(-bw, bl, bh);
+                            glEnd();
+                            glColor4f(0.45, 0.28, 0.16, 1.0);
+                            glBegin(7);
+                            glVertex3f(-bw * 1.1, -bl * 0.3, 0.0);
+                            glVertex3f(bw * 1.1, -bl * 0.3, 0.0);
+                            glVertex3f(bw * 1.1, 0.0, bh * 1.1);
+                            glVertex3f(-bw * 1.1, 0.0, bh * 1.1);
+                            glEnd();
+                        }
+                    }
+
+                    glPopMatrix();
+                }
+                glDisable(0x0be2);
+
                 // Chinatown Wars authentic Dynamic 3D Rain & Splash Simulation (cRain, cParticleEmitterRainSplashes)
                 if scene.weather.rain_intensity > 0.05 {
                     glEnable(0x0be2);
@@ -2393,6 +2542,34 @@ impl Renderer {
                                 rounded([cx - 180.0, cy + 50.0, 360.0, 18.0], 2.0, [0.06, 0.07, 0.08]);
                                 rounded([cx - 178.0, cy + 52.0, 356.0 * step_progress.clamp(0.0, 1.0), 14.0], 2.0, [0.25, 0.75, 0.95]);
                                 self.psp_text(cx - 170.0, cy + 125.0, "[ E ] ALIGNER ET VISSER L'ELEMENT EN COURS", 1.7, [1.0, 0.95, 0.85]);
+                            }
+                            crate::minigames::MinigameKind::BodySearch { search_timer, duration, searched, looted_cash, looted_drug, looted_ammo, .. } => {
+                                self.psp_text(cx - 160.0, cy - 162.0, "FOUILLER LE CORPS (cSearchingBodiesApp)", 1.8, [1.0, 0.88, 0.20]);
+                                rounded([cx - 200.0, cy - 110.0, 400.0, 210.0], 6.0, [0.08, 0.09, 0.11]);
+
+                                let progress = (search_timer / duration).clamp(0.0, 1.0);
+                                rounded([cx - 160.0, cy - 80.0, 320.0, 16.0], 3.0, [0.18, 0.20, 0.24]);
+                                rounded([cx - 158.0, cy - 78.0, 316.0 * progress, 12.0], 2.0, [0.25, 0.85, 0.45]);
+
+                                let status_str = if *searched || progress >= 1.0 { "FOUILLE TERMINEE - BUTIN :" } else { "FOUILLE EN COURS..." };
+                                self.psp_text(cx - 130.0, cy - 50.0, status_str, 1.6, [1.0, 0.95, 0.85]);
+
+                                let cash_str = format!("- Argent liquide : +${}", looted_cash);
+                                self.psp_text(cx - 140.0, cy - 15.0, &cash_str, 1.6, [0.25, 0.92, 0.40]);
+
+                                if let Some((drug, qty)) = looted_drug {
+                                    let drug_str = format!("- Marchandise : {}x {}", qty, drug.name());
+                                    self.psp_text(cx - 140.0, cy + 15.0, &drug_str, 1.6, [0.95, 0.75, 0.25]);
+                                } else {
+                                    self.psp_text(cx - 140.0, cy + 15.0, "- Aucune drogue sur le suspect", 1.4, [0.65, 0.65, 0.68]);
+                                }
+
+                                if let Some((w_id, rounds)) = looted_ammo {
+                                    let ammo_str = format!("- Munitions : Arme #{} (+{} cartouches)", w_id, rounds);
+                                    self.psp_text(cx - 140.0, cy + 45.0, &ammo_str, 1.6, [0.45, 0.75, 1.0]);
+                                }
+
+                                self.psp_text(cx - 160.0, cy + 125.0, "[ E / ESPACE ] PRENDRE LE BUTIN ET QUITTER", 1.7, [1.0, 0.92, 0.20]);
                             }
                         }
                         glDisable(0x0be2);
@@ -3793,6 +3970,33 @@ unsafe fn upload_texture(t: &crate::texture::Texture, repeat: bool) -> Result<u3
     );
     Ok(tex)
 }
+// Authentic Chinatown Wars class cPickupEffectRenderable (Effects subsystem, 4 routines)
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct PickupEffectRenderable {
+    pub halo_radius: f32,
+    pub bob_offset: f32,
+}
+
+#[allow(dead_code)]
+impl PickupEffectRenderable {
+    pub fn new() -> Self {
+        Self { halo_radius: 0.65, bob_offset: 0.35 }
+    }
+
+    pub fn calculate_render_z(&self, base_z: f32, phase: f32) -> f32 {
+        base_z + self.bob_offset + 0.12 * phase.sin()
+    }
+
+    pub fn calculate_halo_radius(&self, phase: f32) -> f32 {
+        self.halo_radius + 0.08 * (phase * 1.5).sin()
+    }
+
+    pub fn is_visible_distance(&self, d_sq: f32) -> bool {
+        d_sq <= 130.0 * 130.0
+    }
+}
+
 unsafe fn cube(p: [f32; 3], h: [f32; 3], color: [f32; 3]) {
     let corners: [[f32; 3]; 8] = std::array::from_fn(|k| {
         std::array::from_fn(|a| p[a] + h[a] * if k & (1 << a) == 0 { -1. } else { 1. })

@@ -230,6 +230,7 @@ pub struct Ped {
     pub attacking: f32,
     pub fall_forward: bool,
     pub dead_timer: f32,
+    pub searched: bool,
     pub evade_roll: Option<Roll>,
     pub evading: bool,
     target: [f32; 3],
@@ -311,6 +312,8 @@ pub struct Scene {
     pub swimming: bool,
     pub swim_timer: f32,
     pub ambient_boats: crate::vehicle::AmbientBoatManager,
+    pub pickups: crate::weapons::PickupManager,
+    pub body_search_ped: Option<usize>,
     pub safehouse_session: Option<crate::safehouse::SafehouseSession>,
     pub trade_session: Option<crate::drugs::TradeSession>,
     stream_timer: f32,
@@ -528,6 +531,7 @@ pub(crate) fn make_ped(p: [f32; 3], target: [f32; 3], appearance: usize) -> Ped 
         attacking: 0.,
         fall_forward: false,
         dead_timer: 0.,
+        searched: false,
         evade_roll: None,
         evading: false,
         panic: 0.,
@@ -600,6 +604,8 @@ impl Scene {
             swimming: false,
             swim_timer: 0.0,
             ambient_boats: crate::vehicle::AmbientBoatManager::new(),
+            pickups: crate::weapons::PickupManager::new(),
+            body_search_ped: None,
             safehouse_session: None,
             trade_session: None,
             driving: None,
@@ -1116,6 +1122,7 @@ impl Scene {
                         ped.evade_roll = None;
                         self.kills += 1;
                         self.police.report_crime(crate::police::CrimeType::PedKill);
+                        self.pickups.on_ped_killed(ped.p, ped.hostile, ped.appearance);
                     }
                 }
                 return true;
@@ -1201,6 +1208,7 @@ impl Scene {
                     ped.evade_roll = None;
                     self.kills += 1;
                     self.police.report_crime(crate::police::CrimeType::PedKill);
+                    self.pickups.on_ped_killed(ped.p, ped.hostile, ped.appearance);
                 }
             }
             return true;
@@ -1259,6 +1267,7 @@ impl Scene {
             ped.evade_roll = None;
             self.kills += 1;
             self.police.report_crime(crate::police::CrimeType::PedKill);
+            self.pickups.on_ped_killed(ped.p, ped.hostile, ped.appearance);
         }
         for other in &mut self.peds {
             if distance(other.p, player) < 14. && other.health > 0. && !other.hostile {
@@ -1283,12 +1292,61 @@ impl Scene {
                     self.swimming = true;
                 }
                 self.cash = self.cash.saturating_add(minigame.reward_cash);
+                if let crate::minigames::MinigameKind::BodySearch { looted_cash, looted_drug, looted_ammo, .. } = minigame.kind {
+                    self.stats.add_found_on_the_street(looted_cash);
+                    if let Some((drug, qty)) = looted_drug {
+                        self.drugs.player_bag.add(drug, qty);
+                    }
+                    if let Some((w_id, _rounds)) = looted_ammo {
+                        if let Some(wm) = self.weapons.as_mut() {
+                            wm.give(w_id, &crate::weapons::WeaponTables::default());
+                        }
+                    }
+                }
                 self.minigame = None;
                 if let crate::missions::MissionState::InProgress { objective: crate::missions::MissionObjective::CompleteMinigame { .. }, .. } = &self.missions.state {
                     self.missions.advance_objective(&mut self.cash);
                 }
             }
             return true;
+        }
+
+        // 0.5. Dead body search (cSearchingBodiesApp)
+        if let Some(ped_idx) = self.body_search_ped {
+            if ped_idx < self.peds.len() && self.peds[ped_idx].health <= 0.0 && !self.peds[ped_idx].searched {
+                let ped = &mut self.peds[ped_idx];
+                ped.searched = true;
+                let cash = if ped.hostile {
+                    85 + (ped.appearance as u32 % 6) * 30
+                } else {
+                    20 + (ped.appearance as u32 % 5) * 12
+                };
+                let drug = if ped.hostile {
+                    let d = match ped.appearance % 6 {
+                        0 => crate::drugs::DrugType::Coke,
+                        1 => crate::drugs::DrugType::Heroin,
+                        2 => crate::drugs::DrugType::Ecstasy,
+                        3 => crate::drugs::DrugType::Acid,
+                        4 => crate::drugs::DrugType::Weed,
+                        _ => crate::drugs::DrugType::Downers,
+                    };
+                    Some((d, 1 + (ped.appearance as u32 % 3)))
+                } else if ped.appearance % 4 == 0 {
+                    Some((crate::drugs::DrugType::Weed, 1))
+                } else {
+                    None
+                };
+                let ammo = if ped.hostile {
+                    Some((match ped.appearance % 3 { 0 => 2, 1 => 6, _ => 4 }, 30))
+                } else {
+                    None
+                };
+                self.minigame = Some(crate::minigames::MinigameSession::new_body_search(
+                    ped_idx, cash, drug, ammo,
+                ));
+                self.body_search_ped = None;
+                return true;
+            }
         }
 
         // 1. Story Mission Contacts
@@ -2106,6 +2164,7 @@ impl Scene {
                             ped.evade_roll = None;
                             ped.pose.fall(assets, ped.fall_forward, 0.);
                             self.kills += 1;
+                            self.pickups.on_ped_killed(ped.p, ped.hostile, ped.appearance);
                         }
                         break;
                     }
@@ -2513,6 +2572,7 @@ impl Scene {
                             ped.dead_timer = 0.0;
                             ped.pose.fall(assets, false, 0.0);
                             self.kills += 1;
+                            self.pickups.on_ped_killed(ped.p, ped.hostile, ped.appearance);
                         }
                     }
                     let dx = ped.p[0] - blast_pos[0];
@@ -2610,6 +2670,23 @@ impl Scene {
         self.radio.update(dt, self.driving.is_some());
         self.weather.update(dt);
 
+        // Chinatown Wars authentic Pickups and Ambient Item Simulation (cPickupManager)
+        self.pickups.update(dt);
+        if self.driving.is_none() && self.health > 0.0 {
+            if let Some(msg) = self.pickups.try_collect(
+                focus,
+                &mut self.health,
+                &mut self.armour,
+                &mut self.cash,
+                self.weapons.as_mut(),
+                &mut self.police.stars,
+                &crate::weapons::WeaponTables::default(),
+            ) {
+                self.banner = Some((msg, 2.5));
+                self.pending_impact_sounds.push((focus, false));
+            }
+        }
+
         // Update banner message countdown timer
         if let Some((_, timer)) = &mut self.banner {
             *timer -= dt;
@@ -2665,6 +2742,14 @@ impl Scene {
                     };
                     format!("[ E / Y ] ASSEMBLER : {} ({}%)", part_name, (step_progress * 100.0) as u32)
                 }
+                crate::minigames::MinigameKind::BodySearch { search_timer, duration, searched, .. } => {
+                    let pct = ((search_timer / duration) * 100.0).clamp(0.0, 100.0) as u32;
+                    if *searched || pct >= 100 {
+                        "[ E / Y ] PRENDRE LE BUTIN ET QUITTER".to_string()
+                    } else {
+                        format!("[ E / Y ] FOUILLER LE CORPS ({}%)", pct)
+                    }
+                }
             };
             self.prompt = Some(action_hint);
         } else if self.driving.is_none() {
@@ -2714,6 +2799,18 @@ impl Scene {
                 for d in &self.collectibles.dumpsters {
                     if !d.searched && planar(focus, d.pos) < 3.5 {
                         self.prompt = Some("[ E / Y ] FOUILLER LA BENNE".to_string());
+                        break;
+                    }
+                }
+            }
+
+            // Check fallen enemies / corpses to search (cSearchingBodiesApp)
+            self.body_search_ped = None;
+            if self.prompt.is_none() {
+                for (idx, ped) in self.peds.iter().enumerate() {
+                    if ped.health <= 0.0 && !ped.searched && distance(focus, ped.p) < 1.65 {
+                        self.body_search_ped = Some(idx);
+                        self.prompt = Some("[ E / Y ] FOUILLER LE CORPS".to_string());
                         break;
                     }
                 }
@@ -3173,6 +3270,60 @@ fn step_car(car: &mut Car, c: &Collision, input: DriveInput, dt: f32) -> bool {
     collided
 }
 
+// ============================================================================
+// Authentic Chinatown Wars Player Pickups & Body Search
+// Matching classes: cPlayerPickup (7 routines), cBodySearch (6 routines)
+// ============================================================================
+
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct PlayerPickup {
+    pub max_reach: f32,
+}
+
+#[allow(dead_code)]
+impl PlayerPickup {
+    pub fn new() -> Self {
+        Self { max_reach: 1.45 }
+    }
+
+    pub fn can_pickup(&self, player_p: [f32; 3], pickup_p: [f32; 3]) -> bool {
+        let dx = player_p[0] - pickup_p[0];
+        let dy = player_p[1] - pickup_p[1];
+        let dz = (player_p[2] - pickup_p[2]).abs();
+        dx * dx + dy * dy <= self.max_reach * self.max_reach && dz <= 1.9
+    }
+
+    pub fn pickup_radius(&self) -> f32 {
+        self.max_reach
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct BodySearch {
+    pub search_distance: f32,
+}
+
+#[allow(dead_code)]
+impl BodySearch {
+    pub fn new() -> Self {
+        Self { search_distance: 1.65 }
+    }
+
+    pub fn can_search(&self, player_p: [f32; 3], ped: &Ped) -> bool {
+        ped.health <= 0.0 && !ped.searched && distance(player_p, ped.p) < self.search_distance
+    }
+
+    pub fn mark_searched(&self, ped: &mut Ped) {
+        ped.searched = true;
+    }
+
+    pub fn search_range(&self) -> f32 {
+        self.search_distance
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3271,6 +3422,8 @@ mod tests {
             swimming: false,
             swim_timer: 0.0,
             ambient_boats: crate::vehicle::AmbientBoatManager::new(),
+            pickups: crate::weapons::PickupManager::new(),
+            body_search_ped: None,
             safehouse_session: None,
             trade_session: None,
             driving: None,
@@ -4070,5 +4223,21 @@ mod tests {
         assert!(s.minigame.is_none(), "Sinking car escape completed");
         assert!(s.driving.is_none(), "Player escaped from sinking car");
         assert!(s.swimming, "Player is now swimming to safety");
+    }
+
+    #[test]
+    fn player_pickup_and_body_search_contract() {
+        let pp = PlayerPickup::new();
+        assert!(pp.can_pickup([10.0, 10.0, 0.0], [10.5, 10.5, 0.2]));
+        assert!(!pp.can_pickup([10.0, 10.0, 0.0], [15.0, 15.0, 0.0]));
+
+        let bs = BodySearch::new();
+        let mut ped = make_ped([20.0, 20.0, 0.0], [25.0, 20.0, 0.0], 3);
+        assert!(!bs.can_search([20.5, 20.0, 0.0], &ped), "Alive ped cannot be searched");
+
+        ped.health = 0.0;
+        assert!(bs.can_search([20.5, 20.0, 0.0], &ped), "Dead unsearched ped within 1.65m can be searched");
+        bs.mark_searched(&mut ped);
+        assert!(!bs.can_search([20.5, 20.0, 0.0], &ped), "Already searched corpse cannot be searched again");
     }
 }

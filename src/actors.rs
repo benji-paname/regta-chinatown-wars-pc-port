@@ -273,6 +273,8 @@ pub struct Scene {
     pub projectiles: crate::weapons::ProjectileManager,
     pub fire_manager: crate::weapons::FireManager,
     pub sniper_scope: crate::weapons::SniperScope,
+    pub traffic_lights: crate::vehicle::TrafficLightManager,
+    pub traffic_manager: crate::vehicle::TrafficManager,
     pub police: crate::police::PoliceManager,
     pub explosions: crate::explosions::ExplosionManager,
     pub radio: crate::radio::RadioManager,
@@ -480,7 +482,7 @@ pub(crate) fn make_vehicle(
 }
 
 #[cfg(test)]
-fn make_car(p: [f32; 3], angle: f32, target: usize, previous: usize, index: usize) -> Car {
+pub(crate) fn make_car(p: [f32; 3], angle: f32, target: usize, previous: usize, index: usize) -> Car {
     make_vehicle(p, angle, target, previous, 0, 0, index == 0, false)
 }
 pub(crate) fn make_ped(p: [f32; 3], target: [f32; 3], appearance: usize) -> Ped {
@@ -520,6 +522,16 @@ impl Scene {
     ) -> Self {
         // Deterministic per start point, so validation captures are reproducible.
         let seed = ((player[0] * 8.) as i32 as u32) ^ ((player[1] * 8.) as i32 as u32).rotate_left(16) ^ 0x9e37_79b9;
+        let mut traffic_lights = crate::vehicle::TrafficLightManager::new();
+        for (idx, node) in roads.nodes.iter().enumerate() {
+            if node.meta().traffic_light {
+                traffic_lights.lights.push(crate::vehicle::TrafficLight {
+                    node_id: idx,
+                    pos: node.p,
+                    cycle_offset: (idx as f32 * 3.7) % crate::vehicle::TrafficLightManager::CYCLE_TIME,
+                });
+            }
+        }
         let mut scene = Self {
             pedestrian_areas: areas.clone(),
             pavement: pavement.clone(),
@@ -535,6 +547,8 @@ impl Scene {
             projectiles: crate::weapons::ProjectileManager::new(),
             fire_manager: crate::weapons::FireManager::new(),
             sniper_scope: crate::weapons::SniperScope::new(),
+            traffic_lights,
+            traffic_manager: crate::vehicle::TrafficManager::new(),
             police: crate::police::PoliceManager::new(),
             explosions: crate::explosions::ExplosionManager::new(),
             radio: crate::radio::RadioManager::new(None),
@@ -1447,6 +1461,9 @@ impl Scene {
                                 let lat = (dx * cf[1] - dy * cf[0]).abs();
                                 if lat < CAR_HALF_WIDTH + 0.95 {
                                     obstacle = true;
+                                    if car.speed > 3.0 && car.blocked < 0.1 {
+                                        self.pending_impact_sounds.push((car.p, false));
+                                    }
                                     break;
                                 }
                             }
@@ -1470,6 +1487,42 @@ impl Scene {
                                 }
                             }
                         }
+                    }
+
+                    // Obstacle: Chinatown Wars authentic Traffic Light at intersection approach
+                    if !obstacle {
+                        if let Some(target_node) = roads.nodes.get(car.target) {
+                            if target_node.meta().traffic_light {
+                                let (_, _, total_len, _) = roads.rail_pose(
+                                    car.previous,
+                                    car.target,
+                                    car.next_target,
+                                    car.rail_dist,
+                                    car.lane,
+                                    car.wobble,
+                                    car.next_lane,
+                                    car.next_wobble,
+                                );
+                                let dist_to_node = total_len - car.rail_dist;
+                                if dist_to_node > 0.8 && dist_to_node < 13.5 {
+                                    let signal = self.traffic_lights.signal_for_approach(
+                                        (car.target as f32 * 3.7) % crate::vehicle::TrafficLightManager::CYCLE_TIME,
+                                        car.angle,
+                                    );
+                                    if signal.is_stop() {
+                                        obstacle = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Emergency Siren Yield behavior: civilian cars yield to approaching sirens
+                    let yield_siren = self.traffic_manager.should_yield_to_siren(car.p) && !car.is_emergency();
+                    if yield_siren && !obstacle {
+                        car.speed = move_towards(car.speed, 2.8, 8.0 * dt);
+                        car.lane = 1;
+                        car.next_lane = 1;
                     }
 
                     if obstacle {
@@ -2336,6 +2389,10 @@ impl Scene {
         };
         self.sniper_scope.update(dt, locked_pos, focus);
 
+        // Chinatown Wars authentic Traffic Lights & Civilian Traffic Simulation
+        self.traffic_lights.update(dt);
+        self.traffic_manager.update_siren_proximity(dt, &self.cars);
+
         // Chinatown Wars authentic Explosion Shockwaves & Blast Resolution
         self.explosions.update(dt);
         let mut new_blasts = Vec::new();
@@ -3007,6 +3064,8 @@ mod tests {
             projectiles: crate::weapons::ProjectileManager::new(),
             fire_manager: crate::weapons::FireManager::new(),
             sniper_scope: crate::weapons::SniperScope::new(),
+            traffic_lights: crate::vehicle::TrafficLightManager::new(),
+            traffic_manager: crate::vehicle::TrafficManager::new(),
             police: crate::police::PoliceManager::new(),
             explosions: crate::explosions::ExplosionManager::new(),
             radio: crate::radio::RadioManager::new(None),

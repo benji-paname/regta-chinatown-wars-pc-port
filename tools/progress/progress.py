@@ -38,7 +38,10 @@ SOURCE_DIR = ROOT / 'src'
 # original Chinatown Wars classes.
 RUST_MODULE_MAP = {
     'camera.rs': ['cCamera', 'cBaseCam', 'cFollowPedCam', 'cCam'],
-    'vehicle.rs': ['cVehicle', 'cWheeledVehicle', 'cCar', 'cBike', 'Vehicle', 'VehicleType', 'cSeats'],
+    'vehicle.rs': [
+        'cVehicle', 'cWheeledVehicle', 'cCar', 'cBike', 'Vehicle', 'VehicleType', 'cSeats',
+        'cTrafficLight', 'cTrafficLightManager', 'cTrafficManager', 'cWanderRoads', 'cCarController'
+    ],
     'ped.rs': ['cPed', 'cPlayer', 'cPopulationManager', 'cPedSprite', 'cAnimation'],
     'actors.rs': ['cAIGang', 'cAITaskHub', 'cSimpleMover', 'cPlayerOnFoot'],
     'vault.rs': ['cTaskVault', 'cSimpleTrail'],

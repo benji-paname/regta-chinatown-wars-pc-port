@@ -2,6 +2,9 @@
 //! PSP vehicle table (PAK 29, 106 entries x 312 bytes), paint swatches (PAK 1 -> 2..28)
 //! and 3D vehicle models (PAK 30..198). Dimensions and handling follow ctw-native
 //! cVehicle / cWheeledVehicle / cBike::SetPropertiesFromVehicleInfo (C) 2026 Kryo.to.
+
+#![allow(dead_code)]
+
 use crate::{
     collision::{BoxShape, Collision},
     iso::{bytes, u16le, u32le, Disc, Result},
@@ -457,6 +460,147 @@ impl TestCar {
     }
 }
 
+// ============================================================================
+// Chinatown Wars authentic Traffic Light & Intersection Manager (cTrafficLight, cTrafficLightManager)
+// ============================================================================
+
+/// Chinatown Wars authentic Traffic Light state (cTrafficLight, cTrafficLightManager).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TrafficLightState {
+    Green = 0,
+    Amber = 1,
+    Red = 2,
+}
+
+impl TrafficLightState {
+    pub fn is_stop(&self) -> bool {
+        matches!(self, TrafficLightState::Amber | TrafficLightState::Red)
+    }
+
+    pub fn color_rgba(&self) -> [f32; 4] {
+        match self {
+            TrafficLightState::Green => [0.15, 0.95, 0.35, 1.0],
+            TrafficLightState::Amber => [1.0, 0.78, 0.12, 1.0],
+            TrafficLightState::Red => [0.95, 0.18, 0.12, 1.0],
+        }
+    }
+}
+
+/// A specific traffic light junction in Liberty City (cTrafficLight).
+#[derive(Clone, Debug)]
+pub struct TrafficLight {
+    pub node_id: usize,
+    pub pos: [f32; 3],
+    pub cycle_offset: f32,
+}
+
+/// Global Traffic Light Manager handling intersection signal cycles (cTrafficLightManager).
+#[derive(Clone, Debug)]
+pub struct TrafficLightManager {
+    pub timer: f32,
+    pub cycle_duration: f32,
+    pub lights: Vec<TrafficLight>,
+}
+
+impl Default for TrafficLightManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl TrafficLightManager {
+    pub const CYCLE_TIME: f32 = 28.0;
+    pub const GREEN_TIME: f32 = 11.5;
+    pub const AMBER_TIME: f32 = 2.5;
+
+    pub fn new() -> Self {
+        Self {
+            timer: 0.0,
+            cycle_duration: Self::CYCLE_TIME,
+            lights: Vec::new(),
+        }
+    }
+
+    pub fn update(&mut self, dt: f32) {
+        self.timer = (self.timer + dt) % self.cycle_duration;
+    }
+
+    /// Evaluates signal state for approach direction (angle in radians).
+    /// Phase 0 (North-South): Green 0..11.5s, Amber 11.5..14s, Red 14..28s.
+    /// Phase 1 (East-West): Red 0..14s, Green 14..25.5s, Amber 25.5..28s.
+    pub fn signal_for_approach(&self, cycle_offset: f32, approach_angle: f32) -> TrafficLightState {
+        let t = (self.timer + cycle_offset) % self.cycle_duration;
+        let is_east_west = (approach_angle.sin().abs()) > (approach_angle.cos().abs());
+
+        if !is_east_west {
+            if t < Self::GREEN_TIME {
+                TrafficLightState::Green
+            } else if t < Self::GREEN_TIME + Self::AMBER_TIME {
+                TrafficLightState::Amber
+            } else {
+                TrafficLightState::Red
+            }
+        } else {
+            let p1_start = Self::GREEN_TIME + Self::AMBER_TIME;
+            if t < p1_start {
+                TrafficLightState::Red
+            } else if t < p1_start + Self::GREEN_TIME {
+                TrafficLightState::Green
+            } else {
+                TrafficLightState::Amber
+            }
+        }
+    }
+}
+
+// ============================================================================
+// Chinatown Wars authentic Traffic & Pedestrian Reaction Manager (cTrafficManager, cWanderRoads)
+// ============================================================================
+
+/// Chinatown Wars authentic Traffic & Pedestrian Reaction Manager (cTrafficManager).
+#[derive(Clone, Debug, Default)]
+pub struct TrafficManager {
+    pub siren_yield_timer: f32,
+    pub emergency_near: bool,
+    pub emergency_pos: [f32; 3],
+}
+
+impl TrafficManager {
+    pub fn new() -> Self {
+        Self {
+            siren_yield_timer: 0.0,
+            emergency_near: false,
+            emergency_pos: [0.0; 3],
+        }
+    }
+
+    /// Scans for active emergency sirens (police in pursuit or player ambulance/fire/police)
+    pub fn update_siren_proximity(&mut self, dt: f32, cars: &[crate::actors::Car]) {
+        self.emergency_near = false;
+        for car in cars {
+            if car.siren_active {
+                self.emergency_near = true;
+                self.emergency_pos = car.p;
+                self.siren_yield_timer = 2.0;
+                break;
+            }
+        }
+        if !self.emergency_near && self.siren_yield_timer > 0.0 {
+            self.siren_yield_timer = (self.siren_yield_timer - dt).max(0.0);
+        }
+    }
+
+    /// Evaluates whether an NPC car should pull over / yield to an emergency siren.
+    pub fn should_yield_to_siren(&self, car_pos: [f32; 3]) -> bool {
+        if self.siren_yield_timer <= 0.0 {
+            return false;
+        }
+        let dx = car_pos[0] - self.emergency_pos[0];
+        let dy = car_pos[1] - self.emergency_pos[1];
+        dx * dx + dy * dy < 35.0 * 35.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -494,5 +638,53 @@ mod tests {
         }
         assert_eq!(choose_paint(0, 3, &mut rng), 3);
         assert_eq!(choose_paint(18, 25, &mut rng), 0);
+    }
+
+    #[test]
+    fn traffic_light_signal_cycle_alternation_and_stop_detection() {
+        let mut tlm = TrafficLightManager::new();
+        assert_eq!(tlm.timer, 0.0);
+
+        // At t=0s, North-South is Green (0 rad = facing along Y), East-West is Red (PI/2 rad)
+        let ns_signal = tlm.signal_for_approach(0.0, 0.0);
+        let ew_signal = tlm.signal_for_approach(0.0, std::f32::consts::FRAC_PI_2);
+        assert_eq!(ns_signal, TrafficLightState::Green);
+        assert!(!ns_signal.is_stop());
+        assert_eq!(ew_signal, TrafficLightState::Red);
+        assert!(ew_signal.is_stop());
+
+        // Step to t=12.0s: North-South turns Amber, East-West remains Red
+        tlm.update(12.0);
+        let ns_amber = tlm.signal_for_approach(0.0, 0.0);
+        assert_eq!(ns_amber, TrafficLightState::Amber);
+        assert!(ns_amber.is_stop());
+
+        // Step to t=16.0s (12+4): North-South turns Red, East-West turns Green!
+        tlm.update(4.0);
+        let ns_red = tlm.signal_for_approach(0.0, 0.0);
+        let ew_green = tlm.signal_for_approach(0.0, std::f32::consts::FRAC_PI_2);
+        assert_eq!(ns_red, TrafficLightState::Red);
+        assert_eq!(ew_green, TrafficLightState::Green);
+    }
+
+    #[test]
+    fn traffic_manager_siren_proximity_and_yield_rules() {
+        let mut tm = TrafficManager::new();
+        assert!(!tm.emergency_near);
+
+        // Create a dummy cop car with siren active
+        let mut cop = crate::actors::make_car([50.0, 50.0, 0.0], 0.0, 0, 0, 0);
+        cop.siren_active = true;
+        let cars = vec![cop];
+
+        tm.update_siren_proximity(0.1, &cars);
+        assert!(tm.emergency_near);
+        assert_eq!(tm.emergency_pos, [50.0, 50.0, 0.0]);
+
+        // Civilian car at 20m should yield to siren
+        assert!(tm.should_yield_to_siren([50.0, 70.0, 0.0]));
+
+        // Distant car at 100m does not need to yield
+        assert!(!tm.should_yield_to_siren([50.0, 150.0, 0.0]));
     }
 }

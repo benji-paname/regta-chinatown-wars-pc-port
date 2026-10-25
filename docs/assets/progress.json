@@ -1,9 +1,9 @@
 {
-  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 942 Rust functions)",
+  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 953 Rust functions)",
   "bytes": 6469472,
-  "portedBytes": 159616,
+  "portedBytes": 160160,
   "routines": 25988,
-  "portedRoutines": 665,
+  "portedRoutines": 676,
   "subsystems": [
     {
       "name": "Missions",
@@ -3922,9 +3922,9 @@
     {
       "name": "Vehicles",
       "bytes": 396136,
-      "portedBytes": 3104,
+      "portedBytes": 3648,
       "routines": 1623,
-      "portedRoutines": 25,
+      "portedRoutines": 36,
       "classes": [
         {
           "name": "(free functions)",
@@ -3951,8 +3951,8 @@
           "name": "Vehicle",
           "bytes": 9860,
           "routines": 95,
-          "portedBytes": 3104,
-          "portedRoutines": 25
+          "portedBytes": 3648,
+          "portedRoutines": 36
         },
         {
           "name": "VehicleType",

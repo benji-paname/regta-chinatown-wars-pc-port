@@ -928,6 +928,96 @@ impl Renderer {
                         glEnd();
                     }
                 }
+
+                // Chinatown Wars authentic Traffic Lights at Road Intersections (cTrafficLight)
+                for light in &scene.traffic_lights.lights {
+                    let dx = light.pos[0] - walker.p[0];
+                    let dy = light.pos[1] - walker.p[1];
+                    if dx * dx + dy * dy > 130.0 * 130.0 {
+                        continue;
+                    }
+                    glPushMatrix();
+                    glTranslatef(light.pos[0], light.pos[1], light.pos[2]);
+
+                    // Vertical dark steel mast / pole (4.2m height)
+                    glColor4f(0.22, 0.24, 0.26, 1.0);
+                    let pw = 0.08;
+                    glBegin(7);
+                    glVertex3f(-pw, -pw, 4.2);
+                    glVertex3f(pw, -pw, 4.2);
+                    glVertex3f(pw, pw, 4.2);
+                    glVertex3f(-pw, pw, 4.2);
+                    glVertex3f(-pw, -pw, 0.0);
+                    glVertex3f(pw, -pw, 0.0);
+                    glVertex3f(pw, -pw, 4.2);
+                    glVertex3f(-pw, -pw, 4.2);
+                    glEnd();
+
+                    // Horizontal mast arm extending over road
+                    glBegin(7);
+                    glVertex3f(-pw, -pw, 4.1);
+                    glVertex3f(1.8, -pw, 4.1);
+                    glVertex3f(1.8, pw, 4.1);
+                    glVertex3f(-pw, pw, 4.1);
+                    glEnd();
+
+                    // Signal box housing 3 lenses
+                    let bx = 1.4;
+                    let bz = 3.6;
+                    glColor4f(0.12, 0.14, 0.15, 1.0);
+                    let (hw, hl, hh) = (0.16, 0.14, 0.45);
+                    glBegin(7);
+                    glVertex3f(bx - hw, -hl, bz + hh);
+                    glVertex3f(bx + hw, -hl, bz + hh);
+                    glVertex3f(bx + hw, hl, bz + hh);
+                    glVertex3f(bx - hw, hl, bz + hh);
+                    glVertex3f(bx - hw, -hl, bz - hh);
+                    glVertex3f(bx + hw, -hl, bz - hh);
+                    glVertex3f(bx + hw, -hl, bz + hh);
+                    glVertex3f(bx - hw, -hl, bz + hh);
+                    glEnd();
+
+                    let ns_state = scene.traffic_lights.signal_for_approach(light.cycle_offset, 0.0);
+                    let lens_r = 0.09;
+                    let red_on = ns_state == crate::vehicle::TrafficLightState::Red;
+                    let amber_on = ns_state == crate::vehicle::TrafficLightState::Amber;
+                    let green_on = ns_state == crate::vehicle::TrafficLightState::Green;
+
+                    // Top: Red Lamp
+                    let red_color = if red_on { [1.0, 0.15, 0.1, 1.0] } else { [0.25, 0.04, 0.04, 0.8] };
+                    glColor4f(red_color[0], red_color[1], red_color[2], red_color[3]);
+                    glBegin(6);
+                    glVertex3f(bx, -hl - 0.02, bz + 0.28);
+                    for i in 0..=8 {
+                        let a = (i as f32) * (std::f32::consts::TAU / 8.0);
+                        glVertex3f(bx + a.cos() * lens_r, -hl - 0.02, bz + 0.28 + a.sin() * lens_r);
+                    }
+                    glEnd();
+
+                    // Middle: Amber Lamp
+                    let amber_color = if amber_on { [1.0, 0.85, 0.15, 1.0] } else { [0.25, 0.18, 0.04, 0.8] };
+                    glColor4f(amber_color[0], amber_color[1], amber_color[2], amber_color[3]);
+                    glBegin(6);
+                    glVertex3f(bx, -hl - 0.02, bz);
+                    for i in 0..=8 {
+                        let a = (i as f32) * (std::f32::consts::TAU / 8.0);
+                        glVertex3f(bx + a.cos() * lens_r, -hl - 0.02, bz + a.sin() * lens_r);
+                    }
+                    glEnd();
+
+                    // Bottom: Green Lamp
+                    let green_color = if green_on { [0.15, 0.98, 0.35, 1.0] } else { [0.04, 0.25, 0.08, 0.8] };
+                    glColor4f(green_color[0], green_color[1], green_color[2], green_color[3]);
+                    glBegin(6);
+                    glVertex3f(bx, -hl - 0.02, bz - 0.28);
+                    for i in 0..=8 {
+                        let a = (i as f32) * (std::f32::consts::TAU / 8.0);
+                        glVertex3f(bx + a.cos() * lens_r, -hl - 0.02, bz - 0.28 + a.sin() * lens_r);
+                    }
+                    glEnd();
+
+                    glPopMatrix();
+                }
                 for car in &scene.cars {
                     shadow(car.p, [car.h[0] * 1.44, car.h[1] * 0.92], car.angle, 0.28);
                     if distance2(car.p, walker.p) > 180. * 180. && !cam.is_free() {

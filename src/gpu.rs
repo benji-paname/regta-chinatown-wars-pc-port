@@ -1509,6 +1509,53 @@ impl Renderer {
                         impact(npc.p, npc.hit_flash);
                     }
                 }
+
+                // Chinatown Wars authentic Dynamic 3D Rain & Splash Simulation (cRain, cParticleEmitterRainSplashes)
+                if scene.weather.rain_intensity > 0.05 {
+                    glEnable(0x0be2);
+                    glBlendFunc(0x0302, 0x0303);
+                    let intensity = scene.weather.rain_intensity;
+                    let num_streaks = ((intensity * 240.0) as usize).min(280);
+                    let time_s = (ticks as f32) / 30.0;
+
+                    // Slanted silver-blue rain streaks
+                    glColor4f(0.80, 0.88, 0.98, 0.40 * intensity);
+                    glLineWidth(1.5);
+                    glBegin(1);
+                    for r_idx in 0..num_streaks {
+                        let seed = r_idx as f32 * 17.31 + 4.19;
+                        let rx = walker.p[0] + (seed * 11.7).sin() * 26.0;
+                        let ry = walker.p[1] + (seed * 23.3).cos() * 26.0;
+                        let fall_cycle = (time_s * 18.0 + seed * 3.7) % 16.0;
+                        let rz = walker.p[2] + 16.0 - fall_cycle;
+                        let slant_x = -0.35;
+                        let slant_y = -0.15;
+                        let streak_len = 1.2;
+                        glVertex3f(rx, ry, rz);
+                        glVertex3f(rx + slant_x, ry + slant_y, rz - streak_len);
+                    }
+                    glEnd();
+                    glLineWidth(1.0);
+
+                    // Expanding ground impact splash rings on pavement
+                    let num_splashes = ((intensity * 35.0) as usize).min(40);
+                    glColor4f(0.85, 0.92, 1.0, 0.28 * intensity);
+                    for s_idx in 0..num_splashes {
+                        let seed = s_idx as f32 * 31.17 + 8.43;
+                        let sx = walker.p[0] + (seed * 13.5).sin() * 22.0;
+                        let sy = walker.p[1] + (seed * 29.1).cos() * 22.0;
+                        let splash_cycle = (time_s * 7.0 + seed * 2.3) % 1.0;
+                        let splash_r = 0.12 + splash_cycle * 0.35;
+                        let sz = walker.p[2] + 0.04;
+                        glBegin(2);
+                        for pt in 0..8 {
+                            let a = (pt as f32) * (std::f32::consts::TAU / 8.0);
+                            glVertex3f(sx + a.cos() * splash_r, sy + a.sin() * splash_r, sz);
+                        }
+                        glEnd();
+                    }
+                    glDisable(0x0be2);
+                }
             }
             if debug {
                 glDisable(0x0b71);
@@ -2014,6 +2061,247 @@ impl Renderer {
                         let text = format!("COURSE : {}  |  {}  |  POS : {}  |  {}", race.circuit.name, race.lap_display(), race.rank_display(), race.timer_display());
                         rounded([rx - 6., ry - 4., text.len() as f32 * 12. + 24., 32.], 3., [0.12, 0.08, 0.04]);
                         self.psp_text(rx, ry, &text, 1.8, [1.0, 0.85, 0.20]);
+                    }
+
+                    // Chinatown Wars authentic Interactive Minigames Overlay (cHotWiringApp, cSinkingCarApp, etc.)
+                    if let Some(minigame) = &scene.minigame {
+                        let cx = W as f32 / 2.0;
+                        let cy = H as f32 / 2.0;
+
+                        // Darkened background backdrop
+                        glEnable(0x0be2);
+                        glBlendFunc(0x0302, 0x0303);
+                        glColor4f(0.02, 0.03, 0.05, 0.75);
+                        glBegin(7);
+                        glVertex2f(0.0, 0.0);
+                        glVertex2f(W as f32, 0.0);
+                        glVertex2f(W as f32, H as f32);
+                        glVertex2f(0.0, H as f32);
+                        glEnd();
+
+                        // Bezel Chassis (PSP dual-screen / PDA hardware style)
+                        rounded([cx - 250.0, cy - 180.0, 500.0, 360.0], 8.0, [0.12, 0.14, 0.18]);
+                        rounded([cx - 240.0, cy - 170.0, 480.0, 40.0], 4.0, [0.18, 0.20, 0.26]);
+
+                        match &minigame.kind {
+                            crate::minigames::MinigameKind::SinkingCar { hits_done, hits_required, water_level } => {
+                                self.psp_text(cx - 160.0, cy - 162.0, "PROLOGUE : FUITE DU VEHICULE IMMERGE", 1.8, [1.0, 0.88, 0.20]);
+                                // Windshield glass viewport
+                                rounded([cx - 210.0, cy - 110.0, 420.0, 220.0], 6.0, [0.08, 0.16, 0.24]);
+                                // Rising water tide
+                                let water_h = (*water_level * 220.0).clamp(0.0, 220.0);
+                                glColor4f(0.05, 0.35, 0.55, 0.65);
+                                glBegin(7);
+                                glVertex2f(cx - 210.0, cy + 110.0 - water_h);
+                                glVertex2f(cx + 210.0, cy + 110.0 - water_h);
+                                glVertex2f(cx + 210.0, cy + 110.0);
+                                glVertex2f(cx - 210.0, cy + 110.0);
+                                glEnd();
+
+                                // Radiating glass cracks
+                                glLineWidth(2.0);
+                                glColor4f(0.92, 0.95, 1.0, 0.90);
+                                glBegin(1);
+                                for h in 0..*hits_done {
+                                    let a1 = (h as f32) * 1.57;
+                                    let a2 = a1 + 0.45;
+                                    let r = (h as f32 + 1.0) * 35.0;
+                                    glVertex2f(cx, cy);
+                                    glVertex2f(cx + a1.cos() * r, cy + a1.sin() * r);
+                                    glVertex2f(cx + a1.cos() * (r * 0.6), cy + a1.sin() * (r * 0.6));
+                                    glVertex2f(cx + a2.cos() * r, cy + a2.sin() * r);
+                                }
+                                glEnd();
+                                glLineWidth(1.0);
+
+                                let prompt_str = format!("[ ESPACE / TOUCHE E ] FRAPPER LE PARE-BRISE ({}/{})", hits_done, hits_required);
+                                self.psp_text(cx - 190.0, cy + 130.0, &prompt_str, 1.8, [1.0, 0.95, 0.85]);
+                            }
+                            crate::minigames::MinigameKind::Hotwire { method, progress } => {
+                                let method_name = match method {
+                                    crate::minigames::HotwireMethod::ScrewdriverTurn => "CONTACTEUR DE CLEF",
+                                    crate::minigames::HotwireMethod::WiresTwist => "FILS D'ALLUMAGE",
+                                    crate::minigames::HotwireMethod::TransponderKeypad => "PIRATAGE DU CALCULATEUR",
+                                };
+                                let header = format!("DEMARRAGE DU VEHICULE : {}", method_name);
+                                self.psp_text(cx - 180.0, cy - 162.0, &header, 1.8, [1.0, 0.88, 0.20]);
+                                rounded([cx - 200.0, cy - 110.0, 400.0, 200.0], 6.0, [0.07, 0.08, 0.10]);
+
+                                // 3 Colored ignition wires
+                                let wire_colors = [[0.95, 0.15, 0.15], [0.15, 0.45, 0.95], [0.95, 0.85, 0.15]];
+                                for (w_idx, col) in wire_colors.iter().enumerate() {
+                                    let wy = cy - 70.0 + (w_idx as f32) * 45.0;
+                                    glColor3f(col[0], col[1], col[2]);
+                                    glLineWidth(4.0);
+                                    glBegin(1);
+                                    glVertex2f(cx - 150.0, wy);
+                                    glVertex2f(cx - 30.0 + (*progress * 60.0), wy);
+                                    glVertex2f(cx + 150.0, wy);
+                                    glVertex2f(cx + 30.0 - (*progress * 60.0), wy);
+                                    glEnd();
+                                    glLineWidth(1.0);
+                                }
+
+                                // Progress bar
+                                rounded([cx - 180.0, cy + 115.0, 360.0, 22.0], 3.0, [0.04, 0.05, 0.06]);
+                                rounded([cx - 178.0, cy + 117.0, 356.0 * progress.clamp(0.0, 1.0), 18.0], 2.0, [0.20, 0.85, 0.35]);
+                                self.psp_text(cx - 170.0, cy + 145.0, "[ MAINTENIR E ] CONNECTER LES FILS ET DEMARRER", 1.7, [0.90, 0.92, 0.95]);
+                            }
+                            crate::minigames::MinigameKind::MolotovFilling { bottles_filled, current_fill, is_pumping } => {
+                                self.psp_text(cx - 180.0, cy - 162.0, "STATION-SERVICE : COCKTAILS MOLOTOV", 1.8, [1.0, 0.88, 0.20]);
+                                rounded([cx - 210.0, cy - 110.0, 420.0, 210.0], 6.0, [0.08, 0.09, 0.11]);
+
+                                // 3 Beer bottles in crate
+                                for b in 0..3 {
+                                    let bx = cx - 120.0 + (b as f32) * 120.0;
+                                    let is_done = b < *bottles_filled;
+                                    let is_cur = b == *bottles_filled;
+                                    rounded([bx - 22.0, cy - 60.0, 44.0, 110.0], 4.0, [0.18, 0.14, 0.08]);
+                                    let fill_h = if is_done { 95.0 } else if is_cur { (*current_fill * 95.0).clamp(0.0, 95.0) } else { 0.0 };
+                                    if fill_h > 0.0 {
+                                        rounded([bx - 18.0, cy + 45.0 - fill_h, 36.0, fill_h], 2.0, [0.95, 0.65, 0.12]);
+                                    }
+                                    if is_done || is_cur {
+                                        glColor3f(0.95, 0.92, 0.88);
+                                        glBegin(7);
+                                        glVertex2f(bx - 6.0, cy - 75.0);
+                                        glVertex2f(bx + 6.0, cy - 75.0);
+                                        glVertex2f(bx + 6.0, cy - 55.0);
+                                        glVertex2f(bx - 6.0, cy - 55.0);
+                                        glEnd();
+                                    }
+                                }
+
+                                let prompt_str = if *is_pumping {
+                                    "[ MAINTENIR E ] REMPLISSAGE EN COURS..."
+                                } else {
+                                    "[ E ] ACTIONNER LE PISTOLET DE POMPE"
+                                };
+                                self.psp_text(cx - 170.0, cy + 125.0, prompt_str, 1.8, [1.0, 0.90, 0.20]);
+                            }
+                            crate::minigames::MinigameKind::SafeCracking { combination: _, current_dial, unlocked_tumblers } => {
+                                self.psp_text(cx - 160.0, cy - 162.0, "COFFRE-FORT : CROCHETAGE DE COMBINAISON", 1.8, [1.0, 0.88, 0.20]);
+                                rounded([cx - 200.0, cy - 110.0, 400.0, 210.0], 6.0, [0.06, 0.07, 0.09]);
+
+                                for p in 0..3 {
+                                    let px = cx - 70.0 + (p as f32) * 70.0;
+                                    let col = if p < *unlocked_tumblers { [0.20, 0.85, 0.35] } else { [0.85, 0.20, 0.15] };
+                                    rounded([px - 18.0, cy - 90.0, 36.0, 20.0], 3.0, col);
+                                }
+
+                                let dial_r = 65.0;
+                                glColor3f(0.72, 0.62, 0.32);
+                                glBegin(6);
+                                glVertex2f(cx, cy + 10.0);
+                                for i in 0..=24 {
+                                    let a = (i as f32) * (std::f32::consts::TAU / 24.0);
+                                    glVertex2f(cx + a.cos() * dial_r, cy + 10.0 + a.sin() * dial_r);
+                                }
+                                glEnd();
+
+                                glColor3f(0.25, 0.22, 0.16);
+                                glBegin(6);
+                                glVertex2f(cx, cy + 10.0);
+                                for i in 0..=16 {
+                                    let a = (i as f32) * (std::f32::consts::TAU / 16.0);
+                                    glVertex2f(cx + a.cos() * 24.0, cy + 10.0 + a.sin() * 24.0);
+                                }
+                                glEnd();
+
+                                let dial_text = format!("{:02}", current_dial);
+                                self.psp_text(cx - 14.0, cy + 2.0, &dial_text, 2.2, [1.0, 0.95, 0.85]);
+                                self.psp_text(cx - 180.0, cy + 125.0, "[ A / D / GAUCHE / DROITE ] TOURNER  |  [ E ] CRAN", 1.7, [0.90, 0.92, 0.95]);
+                            }
+                            crate::minigames::MinigameKind::ScratchCard { card_name, scratched_cells, symbols: _, prize_cash } => {
+                                let hdr = format!("LOTERIE : {} (JACKPOT ${})", card_name, prize_cash);
+                                self.psp_text(cx - 180.0, cy - 162.0, &hdr, 1.8, [1.0, 0.88, 0.20]);
+                                rounded([cx - 210.0, cy - 110.0, 420.0, 210.0], 6.0, [0.16, 0.12, 0.18]);
+
+                                for c in 0..6 {
+                                    let gx = cx - 130.0 + (c % 3) as f32 * 130.0;
+                                    let gy = cy - 60.0 + (c / 3) as f32 * 80.0;
+                                    let scratched = scratched_cells[c];
+                                    let bg = if scratched { [0.22, 0.35, 0.25] } else { [0.72, 0.74, 0.78] };
+                                    rounded([gx - 45.0, gy - 25.0, 90.0, 50.0], 4.0, bg);
+                                    if !scratched {
+                                        self.psp_text(gx - 8.0, gy - 10.0, "?", 2.2, [0.35, 0.38, 0.42]);
+                                    } else {
+                                        self.psp_text(gx - 18.0, gy - 8.0, "$$$", 2.0, [1.0, 0.92, 0.30]);
+                                    }
+                                }
+                                self.psp_text(cx - 160.0, cy + 125.0, "[ 1..=6 ] GRATTER LA CASE  |  [ ENTREE ] ENCAISSER", 1.7, [0.95, 0.95, 0.95]);
+                            }
+                            crate::minigames::MinigameKind::Tattooing { motif, stencil_progress, needle_accuracy: _, pain_level, ink_level, reloads_done: _ } => {
+                                let motif_str = match motif {
+                                    crate::minigames::TattooMotif::DragonOfBroker => "DRAGON DE BROKER",
+                                    crate::minigames::TattooMotif::TigerOfBohan => "TIGRE DE BOHAN",
+                                    crate::minigames::TattooMotif::KoiOfDukes => "CARPE KOI DE DUKES",
+                                    crate::minigames::TattooMotif::ViperOfAlgonquin => "VIPERE D'ALGONQUIN",
+                                };
+                                let hdr = format!("TATOUAGE TRIADE : {}", motif_str);
+                                self.psp_text(cx - 170.0, cy - 162.0, &hdr, 1.8, [1.0, 0.88, 0.20]);
+                                rounded([cx - 210.0, cy - 110.0, 420.0, 210.0], 6.0, [0.28, 0.24, 0.20]);
+
+                                rounded([cx - 180.0, cy + 65.0, 360.0, 16.0], 2.0, [0.10, 0.08, 0.06]);
+                                rounded([cx - 178.0, cy + 67.0, 356.0 * stencil_progress.clamp(0.0, 1.0), 12.0], 2.0, [0.20, 0.85, 0.35]);
+
+                                self.psp_text(cx - 180.0, cy + 90.0, "DOULEUR DU CLIENT :", 1.6, [0.90, 0.80, 0.70]);
+                                rounded([cx + 10.0, cy + 88.0, 170.0, 14.0], 2.0, [0.10, 0.06, 0.06]);
+                                rounded([cx + 12.0, cy + 90.0, 166.0 * pain_level.clamp(0.0, 1.0), 10.0], 2.0, [0.95, 0.25, 0.20]);
+
+                                self.psp_text(cx - 180.0, cy + 110.0, "NIVEAU D'ENCRE :", 1.6, [0.70, 0.80, 0.90]);
+                                rounded([cx + 10.0, cy + 108.0, 170.0, 14.0], 2.0, [0.06, 0.08, 0.12]);
+                                rounded([cx + 12.0, cy + 110.0, 166.0 * ink_level.clamp(0.0, 1.0), 10.0], 2.0, [0.15, 0.55, 0.95]);
+
+                                self.psp_text(cx - 180.0, cy + 135.0, "[ MAINTENIR E ] TATOUER  |  [ R ] RECHARGER L'ENCRE", 1.7, [1.0, 0.95, 0.85]);
+                            }
+                            crate::minigames::MinigameKind::CarBombFitting { wires_connected, armed } => {
+                                self.psp_text(cx - 180.0, cy - 162.0, "EXPLOSIFS : AMORCAGE DE BOMBE DE VOITURE", 1.8, [1.0, 0.88, 0.20]);
+                                rounded([cx - 200.0, cy - 110.0, 400.0, 210.0], 6.0, [0.08, 0.08, 0.08]);
+
+                                rounded([cx - 130.0, cy - 80.0, 260.0, 90.0], 4.0, [0.55, 0.48, 0.35]);
+                                self.psp_text(cx - 70.0, cy - 50.0, "C-4 EXPLOSIF", 2.2, [0.15, 0.12, 0.10]);
+
+                                rounded([cx - 70.0, cy + 25.0, 140.0, 36.0], 3.0, [0.04, 0.04, 0.04]);
+                                let led_col = if *armed { [0.95, 0.10, 0.10] } else { [0.20, 0.85, 0.30] };
+                                let led_text = if *armed { "00:05 ARME" } else { "--:-- PRET" };
+                                self.psp_text(cx - 55.0, cy + 34.0, led_text, 1.9, led_col);
+
+                                let prompt_str = format!("[ 1..=3 ] CONNECTER LES FILS ({}/3)", wires_connected);
+                                self.psp_text(cx - 160.0, cy + 125.0, &prompt_str, 1.7, [1.0, 0.90, 0.20]);
+                            }
+                            crate::minigames::MinigameKind::DumpsterSearch { searched, found_weapon, found_cash } => {
+                                self.psp_text(cx - 160.0, cy - 162.0, "FOUILLE DE BENNE A ORDURES", 1.8, [1.0, 0.88, 0.20]);
+                                rounded([cx - 200.0, cy - 110.0, 400.0, 210.0], 6.0, [0.12, 0.16, 0.12]);
+                                if *searched {
+                                    let loot_str = if let Some(w) = found_weapon {
+                                        format!("ARME TROUVEE : TYPE {}", w)
+                                    } else {
+                                        format!("ARGENT TROUVE : ${}", found_cash)
+                                    };
+                                    self.psp_text(cx - 110.0, cy - 10.0, &loot_str, 2.2, [1.0, 0.92, 0.25]);
+                                } else {
+                                    self.psp_text(cx - 110.0, cy - 10.0, "BENNE PLEINE...", 2.2, [0.75, 0.78, 0.82]);
+                                }
+                                self.psp_text(cx - 160.0, cy + 125.0, "[ E ] FOUILLER JUSQU'AU FOND DE LA BENNE", 1.7, [0.95, 0.95, 0.95]);
+                            }
+                            crate::minigames::MinigameKind::SniperAssembly { current_step, step_progress, parts_fitted, alignment_error: _ } => {
+                                self.psp_text(cx - 180.0, cy - 162.0, "MALLETTE : MONTAGE DU FUSIL DE PRECISION", 1.8, [1.0, 0.88, 0.20]);
+                                rounded([cx - 220.0, cy - 110.0, 440.0, 210.0], 6.0, [0.08, 0.09, 0.10]);
+                                let steps = ["1. BOITIER", "2. CANON", "3. CULASSE", "4. LUNETTE", "5. SILENCIEUX"];
+                                for (s, name) in steps.iter().enumerate() {
+                                    let sx = cx - 180.0 + (s as f32) * 75.0;
+                                    let fitted = parts_fitted[s];
+                                    let bg = if fitted { [0.20, 0.85, 0.35] } else if s == *current_step as usize { [0.85, 0.75, 0.20] } else { [0.25, 0.28, 0.32] };
+                                    rounded([sx - 32.0, cy - 70.0, 64.0, 40.0], 3.0, bg);
+                                    self.psp_text(sx - 28.0, cy - 55.0, name, 1.4, [0.95, 0.95, 0.95]);
+                                }
+                                rounded([cx - 180.0, cy + 50.0, 360.0, 18.0], 2.0, [0.06, 0.07, 0.08]);
+                                rounded([cx - 178.0, cy + 52.0, 356.0 * step_progress.clamp(0.0, 1.0), 14.0], 2.0, [0.25, 0.75, 0.95]);
+                                self.psp_text(cx - 170.0, cy + 125.0, "[ E ] ALIGNER ET VISSER L'ELEMENT EN COURS", 1.7, [1.0, 0.95, 0.85]);
+                            }
+                        }
+                        glDisable(0x0be2);
                     }
                 }
                 let mini = crate::gps::MapView {

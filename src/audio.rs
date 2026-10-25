@@ -864,6 +864,14 @@ impl SoundSystem {
         }
     }
 
+    /// Plays deep reverberant thunderclap and rolling rumbling boom during thunderstorms.
+    pub fn play_thunder(&self) {
+        let pcm = synth_thunder();
+        if let Ok(mut m) = self.mixer.lock() {
+            m.play_sfx(&pcm, 22050, 0.95, 0.0, 1.0, false);
+        }
+    }
+
     /// Updates radio station stream playback while player is in vehicle.
     pub fn update_radio(&mut self, radio: &crate::radio::RadioManager) {
         if radio.is_playing && radio.current_station < 11 {
@@ -1311,6 +1319,27 @@ pub fn synth_heli_rotor() -> Vec<u8> {
             + noise * 0.20 * pulse;
         let val = thud.clamp(-1.0, 1.0);
         out.push(((val * 120.0) + 128.0).clamp(0.0, 255.0) as u8);
+    }
+    out
+}
+
+/// Synthesizes deep resonant rolling thunder boom and crackle for storms.
+pub fn synth_thunder() -> Vec<u8> {
+    let rate = 22050;
+    let dur = 2.4;
+    let samples = (rate as f32 * dur) as usize;
+    let mut out = Vec::with_capacity(samples);
+    let mut lfsr: u32 = 0x9371;
+    for i in 0..samples {
+        let t = i as f32 / rate as f32;
+        let env = (1.0 - (t / dur)).clamp(0.0, 1.0).powf(1.8);
+        lfsr = (lfsr >> 1) ^ (-(lfsr as i32 & 1) as u32 & 0x9800);
+        let noise = ((lfsr & 0xFF) as f32 / 128.0) - 1.0;
+        let freq = 48.0 - (t * 8.0);
+        let rumble = (t * freq * std::f32::consts::TAU).sin() * 0.65;
+        let crack = if t < 0.25 { noise * (1.0 - t / 0.25) * 0.7 } else { noise * 0.25 };
+        let s = (rumble + crack) * env;
+        out.push(((s.clamp(-1.0, 1.0) * 120.0) + 128.0) as u8);
     }
     out
 }

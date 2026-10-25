@@ -1109,6 +1109,12 @@ pub fn run(
                         player.p,
                         [-player.heading.sin(), player.heading.cos()],
                     );
+                    if let Some((_, delay)) = s.weather.thunder_pending {
+                        if delay <= 0.0 {
+                            sound.play_thunder();
+                            s.weather.thunder_pending = None;
+                        }
+                    }
                     for (pos, lethal) in s.drain_pending_impact_sounds() {
                         sound.play_ped_impact(pos, lethal, player.p, [-player.heading.sin(), player.heading.cos()]);
                     }

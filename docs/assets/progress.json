@@ -1,9 +1,9 @@
 {
-  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 984 Rust functions)",
+  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 986 Rust functions)",
   "bytes": 6469472,
-  "portedBytes": 167024,
+  "portedBytes": 167268,
   "routines": 25988,
-  "portedRoutines": 707,
+  "portedRoutines": 709,
   "subsystems": [
     {
       "name": "Missions",
@@ -6254,9 +6254,9 @@
     {
       "name": "Audio",
       "bytes": 55744,
-      "portedBytes": 2116,
+      "portedBytes": 2360,
       "routines": 331,
-      "portedRoutines": 55,
+      "portedRoutines": 57,
       "classes": [
         {
           "name": "(free functions)",
@@ -6290,8 +6290,8 @@
           "name": "cAudioBase",
           "bytes": 3788,
           "routines": 20,
-          "portedBytes": 316,
-          "portedRoutines": 4
+          "portedBytes": 560,
+          "portedRoutines": 6
         },
         {
           "name": "cAudioBaseOAL",

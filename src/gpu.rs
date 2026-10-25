@@ -769,6 +769,165 @@ impl Renderer {
                     glVertex3f(tp[0] - rw, tp[1] + rw, tp[2] + 0.05);
                     glEnd();
                 }
+
+                // Chinatown Wars authentic Projectiles Rendering (cBaseProjectile, cGrenade, cMolotov, cRocket)
+                for proj in &scene.projectiles.list {
+                    if !proj.active {
+                        continue;
+                    }
+                    glPushMatrix();
+                    glTranslatef(proj.pos[0], proj.pos[1], proj.pos[2]);
+                    match proj.kind {
+                        crate::weapons::ProjectileKind::Rocket => {
+                            let fwd = [proj.vel[0], proj.vel[1]];
+                            let angle = fwd[1].atan2(fwd[0]).to_degrees();
+                            glRotatef(angle, 0.0, 0.0, 1.0);
+                            glColor4f(0.35, 0.38, 0.36, 1.0);
+                            let (rw, rl, rh) = (0.12, 0.55, 0.12);
+                            glBegin(7);
+                            glVertex3f(-rl, -rw, rh);
+                            glVertex3f(rl, -rw, rh);
+                            glVertex3f(rl, rw, rh);
+                            glVertex3f(-rl, rw, rh);
+                            glEnd();
+                            // Warhead red tip
+                            glColor4f(0.95, 0.22, 0.15, 1.0);
+                            glBegin(4);
+                            glVertex3f(rl + 0.30, 0.0, 0.0);
+                            glVertex3f(rl, -rw * 1.2, -rh * 1.2);
+                            glVertex3f(rl, rw * 1.2, rh * 1.2);
+                            glEnd();
+                            // Thruster fire exhaust plume
+                            glColor4f(1.0, 0.82, 0.25, 0.9);
+                            glBegin(6);
+                            glVertex3f(-rl - 0.45, 0.0, 0.0);
+                            for i in 0..=6 {
+                                let a = (i as f32) * (std::f32::consts::TAU / 6.0);
+                                glVertex3f(-rl, a.cos() * 0.18, a.sin() * 0.18);
+                            }
+                            glEnd();
+                        }
+                        crate::weapons::ProjectileKind::Grenade => {
+                            let spin = (proj.fuse_timer * 18.0).sin();
+                            glRotatef(spin * 45.0, 1.0, 1.0, 0.0);
+                            glColor4f(0.28, 0.38, 0.22, 1.0);
+                            let s = 0.18;
+                            glBegin(7);
+                            glVertex3f(-s, -s, s);
+                            glVertex3f(s, -s, s);
+                            glVertex3f(s, s, s);
+                            glVertex3f(-s, s, s);
+                            glEnd();
+                            glColor4f(0.65, 0.65, 0.68, 1.0);
+                            glBegin(1);
+                            glVertex3f(0.0, 0.0, s);
+                            glVertex3f(0.0, 0.0, s + 0.12);
+                            glEnd();
+                        }
+                        crate::weapons::ProjectileKind::Molotov => {
+                            let spin = (proj.fuse_timer * 14.0).cos();
+                            glRotatef(spin * 60.0, 1.0, 0.0, 1.0);
+                            glColor4f(0.72, 0.52, 0.18, 0.85);
+                            let (bw, bh) = (0.12, 0.32);
+                            glBegin(7);
+                            glVertex3f(-bw, -bw, bh);
+                            glVertex3f(bw, -bw, bh);
+                            glVertex3f(bw, bw, bh);
+                            glVertex3f(-bw, bw, bh);
+                            glEnd();
+                            let flicker = ((proj.fuse_timer * 40.0).sin() * 0.08).abs();
+                            glColor4f(1.0, 0.70 + flicker, 0.15, 0.95);
+                            glBegin(4);
+                            glVertex3f(0.0, 0.0, bh + 0.25 + flicker);
+                            glVertex3f(-0.08, -0.08, bh);
+                            glVertex3f(0.08, 0.08, bh);
+                            glEnd();
+                        }
+                        crate::weapons::ProjectileKind::Flashbang => {
+                            glColor4f(0.80, 0.82, 0.85, 1.0);
+                            let s = 0.16;
+                            glBegin(7);
+                            glVertex3f(-s, -s, s);
+                            glVertex3f(s, -s, s);
+                            glVertex3f(s, s, s);
+                            glVertex3f(-s, s, s);
+                            glEnd();
+                        }
+                        crate::weapons::ProjectileKind::Mine => {
+                            glColor4f(0.20, 0.22, 0.25, 1.0);
+                            let r = 0.28;
+                            glBegin(6);
+                            glVertex3f(0.0, 0.0, 0.06);
+                            for i in 0..=8 {
+                                let a = (i as f32) * (std::f32::consts::TAU / 8.0);
+                                glVertex3f(a.cos() * r, a.sin() * r, 0.02);
+                            }
+                            glEnd();
+                            let blink = (proj.fuse_timer * 8.0).sin() > 0.0;
+                            let col = if blink { [1.0, 0.15, 0.1] } else { [0.25, 0.05, 0.05] };
+                            glColor4f(col[0], col[1], col[2], 1.0);
+                            glBegin(6);
+                            glVertex3f(0.0, 0.0, 0.10);
+                            for i in 0..=6 {
+                                let a = (i as f32) * (std::f32::consts::TAU / 6.0);
+                                glVertex3f(a.cos() * 0.06, a.sin() * 0.06, 0.07);
+                            }
+                            glEnd();
+                        }
+                    }
+                    glPopMatrix();
+                }
+
+                // Chinatown Wars authentic Ground Fire Patches (cFire, Fire)
+                for patch in &scene.fire_manager.patches {
+                    if patch.life <= 0.0 {
+                        continue;
+                    }
+                    let alpha = patch.intensity.clamp(0.0, 1.0);
+                    // Ground scorched glow
+                    glColor4f(0.95, 0.35, 0.05, alpha * 0.35);
+                    glBegin(6);
+                    glVertex3f(patch.pos[0], patch.pos[1], patch.pos[2] + 0.04);
+                    for i in 0..=8 {
+                        let a = (i as f32) * (std::f32::consts::TAU / 8.0);
+                        glVertex3f(
+                            patch.pos[0] + a.cos() * patch.radius,
+                            patch.pos[1] + a.sin() * patch.radius,
+                            patch.pos[2] + 0.02,
+                        );
+                    }
+                    glEnd();
+
+                    // Animated rising flame tongues
+                    for flame_idx in 0..6 {
+                        let offset_a = (flame_idx as f32) * 1.05;
+                        let dist = (flame_idx as f32 * 0.28).min(patch.radius * 0.7);
+                        let fx = patch.pos[0] + offset_a.cos() * dist;
+                        let fy = patch.pos[1] + offset_a.sin() * dist;
+                        let flame_h = 0.6 + ((flame_idx as f32 * 3.7 + patch.life * 15.0).sin() * 0.3).abs();
+                        glColor4f(1.0, 0.65, 0.12, alpha * 0.85);
+                        glBegin(4);
+                        glVertex3f(fx, fy, patch.pos[2] + flame_h);
+                        glColor4f(0.9, 0.2, 0.05, alpha * 0.5);
+                        glVertex3f(fx - 0.25, fy - 0.25, patch.pos[2]);
+                        glVertex3f(fx + 0.25, fy + 0.25, patch.pos[2]);
+                        glEnd();
+                    }
+                }
+
+                // Burning Pedestrians flame visualization
+                for ped in &scene.peds {
+                    if ped.on_fire > 0.0 && ped.health > 0.0 {
+                        let flame_h = 1.4;
+                        glColor4f(1.0, 0.75, 0.15, 0.9);
+                        glBegin(4);
+                        glVertex3f(ped.p[0], ped.p[1], ped.p[2] + flame_h);
+                        glColor4f(0.95, 0.25, 0.05, 0.6);
+                        glVertex3f(ped.p[0] - 0.35, ped.p[1] - 0.35, ped.p[2] + 0.2);
+                        glVertex3f(ped.p[0] + 0.35, ped.p[1] + 0.35, ped.p[2] + 0.2);
+                        glEnd();
+                    }
+                }
                 for car in &scene.cars {
                     shadow(car.p, [car.h[0] * 1.44, car.h[1] * 0.92], car.angle, 0.28);
                     if distance2(car.p, walker.p) > 180. * 180. && !cam.is_free() {
@@ -1153,6 +1312,121 @@ impl Renderer {
                         glVertex2f(W as f32, H as f32);
                         glVertex2f(0.0, H as f32);
                         glEnd();
+                    }
+
+                    // Chinatown Wars authentic Sniper Rifle Optical Scope Overlay (cSniperCam)
+                    if scene.sniper_scope.active {
+                        let cx = W as f32 / 2.0;
+                        let cy = H as f32 / 2.0;
+                        let scope_r = (H as f32 * 0.44).min(330.0);
+
+                        // 1. Dark letterbox & outer circular aperture vignette mask
+                        glColor4f(0.04, 0.05, 0.06, 0.96);
+                        // Left box
+                        glBegin(7);
+                        glVertex2f(0.0, 0.0);
+                        glVertex2f(cx - scope_r, 0.0);
+                        glVertex2f(cx - scope_r, H as f32);
+                        glVertex2f(0.0, H as f32);
+                        glEnd();
+                        // Right box
+                        glBegin(7);
+                        glVertex2f(cx + scope_r, 0.0);
+                        glVertex2f(W as f32, 0.0);
+                        glVertex2f(W as f32, H as f32);
+                        glVertex2f(cx + scope_r, H as f32);
+                        glEnd();
+                        // Top box
+                        glBegin(7);
+                        glVertex2f(cx - scope_r, 0.0);
+                        glVertex2f(cx + scope_r, 0.0);
+                        glVertex2f(cx + scope_r, cy - scope_r);
+                        glVertex2f(cx - scope_r, cy - scope_r);
+                        glEnd();
+                        // Bottom box
+                        glBegin(7);
+                        glVertex2f(cx - scope_r, cy + scope_r);
+                        glVertex2f(cx + scope_r, cy + scope_r);
+                        glVertex2f(cx + scope_r, H as f32);
+                        glVertex2f(cx - scope_r, H as f32);
+                        glEnd();
+
+                        // 2. Optical Lens Circular Border
+                        glColor4f(0.12, 0.16, 0.20, 1.0);
+                        glBegin(2);
+                        for i in 0..=48 {
+                            let a = (i as f32) * (std::f32::consts::TAU / 48.0);
+                            glVertex2f(cx + a.cos() * scope_r, cy + a.sin() * scope_r);
+                        }
+                        glEnd();
+
+                        // 3. Precision Crosshairs with Breath Sway Offset
+                        let sx = cx + scene.sniper_scope.sway_offset[0] * 320.0;
+                        let sy = cy + scene.sniper_scope.sway_offset[1] * 320.0;
+
+                        glColor4f(0.08, 0.09, 0.10, 0.95);
+                        // Horizontal crosshair
+                        glBegin(1);
+                        glVertex2f(sx - scope_r * 0.92, sy);
+                        glVertex2f(sx - 16.0, sy);
+                        glVertex2f(sx + 16.0, sy);
+                        glVertex2f(sx + scope_r * 0.92, sy);
+                        glEnd();
+                        // Vertical crosshair
+                        glBegin(1);
+                        glVertex2f(sx, sy - scope_r * 0.92);
+                        glVertex2f(sx, sy - 16.0);
+                        glVertex2f(sx, sy + 16.0);
+                        glVertex2f(sx, sy + scope_r * 0.92);
+                        glEnd();
+
+                        // Center red precision dot
+                        glColor4f(0.95, 0.15, 0.15, 0.9);
+                        glBegin(6);
+                        glVertex2f(sx, sy);
+                        for i in 0..=8 {
+                            let a = (i as f32) * (std::f32::consts::TAU / 8.0);
+                            glVertex2f(sx + a.cos() * 3.0, sy + a.sin() * 3.0);
+                        }
+                        glEnd();
+
+                        // Mil-dots on crosshair
+                        glColor4f(0.15, 0.16, 0.18, 0.85);
+                        for dist in [40.0, 80.0, 120.0, 160.0] {
+                            glBegin(1);
+                            glVertex2f(sx - dist, sy - 6.0);
+                            glVertex2f(sx - dist, sy + 6.0);
+                            glVertex2f(sx + dist, sy - 6.0);
+                            glVertex2f(sx + dist, sy + 6.0);
+                            glVertex2f(sx - 6.0, sy - dist);
+                            glVertex2f(sx + 6.0, sy - dist);
+                            glVertex2f(sx - 6.0, sy + dist);
+                            glVertex2f(sx + 6.0, sy + dist);
+                            glEnd();
+                        }
+
+                        // 4. Digital Readouts & Telemetry
+                        let zoom_str = format!("ZOOM : {:.1}X", scene.sniper_scope.zoom);
+                        self.psp_text(cx - 130., cy + scope_r * 0.72, &zoom_str, 1.8, [0.35, 0.85, 0.95]);
+
+                        let range = scene.sniper_scope.reticle_range;
+                        let range_str = if range > 0.0 {
+                            format!("DIST : {:.1} M", range)
+                        } else {
+                            "DIST : -- M".to_string()
+                        };
+                        self.psp_text(cx + 40., cy + scope_r * 0.72, &range_str, 1.8, [0.95, 0.85, 0.35]);
+
+                        // Breath stamina bar
+                        let breath = scene.sniper_scope.breath_meter;
+                        let bar_w = 140.0;
+                        let bar_x = cx - bar_w / 2.0;
+                        let bar_y = cy - scope_r * 0.78;
+                        rounded([bar_x - 4., bar_y - 3., bar_w + 8., 16.], 2., [0.08, 0.10, 0.12]);
+                        let breath_color = if scene.sniper_scope.held_breath { [0.3, 0.75, 0.95] } else { [0.4, 0.85, 0.4] };
+                        rounded([bar_x, bar_y, bar_w * breath, 10.], 1., breath_color);
+                        let breath_label = if scene.sniper_scope.held_breath { "APNEE ACTIVE" } else { "APNEE (MAJ / LSTICK)" };
+                        self.psp_text(cx - 65., bar_y - 18., breath_label, 1.4, [0.85, 0.90, 0.92]);
                     }
 
                     // Contextual World Interaction Prompt

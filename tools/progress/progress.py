@@ -340,7 +340,7 @@ code {{ font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: 
   <div class="badges">
     <img src="assets/badge-overall.svg" alt="original code ported">
     <img src="assets/badge-routines.svg" alt="routines">
-    <a href="https://discord.com" style="display:inline-flex;align-items:center;background:#5865F2;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;text-decoration:none;">Discord: benjamin060936</a>
+    <a href="https://discord.com/users/601648068277960714" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;background:#5865F2;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;text-decoration:none;">Discord: benjamin060936</a>
   </div>
 </header>
 

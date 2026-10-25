@@ -13,7 +13,7 @@
 [![Platform](https://img.shields.io/badge/platform-Windows_x64-blue)](#build-and-run)
 [![Language](https://img.shields.io/badge/runtime-Rust-dea584)](#repository-layout)
 [![License](https://img.shields.io/badge/license-GPL--3.0--only-blue)](LICENSE)
-[![Discord](https://img.shields.io/badge/Discord-benjamin060936-5865F2?logo=discord&logoColor=white)](https://discord.com)
+[![Discord](https://img.shields.io/badge/Discord-benjamin060936-5865F2?logo=discord&logoColor=white)](https://discord.com/users/601648068277960714)
 
 ReGTA CTW is an independent reverse-engineering and native-port project for **Grand Theft Auto: Chinatown Wars**, targeting the European PSP release **ULES-01347, version 1.01**. The goal is to rebuild the PSP experience in Rust for Windows x64, reading game data from the user's own disc image without a PSP CPU emulator in the runtime.
 
@@ -21,7 +21,7 @@ ReGTA CTW is an independent reverse-engineering and native-port project for **Gr
 
 The city, player movement, cameras, navigation, vehicles and combat already have prototype implementations. The work ahead is to verify their behaviour against the PSP original and connect them into a complete game. **165 passing tests and 166 indexed code overlays are progress measurements, not proof of full-game equivalence.**
 
-**[Support on Tipeee](https://fr.tipeee.com/benji-paname/)** · [Support via PayPal](https://paypal.me/BenjiLsg) · **Discord: `benjamin060936`**
+**[Support on Tipeee](https://fr.tipeee.com/benji-paname/)** · [Support via PayPal](https://paypal.me/BenjiLsg) · **[Discord: benjamin060936](https://discord.com/users/601648068277960714)**
 Support helps sustain Benji Paname's reverse engineering, native development and documentation. It does not buy the game, game assets or early access, and does not guarantee completion or a release date.
 
 [Project website source](docs/index.html) · [Implementation status](docs/STATUS.md) · [Changelog](CHANGELOG.md) · [Publish with GitHub Pages](docs/PUBLISHING.md) · [YouTube Creator Kit](docs/YOUTUBE_CREATOR_KIT.md)
@@ -129,7 +129,7 @@ The root Cargo workspace retains the package manifest under `outputs/CTW-Rust/` 
 
 Support **Benji Paname's reverse-engineering, documentation and native-port development**, or get in touch:
 
-- **Discord**: `benjamin060936` (contact direct pour collaborations / reverse-engineering)
+- **Discord**: [benjamin060936 (ID: 601648068277960714)](https://discord.com/users/601648068277960714) (contact direct pour collaborations / reverse-engineering)
 - **[Support on Tipeee](https://fr.tipeee.com/benji-paname/)**
 - [One-time support through PayPal.Me](https://paypal.me/BenjiLsg)
 

@@ -549,6 +549,18 @@ pub struct SoundSystem {
     engine_voice_rev: u32,
     skid_voice: u32,
     hydrant_stream_voice: u32,
+    // Radio streaming state
+    pub radio_voice: u32,
+    pub current_radio_station: usize,
+    cached_radio_loops: HashMap<usize, Vec<u8>>,
+    // Emergency siren state
+    pub siren_voice: u32,
+    pub siren_yelp_voice: u32,
+    cached_siren_wail: Vec<u8>,
+    cached_siren_yelp: Vec<u8>,
+    cached_car_horn: Vec<u8>,
+    cached_ped_pain: Vec<u8>,
+    cached_ped_scream: Vec<u8>,
 }
 
 impl SoundSystem {
@@ -568,6 +580,16 @@ impl SoundSystem {
             engine_voice_rev: 0,
             skid_voice: 0,
             hydrant_stream_voice: 0,
+            radio_voice: 0,
+            current_radio_station: usize::MAX,
+            cached_radio_loops: HashMap::new(),
+            siren_voice: 0,
+            siren_yelp_voice: 0,
+            cached_siren_wail: synth_siren_wail(),
+            cached_siren_yelp: synth_siren_yelp(),
+            cached_car_horn: synth_car_horn(),
+            cached_ped_pain: synth_ped_pain(),
+            cached_ped_scream: synth_ped_scream(),
         }
     }
 
@@ -837,6 +859,180 @@ impl SoundSystem {
             m.play_sfx(&pcm, 22050, 0.85, 0.0, 1.0, false);
         }
     }
+
+    /// Updates radio station stream playback while player is in vehicle.
+    pub fn update_radio(&mut self, radio: &crate::radio::RadioManager) {
+        if radio.is_playing && radio.current_station < 11 {
+            let station_idx = radio.current_station;
+            let vol = ((radio.volume as f32 / 10.0) * 0.70).clamp(0.0, 1.0);
+
+            if self.radio_voice == 0 || self.current_radio_station != station_idx {
+                if self.radio_voice != 0 {
+                    if let Ok(mut m) = self.mixer.lock() {
+                        m.stop_voice(self.radio_voice);
+                    }
+                }
+                let pcm = self.cached_radio_loops.entry(station_idx).or_insert_with(|| {
+                    synth_station_loop(station_idx)
+                });
+                if let Ok(mut m) = self.mixer.lock() {
+                    self.radio_voice = m.play_sfx(pcm, 22050, vol, 0.0, 1.0, true);
+                }
+                self.current_radio_station = station_idx;
+            } else if let Ok(mut m) = self.mixer.lock() {
+                m.set_voice(self.radio_voice, vol, 0.0, 1.0);
+            }
+        } else if self.radio_voice != 0 {
+            if let Ok(mut m) = self.mixer.lock() {
+                m.stop_voice(self.radio_voice);
+            }
+            self.radio_voice = 0;
+            self.current_radio_station = usize::MAX;
+        }
+    }
+
+    /// Stops radio playback immediately.
+    pub fn stop_radio(&mut self) {
+        if self.radio_voice != 0 {
+            if let Ok(mut m) = self.mixer.lock() {
+                m.stop_voice(self.radio_voice);
+            }
+            self.radio_voice = 0;
+            self.current_radio_station = usize::MAX;
+        }
+    }
+
+    /// Updates vehicle sirens for active police pursuits and emergency vehicles.
+    pub fn update_sirens(
+        &mut self,
+        police: &crate::police::PoliceManager,
+        cars: &[crate::actors::Car],
+        listener_p: [f32; 3],
+        listener_fwd: [f32; 2],
+    ) {
+        let mut nearest_dist_sq = f32::MAX;
+        let mut nearest_pos = [0.0f32; 3];
+        let mut active_emergency = false;
+
+        for car in cars {
+            let is_siren_on = car.siren_active || (police.stars > 0 && car.spec().name == "POLICE");
+            if is_siren_on {
+                let dx = car.p[0] - listener_p[0];
+                let dy = car.p[1] - listener_p[1];
+                let dz = car.p[2] - listener_p[2];
+                let d2 = dx * dx + dy * dy + dz * dz;
+                if d2 < 14400.0 && d2 < nearest_dist_sq {
+                    nearest_dist_sq = d2;
+                    nearest_pos = car.p;
+                    active_emergency = true;
+                }
+            }
+        }
+
+        if active_emergency {
+            let dist = nearest_dist_sq.sqrt();
+            let atten = (1.0 - (dist / 120.0)).clamp(0.0, 1.0);
+            let vol = (atten * 0.75).clamp(0.05, 0.85);
+
+            let dx = nearest_pos[0] - listener_p[0];
+            let dy = nearest_pos[1] - listener_p[1];
+            let cside = [-listener_fwd[1], listener_fwd[0]];
+            let pan = ((dx * cside[0] + dy * cside[1]) / 40.0).clamp(-1.0, 1.0);
+
+            let use_yelp = police.stars >= 3;
+
+            if use_yelp {
+                if self.siren_voice != 0 {
+                    if let Ok(mut m) = self.mixer.lock() {
+                        m.stop_voice(self.siren_voice);
+                    }
+                    self.siren_voice = 0;
+                }
+                if let Ok(mut m) = self.mixer.lock() {
+                    if !m.is_playing(self.siren_yelp_voice) {
+                        self.siren_yelp_voice = m.play_sfx(&self.cached_siren_yelp, 22050, vol, pan, 1.0, true);
+                    } else {
+                        m.set_voice(self.siren_yelp_voice, vol, pan, 1.0);
+                    }
+                }
+            } else {
+                if self.siren_yelp_voice != 0 {
+                    if let Ok(mut m) = self.mixer.lock() {
+                        m.stop_voice(self.siren_yelp_voice);
+                    }
+                    self.siren_yelp_voice = 0;
+                }
+                if let Ok(mut m) = self.mixer.lock() {
+                    if !m.is_playing(self.siren_voice) {
+                        self.siren_voice = m.play_sfx(&self.cached_siren_wail, 22050, vol, pan, 1.0, true);
+                    } else {
+                        m.set_voice(self.siren_voice, vol, pan, 1.0);
+                    }
+                }
+            }
+        } else {
+            if self.siren_voice != 0 {
+                if let Ok(mut m) = self.mixer.lock() {
+                    m.stop_voice(self.siren_voice);
+                }
+                self.siren_voice = 0;
+            }
+            if self.siren_yelp_voice != 0 {
+                if let Ok(mut m) = self.mixer.lock() {
+                    m.stop_voice(self.siren_yelp_voice);
+                }
+                self.siren_yelp_voice = 0;
+            }
+        }
+    }
+
+    /// Plays pedestrian reaction vocalization (pain grunt or scream).
+    pub fn play_ped_impact(
+        &self,
+        pos: [f32; 3],
+        lethal: bool,
+        listener_p: [f32; 3],
+        listener_fwd: [f32; 2],
+    ) {
+        let dx = pos[0] - listener_p[0];
+        let dy = pos[1] - listener_p[1];
+        let d2 = dx * dx + dy * dy;
+        if d2 > 2500.0 {
+            return;
+        }
+        let atten = (1.0 - (d2 / 2500.0)).clamp(0.1, 1.0);
+        let cside = [-listener_fwd[1], listener_fwd[0]];
+        let pan = ((dx * cside[0] + dy * cside[1]) / 35.0).clamp(-1.0, 1.0);
+
+        let pcm = if lethal { &self.cached_ped_scream } else { &self.cached_ped_pain };
+        let vol = if lethal { atten * 0.85 } else { atten * 0.70 };
+
+        if let Ok(mut m) = self.mixer.lock() {
+            m.play_sfx(pcm, 22050, vol, pan, 1.0, false);
+        }
+    }
+
+    /// Plays vehicle horn honk.
+    pub fn play_car_horn(
+        &self,
+        pos: [f32; 3],
+        listener_p: [f32; 3],
+        listener_fwd: [f32; 2],
+    ) {
+        let dx = pos[0] - listener_p[0];
+        let dy = pos[1] - listener_p[1];
+        let d2 = dx * dx + dy * dy;
+        if d2 > 3600.0 {
+            return;
+        }
+        let atten = (1.0 - (d2 / 3600.0)).clamp(0.1, 1.0);
+        let cside = [-listener_fwd[1], listener_fwd[0]];
+        let pan = ((dx * cside[0] + dy * cside[1]) / 40.0).clamp(-1.0, 1.0);
+
+        if let Ok(mut m) = self.mixer.lock() {
+            m.play_sfx(&self.cached_car_horn, 22050, atten * 0.75, pan, 1.0, false);
+        }
+    }
 }
 
 /// Synthesizes a two-tone high-frequency cash register chime (8-bit PCM).
@@ -952,6 +1148,368 @@ fn synth_fanfare() -> Vec<u8> {
     out
 }
 
+/// Synthesizes a classic police siren wail loop (frequency sweeps 620 Hz to 1250 Hz over 3.2s).
+pub fn synth_siren_wail() -> Vec<u8> {
+    let rate = 22050;
+    let dur = 3.2;
+    let samples = (rate as f32 * dur) as usize;
+    let mut out = Vec::with_capacity(samples);
+    let mut phase: f32 = 0.0;
+    for i in 0..samples {
+        let t = i as f32 / rate as f32;
+        let cycle = (t / dur).fract();
+        let sweep = if cycle < 0.5 { cycle * 2.0 } else { (1.0 - cycle) * 2.0 };
+        let freq = 620.0 + sweep * 630.0;
+        phase += freq * std::f32::consts::TAU / rate as f32;
+        let s1 = phase.sin();
+        let s2 = (phase * 3.0).sin() * 0.35;
+        let s3 = (phase * 5.0).sin() * 0.15;
+        let val = (s1 + s2 + s3) * 0.7;
+        out.push(((val * 110.0) + 128.0).clamp(0.0, 255.0) as u8);
+    }
+    out
+}
+
+/// Synthesizes an aggressive rapid pursuit siren yelp loop (frequency sweeps 750 Hz to 1480 Hz over 0.38s).
+pub fn synth_siren_yelp() -> Vec<u8> {
+    let rate = 22050;
+    let dur = 0.38;
+    let samples = (rate as f32 * dur) as usize;
+    let mut out = Vec::with_capacity(samples);
+    let mut phase: f32 = 0.0;
+    for i in 0..samples {
+        let t = i as f32 / rate as f32;
+        let cycle = (t / dur).fract();
+        let sweep = if cycle < 0.5 { cycle * 2.0 } else { (1.0 - cycle) * 2.0 };
+        let freq = 750.0 + sweep * 730.0;
+        phase += freq * std::f32::consts::TAU / rate as f32;
+        let s1 = phase.sin();
+        let s2 = (phase * 3.0).sin() * 0.4;
+        let val = (s1 + s2) * 0.72;
+        out.push(((val * 115.0) + 128.0).clamp(0.0, 255.0) as u8);
+    }
+    out
+}
+
+/// Synthesizes a pedestrian pain grunt/yelp (short vowel formant).
+pub fn synth_ped_pain() -> Vec<u8> {
+    let rate = 22050;
+    let dur = 0.20;
+    let samples = (rate as f32 * dur) as usize;
+    let mut out = Vec::with_capacity(samples);
+    let mut phase: f32 = 0.0;
+    for i in 0..samples {
+        let t = i as f32 / rate as f32;
+        let env = (1.0 - (t / dur)).powf(1.5);
+        let freq = 420.0 - t * 400.0;
+        phase += freq * std::f32::consts::TAU / rate as f32;
+        let s = phase.sin() * 0.6 + (phase * 2.0).sin() * 0.3;
+        let noise = ((i * 1103515245 + 12345) & 0xFF) as f32 / 128.0 - 1.0;
+        let val = (s * 0.8 + noise * 0.2 * env) * env * 0.8;
+        out.push(((val * 120.0) + 128.0).clamp(0.0, 255.0) as u8);
+    }
+    out
+}
+
+/// Synthesizes a terrified pedestrian scream (descending high pitch).
+pub fn synth_ped_scream() -> Vec<u8> {
+    let rate = 22050;
+    let dur = 0.50;
+    let samples = (rate as f32 * dur) as usize;
+    let mut out = Vec::with_capacity(samples);
+    let mut phase: f32 = 0.0;
+    for i in 0..samples {
+        let t = i as f32 / rate as f32;
+        let env = (1.0 - (t / dur)).clamp(0.0, 1.0);
+        let vibrato = (t * 22.0 * std::f32::consts::TAU).sin() * 25.0;
+        let freq = (1150.0 - t * 650.0) + vibrato;
+        phase += freq * std::f32::consts::TAU / rate as f32;
+        let s = phase.sin() * 0.6 + (phase * 2.0).sin() * 0.35 + (phase * 3.0).sin() * 0.15;
+        let noise = ((i * 1664525 + 1013904223) & 0xFF) as f32 / 128.0 - 1.0;
+        let val = (s * 0.75 + noise * 0.25 * env) * env * 0.85;
+        out.push(((val * 120.0) + 128.0).clamp(0.0, 255.0) as u8);
+    }
+    out
+}
+
+/// Synthesizes a classic automotive dual-tone car horn honk.
+pub fn synth_car_horn() -> Vec<u8> {
+    let rate = 22050;
+    let dur = 0.45;
+    let samples = (rate as f32 * dur) as usize;
+    let mut out = Vec::with_capacity(samples);
+    for i in 0..samples {
+        let t = i as f32 / rate as f32;
+        let env = if t < 0.03 {
+            t / 0.03
+        } else if t > dur - 0.05 {
+            (dur - t) / 0.05
+        } else {
+            1.0
+        };
+        let s1 = (t * 370.0 * std::f32::consts::TAU).sin();
+        let s2 = (t * 440.0 * std::f32::consts::TAU).sin();
+        let s3 = (t * 740.0 * std::f32::consts::TAU).sin() * 0.25;
+        let val = (s1 * 0.45 + s2 * 0.45 + s3) * env * 0.8;
+        out.push(((val * 120.0) + 128.0).clamp(0.0, 255.0) as u8);
+    }
+    out
+}
+
+/// Synthesizes procedural musical loop for one of the 11 Chinatown Wars radio stations.
+pub fn synth_station_loop(idx: usize) -> Vec<u8> {
+    let rate = 22050;
+    let dur = 3.2;
+    let samples = (rate as f32 * dur) as usize;
+    let mut out = Vec::with_capacity(samples);
+
+    match idx {
+        // 0: TRUTHWAVE (Rock Indie) - driving bass riff in Em, overdriven guitar chords, drum pulse
+        0 => {
+            let bpm = 135.0;
+            let beat_dur = 60.0 / bpm;
+            let bass_notes = [82.41, 82.41, 98.00, 110.00, 82.41, 73.42, 82.41, 98.00];
+            for i in 0..samples {
+                let t = i as f32 / rate as f32;
+                let beat_idx = ((t / (beat_dur * 0.5)) as usize) % bass_notes.len();
+                let beat_t = t % (beat_dur * 0.5);
+                let env = (1.0 - beat_t / (beat_dur * 0.5)).powf(1.2);
+                let f_bass = bass_notes[beat_idx];
+                let bass = (t * f_bass * std::f32::consts::TAU).sin() * 0.5
+                    + (t * f_bass * 2.0 * std::f32::consts::TAU).sin() * 0.3;
+                let chord_active = ((t / beat_dur) as usize % 2) == 1;
+                let guitar = if chord_active {
+                    let g_env = (1.0 - (t % beat_dur) / beat_dur).max(0.0);
+                    let raw = (t * 164.81 * std::f32::consts::TAU).sin()
+                        + (t * 246.94 * std::f32::consts::TAU).sin() * 0.8;
+                    (raw * 2.5).clamp(-0.7, 0.7) * g_env * 0.35
+                } else {
+                    0.0
+                };
+                let drum_step = (t / (beat_dur * 0.5)) as usize % 4;
+                let step_t = t % (beat_dur * 0.5);
+                let kick = if drum_step == 0 || drum_step == 2 {
+                    (step_t * 65.0 * std::f32::consts::TAU).sin() * (1.0 - step_t / 0.15).max(0.0) * 0.6
+                } else {
+                    0.0
+                };
+                let snare = if drum_step == 1 || drum_step == 3 {
+                    let noise = ((i * 1103515245 + 12345) & 0xFF) as f32 / 128.0 - 1.0;
+                    noise * (1.0 - step_t / 0.18).max(0.0) * 0.35
+                } else {
+                    0.0
+                };
+                let val = (bass * env * 0.35 + guitar + kick + snare) * 0.75;
+                out.push(((val * 115.0) + 128.0).clamp(0.0, 255.0) as u8);
+            }
+        }
+        // 1: RADIO BROKER (Post-Punk / Indie Rock) - angular bassline, rapid hi-hats, chorus synth
+        1 => {
+            let bpm = 140.0;
+            let beat_dur = 60.0 / bpm;
+            let bass_notes = [110.00, 110.00, 130.81, 98.00, 87.31, 87.31, 98.00, 110.00];
+            for i in 0..samples {
+                let t = i as f32 / rate as f32;
+                let step = (t / (beat_dur * 0.5)) as usize % bass_notes.len();
+                let step_t = t % (beat_dur * 0.5);
+                let env = (1.0 - step_t / (beat_dur * 0.5)).powf(1.4);
+                let f_bass = bass_notes[step];
+                let bass = (t * f_bass * std::f32::consts::TAU).sin() * 0.5
+                    + (t * f_bass * 3.0 * std::f32::consts::TAU).sin() * 0.2;
+                let hat_t = t % (beat_dur * 0.25);
+                let hat_noise = ((i * 1664525 + 1013904223) & 0xFF) as f32 / 128.0 - 1.0;
+                let hihat = hat_noise * (1.0 - hat_t / 0.04).max(0.0) * 0.18;
+                let chorus = (t * 440.0 * std::f32::consts::TAU + (t * 3.5).sin()).sin() * 0.18;
+                let val = (bass * env * 0.4 + hihat + chorus) * 0.8;
+                out.push(((val * 115.0) + 128.0).clamp(0.0, 255.0) as u8);
+            }
+        }
+        // 2: TORTOISE (Post-Rock / Instrumental) - vibraphone ostinato, warm jazzy rhodes, mellow groove
+        2 => {
+            let notes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 293.66, 349.23];
+            for i in 0..samples {
+                let t = i as f32 / rate as f32;
+                let note_idx = ((t / 0.40) as usize) % notes.len();
+                let note_t = t % 0.40;
+                let vib_env = (1.0 - note_t / 0.40).powf(1.8);
+                let freq = notes[note_idx];
+                let vib = (t * freq * std::f32::consts::TAU).sin() * 0.5
+                    + (t * freq * 2.0 * std::f32::consts::TAU).sin() * 0.15;
+                let sub = (t * (freq * 0.25) * std::f32::consts::TAU).sin() * 0.35;
+                let val = (vib * vib_env * 0.55 + sub * 0.3) * 0.75;
+                out.push(((val * 115.0) + 128.0).clamp(0.0, 255.0) as u8);
+            }
+        }
+        // 3: TURNTABLES ON THE HUDSON (Hip-Hop / Funk / Soul) - slap bass, boom-bap beat
+        3 => {
+            let bpm = 100.0;
+            let beat_dur = 60.0 / bpm;
+            let slap_notes = [98.00, 98.00, 116.54, 98.00, 130.81, 146.83, 116.54, 98.00];
+            for i in 0..samples {
+                let t = i as f32 / rate as f32;
+                let step = ((t / (beat_dur * 0.5)) as usize) % slap_notes.len();
+                let step_t = t % (beat_dur * 0.5);
+                let env = (1.0 - step_t / (beat_dur * 0.5)).powf(2.0);
+                let f_slap = slap_notes[step];
+                let slap = (t * f_slap * std::f32::consts::TAU).sin() * 0.55
+                    + (t * f_slap * 2.0 * std::f32::consts::TAU).sin() * 0.3;
+                let beat_step = (t / beat_dur) as usize % 4;
+                let in_beat = t % beat_dur;
+                let kick = if beat_step == 0 || (beat_step == 2 && in_beat > beat_dur * 0.5) {
+                    (in_beat * 70.0 * std::f32::consts::TAU).sin() * (1.0 - (in_beat % (beat_dur * 0.5)) / 0.18).max(0.0) * 0.6
+                } else {
+                    0.0
+                };
+                let snare = if beat_step == 1 || beat_step == 3 {
+                    let noise = ((i * 1103515245 + 12345) & 0xFF) as f32 / 128.0 - 1.0;
+                    noise * (1.0 - in_beat / 0.20).max(0.0) * 0.35
+                } else {
+                    0.0
+                };
+                let val = (slap * env * 0.4 + kick + snare) * 0.8;
+                out.push(((val * 115.0) + 128.0).clamp(0.0, 255.0) as u8);
+            }
+        }
+        // 4: THE PRAIRIE CARTEL (Acid Rock / Electronica) - TB-303 resonant acid sweep
+        4 => {
+            let bpm = 126.0;
+            let beat_dur = 60.0 / bpm;
+            let acid_notes = [65.41, 65.41, 77.78, 65.41, 87.31, 98.00, 116.54, 130.81];
+            for i in 0..samples {
+                let t = i as f32 / rate as f32;
+                let step = ((t / (beat_dur * 0.25)) as usize) % acid_notes.len();
+                let step_t = t % (beat_dur * 0.25);
+                let cutoff_mod = (t * 0.6 * std::f32::consts::TAU).sin() * 0.5 + 0.5;
+                let env = (1.0 - step_t / (beat_dur * 0.25)).powf(1.8);
+                let f_note = acid_notes[step];
+                let saw = (t * f_note).fract() * 2.0 - 1.0;
+                let res = (t * (f_note * (2.0 + cutoff_mod * 4.0)) * std::f32::consts::TAU).sin() * 0.4;
+                let acid = (saw * 0.6 + res) * env;
+                let kick_t = t % beat_dur;
+                let kick = (kick_t * 60.0 * std::f32::consts::TAU).sin() * (1.0 - kick_t / 0.16).max(0.0) * 0.6;
+                let val = (acid * 0.45 + kick * 0.55) * 0.8;
+                out.push(((val * 115.0) + 128.0).clamp(0.0, 255.0) as u8);
+            }
+        }
+        // 5: DJ KHALIL (West Coast Hip-Hop) - deep 808 sub, G-funk sine whistle
+        5 => {
+            let bpm = 92.0;
+            let beat_dur = 60.0 / bpm;
+            let whistle_notes = [1174.66, 1318.51, 1174.66, 987.77, 880.00, 987.77, 1174.66, 1318.51];
+            for i in 0..samples {
+                let t = i as f32 / rate as f32;
+                let step = ((t / (beat_dur * 0.5)) as usize) % whistle_notes.len();
+                let freq = whistle_notes[step];
+                let vib = (t * 6.0 * std::f32::consts::TAU).sin() * 6.0;
+                let whistle = ((t * (freq + vib) * std::f32::consts::TAU).sin()) * 0.25;
+                let beat_t = t % beat_dur;
+                let sub_pitch = 55.0 - (beat_t * 60.0).min(20.0);
+                let sub = (beat_t * sub_pitch * std::f32::consts::TAU).sin() * (1.0 - beat_t / beat_dur).powf(1.5) * 0.6;
+                let beat_idx = (t / beat_dur) as usize % 2;
+                let snare = if beat_idx == 1 {
+                    let noise = ((i * 1103515245 + 12345) & 0xFF) as f32 / 128.0 - 1.0;
+                    noise * (1.0 - beat_t / 0.22).max(0.0) * 0.35
+                } else {
+                    0.0
+                };
+                let val = (sub * 0.55 + whistle + snare) * 0.8;
+                out.push(((val * 115.0) + 128.0).clamp(0.0, 255.0) as u8);
+            }
+        }
+        // 6: TORTOISE SPECIAL (Tortoise Instrumental Beats) - glitch polyrhythms, chime pads
+        6 => {
+            for i in 0..samples {
+                let t = i as f32 / rate as f32;
+                let pad = (t * 220.0 * std::f32::consts::TAU).sin() * 0.2
+                    + (t * 277.18 * std::f32::consts::TAU).sin() * 0.2
+                    + (t * 329.63 * std::f32::consts::TAU).sin() * 0.2;
+                let glitch_t = t % 0.133;
+                let noise = ((i * 1664525 + 1013904223) & 0xFF) as f32 / 128.0 - 1.0;
+                let glitch = noise * (1.0 - glitch_t / 0.04).max(0.0) * 0.25;
+                let val = (pad * 0.5 + glitch * 0.5) * 0.75;
+                out.push(((val * 115.0) + 128.0).clamp(0.0, 255.0) as u8);
+            }
+        }
+        // 7: WONDERWHEEL RECORDINGS (Deep Afrobeat & Latin) - montuno piano, bongo syncopation
+        7 => {
+            let piano_notes = [261.63, 329.63, 392.00, 440.00, 392.00, 329.63, 261.63, 349.23];
+            for i in 0..samples {
+                let t = i as f32 / rate as f32;
+                let step = ((t / 0.20) as usize) % piano_notes.len();
+                let step_t = t % 0.20;
+                let env = (1.0 - step_t / 0.20).powf(1.5);
+                let f = piano_notes[step];
+                let piano = (t * f * std::f32::consts::TAU).sin() * 0.45
+                    + (t * f * 2.0 * std::f32::consts::TAU).sin() * 0.2;
+                let conga_t = t % 0.266;
+                let conga = (conga_t * 240.0 * std::f32::consts::TAU).sin() * (1.0 - conga_t / 0.12).max(0.0) * 0.35;
+                let val = (piano * env * 0.55 + conga * 0.45) * 0.8;
+                out.push(((val * 115.0) + 128.0).clamp(0.0, 255.0) as u8);
+            }
+        }
+        // 8: ANVIL (Heavy Metal Canadien) - fast double-bass kick, distorted thrash chug
+        8 => {
+            let bpm = 160.0;
+            let beat_dur = 60.0 / bpm;
+            let f_e1 = 41.20;
+            for i in 0..samples {
+                let t = i as f32 / rate as f32;
+                let step_t = t % (beat_dur * 0.5);
+                let env = (1.0 - step_t / (beat_dur * 0.5)).powf(1.1);
+                let saw = ((t * f_e1).fract() * 2.0 - 1.0) * 3.5;
+                let chug = saw.clamp(-0.8, 0.8) * env * 0.5;
+                let dkick_t = t % (beat_dur * 0.25);
+                let kick = (dkick_t * 68.0 * std::f32::consts::TAU).sin() * (1.0 - dkick_t / 0.10).max(0.0) * 0.5;
+                let val = (chug + kick) * 0.8;
+                out.push(((val * 115.0) + 128.0).clamp(0.0, 255.0) as u8);
+            }
+        }
+        // 9: SINOWAV FM (Musique Traditionnelle & Electro) - D pentatonic guzheng, sub-bass
+        9 => {
+            let penta = [293.66, 329.63, 369.99, 440.00, 493.88, 587.33, 493.88, 440.00];
+            for i in 0..samples {
+                let t = i as f32 / rate as f32;
+                let step = ((t / 0.25) as usize) % penta.len();
+                let step_t = t % 0.25;
+                let env = (1.0 - step_t / 0.25).powf(2.0);
+                let f = penta[step];
+                let pluck = (t * f * std::f32::consts::TAU).sin() * 0.45
+                    + (t * f * 2.0 * std::f32::consts::TAU).sin() * 0.25;
+                let sub = (t * 73.42 * std::f32::consts::TAU).sin() * 0.35;
+                let val = (pluck * env * 0.6 + sub * 0.4) * 0.8;
+                out.push(((val * 115.0) + 128.0).clamp(0.0, 255.0) as u8);
+            }
+        }
+        // 10: DFA RECORDS (Electro Dance / Disco Punk) - 128 BPM disco beat, pumping octave bass
+        _ => {
+            let bpm = 128.0;
+            let beat_dur = 60.0 / bpm;
+            let bass_notes = [65.41, 130.81, 65.41, 130.81, 77.78, 155.56, 77.78, 155.56];
+            for i in 0..samples {
+                let t = i as f32 / rate as f32;
+                let step = ((t / (beat_dur * 0.25)) as usize) % bass_notes.len();
+                let step_t = t % (beat_dur * 0.25);
+                let env = (1.0 - step_t / (beat_dur * 0.25)).powf(1.6);
+                let f = bass_notes[step];
+                let bass = (t * f * std::f32::consts::TAU).sin() * 0.55;
+                let kick_t = t % beat_dur;
+                let kick = (kick_t * 60.0 * std::f32::consts::TAU).sin() * (1.0 - kick_t / 0.16).max(0.0) * 0.6;
+                let hat_active = (kick_t > beat_dur * 0.4) && (kick_t < beat_dur * 0.8);
+                let hat = if hat_active {
+                    let noise = ((i * 1103515245 + 12345) & 0xFF) as f32 / 128.0 - 1.0;
+                    noise * 0.22
+                } else {
+                    0.0
+                };
+                let val = (bass * env * 0.45 + kick * 0.45 + hat) * 0.8;
+                out.push(((val * 115.0) + 128.0).clamp(0.0, 255.0) as u8);
+            }
+        }
+    }
+
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1039,5 +1597,127 @@ mod tests {
             m.mix(&mut out);
         }
         assert!(out.iter().any(|&s| s != 0), "Audio mixer must have rendered non-zero samples");
+    }
+
+    #[test]
+    fn procedural_radio_streams_all_11_stations() {
+        // Test all 11 official Chinatown Wars stations
+        for station_idx in 0..11 {
+            let pcm = synth_station_loop(station_idx);
+            assert!(pcm.len() > 20000, "Station {} generated substantial PCM buffer", station_idx);
+            // Verify buffer has dynamic range (not silent or flat)
+            let min_val = *pcm.iter().min().unwrap();
+            let max_val = *pcm.iter().max().unwrap();
+            assert!(min_val < 120, "Station {} has negative wave excursions", station_idx);
+            assert!(max_val > 136, "Station {} has positive wave excursions", station_idx);
+        }
+    }
+
+    #[test]
+    fn emergency_sirens_radio_playback_and_pedestrian_impacts() {
+        let mut sound_system = SoundSystem::new(
+            SoundTables {
+                events: vec![],
+                gears: vec![],
+                prop_sfx: vec![],
+                collision_low: [0; 3],
+                collision_med: [0; 3],
+                collision_high: [0; 3],
+                rev_after_shift: [0; 4],
+            },
+            SoundBank { samples: vec![] },
+        );
+
+        // Pedestrian reaction impacts and vehicle horn
+        sound_system.play_ped_impact([10.0, 10.0, 0.0], false, [0.0, 0.0, 0.0], [0.0, 1.0]);
+        sound_system.play_ped_impact([10.0, 10.0, 0.0], true, [0.0, 0.0, 0.0], [0.0, 1.0]);
+        sound_system.play_car_horn([10.0, 10.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0]);
+
+        // Radio system integration
+        let mut radio = crate::radio::RadioManager::new(None);
+        assert_eq!(sound_system.radio_voice, 0);
+
+        // In-vehicle entry: radio turns on
+        radio.update(0.1, true);
+        sound_system.update_radio(&radio);
+        assert_ne!(sound_system.radio_voice, 0, "Radio voice started when in car");
+        assert_eq!(sound_system.current_radio_station, 0);
+
+        // Tune to next station
+        radio.next_station();
+        sound_system.update_radio(&radio);
+        assert_eq!(sound_system.current_radio_station, 1);
+
+        // Turn radio off (station 11)
+        radio.set_station(11);
+        sound_system.update_radio(&radio);
+        assert_eq!(sound_system.radio_voice, 0, "Radio voice stopped when turned OFF");
+
+        // Sirens update
+        let mut police = crate::police::PoliceManager::new();
+        let mut cars = vec![];
+        sound_system.update_sirens(&police, &cars, [0.0, 0.0, 0.0], [0.0, 1.0]);
+        assert_eq!(sound_system.siren_voice, 0);
+
+        // Police pursuit with 1 star (wail siren)
+        police.set_stars(1);
+        // Spawn car with police spec
+        let spec = crate::vehicle::spec(18); // POLICE
+        let car = crate::actors::Car {
+            p: [15.0, 10.0, 0.0],
+            angle: 0.0,
+            speed: 10.0,
+            lat_vel: 0.0,
+            yaw_rate: 0.0,
+            steer_angle: 0.0,
+            gear: 1,
+            rpm: 0.5,
+            roll: 0.0,
+            pitch: 0.0,
+            roll_vel: 0.0,
+            pitch_vel: 0.0,
+            wheel_spin: false,
+            front_skidding: false,
+            rear_skidding: false,
+            braking: false,
+            headlights: true,
+            info_id: spec.info_id,
+            model_id: spec.model_id,
+            name: spec.name,
+            h: spec.half_extents(),
+            paint: 0,
+            from_cargen: false,
+            parked: false,
+            lane: 0,
+            wobble: 0.0,
+            next_lane: 0,
+            next_wobble: 0.0,
+            rail_dist: 0.0,
+            next_target: 0,
+            on_rail: false,
+            start_delay: 0.0,
+            driver_appearance: None,
+            driver_pose: crate::ped::Pose::default(),
+            target: 0,
+            previous: 0,
+            blocked: 0.0,
+            siren_active: true,
+        };
+        cars.push(car);
+
+        sound_system.update_sirens(&police, &cars, [0.0, 0.0, 0.0], [0.0, 1.0]);
+        assert_ne!(sound_system.siren_voice, 0, "Wail siren started for 1-star pursuit");
+
+        // High pursuit with 3 stars (yelp siren)
+        police.set_stars(3);
+        sound_system.update_sirens(&police, &cars, [0.0, 0.0, 0.0], [0.0, 1.0]);
+        assert_ne!(sound_system.siren_yelp_voice, 0, "Yelp siren started for 3-star pursuit");
+
+        // Clear stars: sirens turn off
+        police.set_stars(0);
+        cars[0].siren_active = false;
+        sound_system.update_sirens(&police, &cars, [0.0, 0.0, 0.0], [0.0, 1.0]);
+        assert_eq!(sound_system.siren_voice, 0);
+        assert_eq!(sound_system.siren_yelp_voice, 0);
     }
 }

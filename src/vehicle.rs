@@ -62,6 +62,9 @@ impl Spec {
     pub fn is_bike(&self) -> bool {
         self.kind == 1
     }
+    pub fn is_emergency(&self) -> bool {
+        matches!(self.name, "POLICE" | "AMBULANCE" | "FIRETRUCK" | "SWAT" | "FBIRANCHER")
+    }
     pub fn mass(&self) -> f32 {
         (self.mass_q12 as f32 / 4096.).max(0.4)
     }

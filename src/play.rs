@@ -902,6 +902,19 @@ pub fn run(
                         s.radio.prev_station();
                     }
                 }
+                if pressed.contains(&Key::H) || pad.pressed(crate::gamepad::LSTICK) {
+                    if let Some(s) = scene.as_mut() {
+                        if let Some(idx) = s.driving {
+                            if idx < s.cars.len() {
+                                if s.cars[idx].is_emergency() {
+                                    s.cars[idx].siren_active = !s.cars[idx].siren_active;
+                                } else {
+                                    sound.play_car_horn(s.cars[idx].p, player.p, [-player.heading.sin(), player.heading.cos()]);
+                                }
+                            }
+                        }
+                    }
+                }
             }
         } else {
             enter_pending = false;
@@ -1075,6 +1088,11 @@ pub fn run(
                         if gps.target.map(|t| [t.p[0], t.p[1]]) != Some(t2) {
                             gps.select(t2, player.p);
                         }
+                    }
+                    sound.update_radio(&s.radio);
+                    sound.update_sirens(&s.police, &s.cars, player.p, [-player.heading.sin(), player.heading.cos()]);
+                    for (pos, lethal) in s.drain_pending_impact_sounds() {
+                        sound.play_ped_impact(pos, lethal, player.p, [-player.heading.sin(), player.heading.cos()]);
                     }
                 }
                 let driving = scene.as_ref().is_some_and(|s| s.driving.is_some());

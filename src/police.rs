@@ -101,6 +101,11 @@ impl PoliceManager {
         self.spawn_cooldown = (self.spawn_cooldown - dt).max(0.0);
 
         if self.stars == 0 {
+            for &idx in &self.cop_car_indices {
+                if idx < cars.len() {
+                    cars[idx].siren_active = false;
+                }
+            }
             self.cop_car_indices.clear();
             return;
         }
@@ -137,6 +142,7 @@ impl PoliceManager {
 
             // Pursue player with siren lights
             cop.headlights = true;
+            cop.siren_active = true;
             if dist > 3.0 && dist < 120.0 {
                 let target_angle = -dx.atan2(dy);
                 let diff = (target_angle - cop.angle + std::f32::consts::PI)

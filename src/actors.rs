@@ -143,6 +143,7 @@ pub struct Car {
     pub target: usize,
     pub previous: usize,
     pub blocked: f32,
+    pub siren_active: bool,
 }
 impl Car {
     pub fn spec(&self) -> &'static crate::vehicle::Spec {
@@ -150,6 +151,9 @@ impl Car {
     }
     pub fn is_bike(&self) -> bool {
         self.spec().is_bike()
+    }
+    pub fn is_emergency(&self) -> bool {
+        self.spec().is_emergency()
     }
     pub fn visual_scale(&self) -> f32 {
         self.spec().visual_scale()
@@ -283,6 +287,7 @@ pub struct Scene {
     pub cash: u32,
     pub prompt: Option<String>,
     pub banner: Option<(String, f32)>,
+    pub pending_impact_sounds: Vec<([f32; 3], bool)>,
     stream_timer: f32,
 }
 
@@ -466,6 +471,7 @@ pub(crate) fn make_vehicle(
         target,
         previous,
         blocked: 0.,
+        siren_active: false,
     }
 }
 
@@ -539,6 +545,7 @@ impl Scene {
             cash: 500,
             prompt: None,
             banner: None,
+            pending_impact_sounds: Vec::new(),
             driving: None,
             health: 127.,
             armour: 0,
@@ -831,6 +838,10 @@ impl Scene {
             .map(|v| v.0)
     }
 
+    pub fn drain_pending_impact_sounds(&mut self) -> Vec<([f32; 3], bool)> {
+        std::mem::take(&mut self.pending_impact_sounds)
+    }
+
     pub fn toggle_vehicle(&mut self, c: &Collision, player: [f32; 3]) -> Option<[f32; 3]> {
         if let Some(index) = self.driving {
             let car = &self.cars[index];
@@ -981,7 +992,9 @@ impl Scene {
                 ped.panic = 8.0;
                 self.hits += 1;
                 self.police.report_crime(crate::police::CrimeType::PedHit);
-                if ped.health <= 0.0 {
+                let lethal = ped.health <= 0.0;
+                self.pending_impact_sounds.push((ped.p, lethal));
+                if lethal {
                     let pf = forward(ped.heading);
                     ped.fall_forward = f[0] * pf[0] + f[1] * pf[1] > 0.0;
                     ped.dead_timer = 0.0;
@@ -1037,7 +1050,9 @@ impl Scene {
         }
         self.hits += 1;
         self.police.report_crime(crate::police::CrimeType::PedHit);
-        if ped.health <= 0. {
+        let lethal = ped.health <= 0.;
+        self.pending_impact_sounds.push((ped.p, lethal));
+        if lethal {
             let pf = forward(ped.heading);
             ped.fall_forward = f[0] * pf[0] + f[1] * pf[1] > 0.;
             ped.dead_timer = 0.;
@@ -1787,6 +1802,7 @@ impl Scene {
                         ped.hit_flash = 0.3;
                         ped.pose.fall(assets, ped.fall_forward, 0.);
                         self.kills += 1;
+                        self.pending_impact_sounds.push((ped.p, true));
                         break;
                     } else if speed > 1.2 {
                         let push_dir = [cf[0] * dir, cf[1] * dir];
@@ -1797,7 +1813,9 @@ impl Scene {
                         ped.health = (ped.health - (speed * 4.5).clamp(10.0, 45.0)).max(0.);
                         ped.hit_flash = 0.25;
                         ped.panic = 3.0;
-                        if ped.health <= 0. {
+                        let lethal = ped.health <= 0.;
+                        self.pending_impact_sounds.push((ped.p, lethal));
+                        if lethal {
                             ped.fall_forward = (cf[0] * pf[0] + cf[1] * pf[1]) * dir > 0.;
                             ped.dead_timer = 0.;
                             ped.evade_roll = None;
@@ -2839,6 +2857,7 @@ mod tests {
             cash: 500,
             prompt: None,
             banner: None,
+            pending_impact_sounds: Vec::new(),
             driving: None,
             health: 127.,
             armour: 0,

@@ -1,9 +1,9 @@
 {
-  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 902 Rust functions)",
+  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 918 Rust functions)",
   "bytes": 6469472,
-  "portedBytes": 159220,
+  "portedBytes": 160932,
   "routines": 25988,
-  "portedRoutines": 625,
+  "portedRoutines": 641,
   "subsystems": [
     {
       "name": "Missions",
@@ -3472,9 +3472,9 @@
     {
       "name": "People",
       "bytes": 255716,
-      "portedBytes": 25636,
+      "portedBytes": 26480,
       "routines": 1125,
-      "portedRoutines": 98,
+      "portedRoutines": 100,
       "classes": [
         {
           "name": "(free functions)",
@@ -3858,8 +3858,8 @@
           "name": "cSimpleMover",
           "bytes": 6892,
           "routines": 56,
-          "portedBytes": 548,
-          "portedRoutines": 7
+          "portedBytes": 1392,
+          "portedRoutines": 9
         },
         {
           "name": "cSimpleMoverEffectRenderable",
@@ -3922,9 +3922,9 @@
     {
       "name": "Vehicles",
       "bytes": 396136,
-      "portedBytes": 3068,
+      "portedBytes": 3104,
       "routines": 1623,
-      "portedRoutines": 24,
+      "portedRoutines": 25,
       "classes": [
         {
           "name": "(free functions)",
@@ -3951,8 +3951,8 @@
           "name": "Vehicle",
           "bytes": 9860,
           "routines": 95,
-          "portedBytes": 3068,
-          "portedRoutines": 24
+          "portedBytes": 3104,
+          "portedRoutines": 25
         },
         {
           "name": "VehicleType",
@@ -6254,9 +6254,9 @@
     {
       "name": "Audio",
       "bytes": 55744,
-      "portedBytes": 1148,
+      "portedBytes": 1980,
       "routines": 331,
-      "portedRoutines": 40,
+      "portedRoutines": 53,
       "classes": [
         {
           "name": "(free functions)",
@@ -6276,22 +6276,22 @@
           "name": "SoundImpl",
           "bytes": 1284,
           "routines": 44,
-          "portedBytes": 1148,
-          "portedRoutines": 40
+          "portedBytes": 1284,
+          "portedRoutines": 44
         },
         {
           "name": "cAudio",
           "bytes": 516,
           "routines": 7,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 516,
+          "portedRoutines": 7
         },
         {
           "name": "cAudioBase",
           "bytes": 3788,
           "routines": 20,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 180,
+          "portedRoutines": 2
         },
         {
           "name": "cAudioBaseOAL",

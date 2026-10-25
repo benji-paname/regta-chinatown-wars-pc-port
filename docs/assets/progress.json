@@ -1,9 +1,9 @@
 {
-  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 986 Rust functions)",
+  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 1006 Rust functions)",
   "bytes": 6469472,
-  "portedBytes": 167268,
+  "portedBytes": 173740,
   "routines": 25988,
-  "portedRoutines": 709,
+  "portedRoutines": 743,
   "subsystems": [
     {
       "name": "Missions",
@@ -3472,9 +3472,9 @@
     {
       "name": "People",
       "bytes": 255716,
-      "portedBytes": 26480,
+      "portedBytes": 27788,
       "routines": 1125,
-      "portedRoutines": 100,
+      "portedRoutines": 102,
       "classes": [
         {
           "name": "(free functions)",
@@ -3725,8 +3725,8 @@
           "name": "cPlayerBoat",
           "bytes": 3156,
           "routines": 13,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 3156,
+          "portedRoutines": 13
         },
         {
           "name": "cPlayerBoatCam",
@@ -3802,8 +3802,8 @@
           "name": "cPlayerOnFoot",
           "bytes": 7628,
           "routines": 20,
-          "portedBytes": 7628,
-          "portedRoutines": 20
+          "portedBytes": 7172,
+          "portedRoutines": 18
         },
         {
           "name": "cPlayerOutOfVehicle",
@@ -3858,8 +3858,8 @@
           "name": "cSimpleMover",
           "bytes": 6892,
           "routines": 56,
-          "portedBytes": 1392,
-          "portedRoutines": 9
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cSimpleMoverEffectRenderable",
@@ -3922,9 +3922,9 @@
     {
       "name": "Vehicles",
       "bytes": 396136,
-      "portedBytes": 6608,
+      "portedBytes": 8560,
       "routines": 1623,
-      "portedRoutines": 52,
+      "portedRoutines": 70,
       "classes": [
         {
           "name": "(free functions)",
@@ -3951,8 +3951,8 @@
           "name": "Vehicle",
           "bytes": 9860,
           "routines": 95,
-          "portedBytes": 4616,
-          "portedRoutines": 43
+          "portedBytes": 6568,
+          "portedRoutines": 61
         },
         {
           "name": "VehicleType",
@@ -5706,9 +5706,9 @@
     {
       "name": "Effects",
       "bytes": 122680,
-      "portedBytes": 808,
+      "portedBytes": 4020,
       "routines": 554,
-      "portedRoutines": 12,
+      "portedRoutines": 26,
       "classes": [
         {
           "name": "(free functions)",
@@ -6134,8 +6134,8 @@
           "name": "cParticleEmitterWaterSplash",
           "bytes": 1816,
           "routines": 9,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 1816,
+          "portedRoutines": 9
         },
         {
           "name": "cPickupEffectRenderable",
@@ -6225,8 +6225,8 @@
           "name": "cWaterRenderBlock",
           "bytes": 1396,
           "routines": 5,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 1396,
+          "portedRoutines": 5
         },
         {
           "name": "cWaterSpray",

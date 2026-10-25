@@ -150,6 +150,10 @@ pub struct Car {
     pub disabled: bool,
     pub sparks: f32,
     pub respray_timer: f32,
+    pub wake_emitter: Option<crate::vehicle::BoatWakeEmitter>,
+    pub spray_emitter: Option<crate::vehicle::BoatSprayEmitter>,
+    pub boat_engine: Option<crate::vehicle::BoatEngine>,
+    pub in_water: Option<crate::vehicle::CarInWater>,
 }
 impl Car {
     pub fn spec(&self) -> &'static crate::vehicle::Spec {
@@ -160,6 +164,9 @@ impl Car {
     }
     pub fn is_emergency(&self) -> bool {
         self.spec().is_emergency()
+    }
+    pub fn is_watercraft(&self) -> bool {
+        self.spec().is_watercraft()
     }
     pub fn visual_scale(&self) -> f32 {
         self.spec().visual_scale()
@@ -301,6 +308,9 @@ pub struct Scene {
     pub prompt: Option<String>,
     pub banner: Option<(String, f32)>,
     pub pending_impact_sounds: Vec<([f32; 3], bool)>,
+    pub swimming: bool,
+    pub swim_timer: f32,
+    pub ambient_boats: crate::vehicle::AmbientBoatManager,
     stream_timer: f32,
 }
 
@@ -490,6 +500,10 @@ pub(crate) fn make_vehicle(
         disabled: false,
         sparks: 0.0,
         respray_timer: 0.0,
+        wake_emitter: if spec.is_watercraft() { Some(crate::vehicle::BoatWakeEmitter::new()) } else { None },
+        spray_emitter: if spec.is_watercraft() { Some(crate::vehicle::BoatSprayEmitter::new()) } else { None },
+        boat_engine: if spec.is_watercraft() { Some(crate::vehicle::BoatEngine::new()) } else { None },
+        in_water: None,
     }
 }
 
@@ -581,6 +595,9 @@ impl Scene {
             prompt: None,
             banner: None,
             pending_impact_sounds: Vec::new(),
+            swimming: false,
+            swim_timer: 0.0,
+            ambient_boats: crate::vehicle::AmbientBoatManager::new(),
             driving: None,
             health: 127.,
             armour: 0,
@@ -864,10 +881,10 @@ impl Scene {
         self.cars
             .iter()
             .enumerate()
-            .filter(|(_, car)| car.speed.abs() < 4. && (car.p[2] - player[2]).abs() < 2.)
+            .filter(|(_, car)| car.speed.abs() < 4. && (car.p[2] - player[2]).abs() < 3.2)
             .filter_map(|(i, car)| {
                 let d = distance(car.p, player);
-                (d < 6.5).then_some((i, d))
+                (d < 7.5).then_some((i, d))
             })
             .min_by(|a, b| a.1.total_cmp(&b.1))
             .map(|v| v.0)
@@ -898,6 +915,18 @@ impl Scene {
                 {
                     continue;
                 }
+                if car.is_watercraft() {
+                    let g = c.ground(p[0], p[1], p[2]);
+                    if g.water {
+                        let swim_p = [p[0], p[1], -7.3];
+                        let car = &mut self.cars[index];
+                        car.speed = 0.;
+                        car.parked = true;
+                        self.driving = None;
+                        self.vehicle_exits += 1;
+                        return Some(swim_p);
+                    }
+                }
                 if let Some(p) = person_position(c, p) {
                     let car = &mut self.cars[index];
                     car.speed = 0.;
@@ -918,13 +947,13 @@ impl Scene {
             None
         } else {
             let index = self.nearest_car(player)?;
-            // Entry must not reach through a building wall.
+            let is_watercraft = self.cars[index].is_watercraft();
             let delta = [
                 self.cars[index].p[0] - player[0],
                 self.cars[index].p[1] - player[1],
             ];
             let steps = (delta[0].hypot(delta[1]) / 0.5).ceil() as usize;
-            if (1..=steps).any(|i| {
+            if !is_watercraft && (1..=steps).any(|i| {
                 let t = i as f32 / steps.max(1) as f32;
                 person_position(
                     c,
@@ -1244,6 +1273,11 @@ impl Scene {
                 self.banner = Some((msg.clone(), 3.5));
             }
             if done {
+                if let Some(driving_idx) = self.driving {
+                    self.cars[driving_idx].parked = true;
+                    self.driving = None;
+                    self.swimming = true;
+                }
                 self.cash = self.cash.saturating_add(minigame.reward_cash);
                 self.minigame = None;
                 if let crate::missions::MissionState::InProgress { objective: crate::missions::MissionObjective::CompleteMinigame { .. }, .. } = &self.missions.state {
@@ -1412,6 +1446,27 @@ impl Scene {
         let dt = dt.clamp(0., 0.1);
         self.attack_timer = (self.attack_timer - dt).max(0.);
         self.hit_flash = (self.hit_flash - dt).max(0.);
+
+        // Ambient boat traffic and police water patrol updates
+        self.ambient_boats.update(dt, player, self.police.stars, &mut self.cars, &mut self.rng);
+
+        // Player water immersion and swimming state
+        let player_g = c.ground(player[0], player[1], player[2]);
+        if player_g.water || player[2] <= -6.8 {
+            self.swimming = true;
+            self.swim_timer += dt;
+        } else {
+            self.swimming = false;
+        }
+
+        // Submerged vehicle sinking car minigame trigger
+        if let Some(driving_idx) = self.driving {
+            if let Some(in_w) = &self.cars[driving_idx].in_water {
+                if in_w.trigger_sinking_minigame && self.minigame.is_none() {
+                    self.minigame = Some(crate::minigames::MinigameSession::new_sinking_car());
+                }
+            }
+        }
         let previous: Vec<_> = self.cars.iter().map(|car| (car.p, car.angle, car.h[0])).collect();
         for i in 0..self.cars.len() {
             if self.driving == Some(i) {
@@ -2835,6 +2890,50 @@ fn point_in_car(car: &Car, p: [f32; 3], radius: f32) -> bool {
 /// Uses per-vehicle PAK 29 parameters (cTransmission::DriveEngine,
 /// cWheeledVehicle::CalcHandling / UpdateSway, and cBike::UpdateModelMatrix).
 fn step_car(car: &mut Car, c: &Collision, input: DriveInput, dt: f32) -> bool {
+    if car.is_watercraft() {
+        let is_jetski = car.spec().is_jetski();
+        if let Some(engine) = &mut car.boat_engine {
+            engine.step(
+                dt,
+                &mut car.speed,
+                &mut car.angle,
+                &mut car.pitch,
+                &mut car.roll,
+                &mut car.p,
+                input.throttle,
+                input.steer,
+                is_jetski,
+            );
+        }
+        let f = forward(car.angle);
+        car.p[0] += f[0] * car.speed * dt;
+        car.p[1] += f[1] * car.speed * dt;
+        let g = c.ground(car.p[0], car.p[1], car.p[2]);
+        if !g.water {
+            car.speed *= 0.6;
+        }
+        if let Some(wake) = &mut car.wake_emitter {
+            wake.update(dt, car.p, car.angle, car.speed, is_jetski);
+        }
+        if let Some(spray) = &mut car.spray_emitter {
+            spray.update(dt, car.p, car.angle, car.speed, is_jetski);
+        }
+        return false;
+    }
+
+    let g_check = c.ground(car.p[0], car.p[1], car.p[2]);
+    if g_check.water {
+        if car.in_water.is_none() {
+            car.in_water = Some(crate::vehicle::CarInWater::new());
+        }
+        if let Some(in_w) = &mut car.in_water {
+            in_w.update(dt, true);
+        }
+        car.speed = move_towards(car.speed, 0.0, 18.0 * dt);
+        car.p[2] = move_towards(car.p[2], -8.2, 0.9 * dt);
+        return false;
+    }
+
     let spec = car.spec();
     let mass = spec.mass();
     let max_fwd = (spec.top_speed as f32 * 0.44).clamp(22.0, 68.0);
@@ -3160,6 +3259,9 @@ mod tests {
             prompt: None,
             banner: None,
             pending_impact_sounds: Vec::new(),
+            swimming: false,
+            swim_timer: 0.0,
+            ambient_boats: crate::vehicle::AmbientBoatManager::new(),
             driving: None,
             health: 127.,
             armour: 0,
@@ -3902,5 +4004,58 @@ mod tests {
         s.tick(&c, &roads, &assets, [100.0, 100.0, 5.0], 1.0 / 30.0, DriveInput::default());
         assert!(s.collectibles.cameras[0].destroyed, "camera destroyed by blast");
         assert!(s.save_progress.package[0], "camera recorded in save_progress");
+    }
+
+    #[test]
+    fn watercraft_piloting_swimming_and_sinking_car_escape() {
+        let mut s = empty();
+        let c = flat();
+        let roads = Roads { nodes: vec![] };
+        let assets = assets();
+
+        // 1. Watercraft boarding and piloting (Speeder)
+        let mut boat = make_vehicle([500.0, -1000.0, -7.42], 0.0, 0, 0, 11, 0, false, false);
+        boat.name = "SPEEDER";
+        assert!(boat.is_watercraft());
+        assert!(boat.wake_emitter.is_some());
+        assert!(boat.spray_emitter.is_some());
+        assert!(boat.boat_engine.is_some());
+
+        s.cars.push(boat);
+        s.driving = Some(0);
+
+        // Pilot boat with throttle input
+        let input = DriveInput { throttle: 1.0, steer: 0.5, brake: false };
+        for _ in 0..10 {
+            s.tick(&c, &roads, &assets, [500.0, -1000.0, -7.42], 1.0 / 30.0, input);
+        }
+        assert!(s.cars[0].speed > 0.0, "Boat moves forward under throttle");
+        assert!(!s.cars[0].wake_emitter.as_ref().unwrap().segments.is_empty(), "Wake segments emitted");
+
+        // 2. Swimming detection
+        s.tick(&c, &roads, &assets, [500.0, -1000.0, -7.3], 1.0 / 30.0, DriveInput::default());
+        assert!(s.swimming, "Player detected swimming in water layer");
+
+        // 3. Land car submerged in water triggers sinking car minigame
+        let mut sink_car = make_vehicle([500.0, -1000.0, -7.4], 0.0, 0, 0, 0, 0, false, false);
+        sink_car.name = "ADMIRAL";
+        sink_car.in_water = Some(crate::vehicle::CarInWater {
+            submersion: 0.8,
+            bubble_timer: 0.0,
+            engine_stalled: true,
+            trigger_sinking_minigame: true,
+        });
+        s.cars.push(sink_car);
+        s.driving = Some(1);
+        s.tick(&c, &roads, &assets, [500.0, -1000.0, -7.4], 1.0 / 30.0, DriveInput::default());
+        assert!(s.minigame.is_some(), "Sinking car minigame triggered upon submersion");
+
+        // Escape sinking car: punch 4 times
+        for _ in 0..4 {
+            s.interact([500.0, -1000.0, -7.4]);
+        }
+        assert!(s.minigame.is_none(), "Sinking car escape completed");
+        assert!(s.driving.is_none(), "Player escaped from sinking car");
+        assert!(s.swimming, "Player is now swimming to safety");
     }
 }

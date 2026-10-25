@@ -41,10 +41,12 @@ RUST_MODULE_MAP = {
     'vehicle.rs': [
         'cVehicle', 'cWheeledVehicle', 'cCar', 'cBike', 'Vehicle', 'VehicleType', 'cSeats',
         'cTrafficLight', 'cTrafficLightManager', 'cTrafficManager', 'cWanderRoads', 'cCarController',
-        'cPayNSpray', 'cPayNSprayManager'
+        'cPayNSpray', 'cPayNSprayManager',
+        'cBoat', 'cAIBoat', 'cAmbientBoatManager', 'cBoatEngine', 'cBoatWakeEmitter', 'cBoatSprayEmitter',
+        'cCarInWater', 'cPoliceBoat'
     ],
     'ped.rs': ['cPed', 'cPlayer', 'cPopulationManager', 'cPedSprite', 'cAnimation'],
-    'actors.rs': ['cAIGang', 'cAITaskHub', 'cSimpleMover', 'cPlayerOnFoot'],
+    'actors.rs': ['cAIGang', 'cAITaskHub', 'cSimpleMover', 'cPlayerOnFoot', 'cPlayerBoat', 'cLeaveWater'],
     'vault.rs': ['cTaskVault', 'cSimpleTrail'],
     'roll.rs': ['cTaskRoll', 'cOneShotAnimationTask'],
     'weapons.rs': [
@@ -59,7 +61,8 @@ RUST_MODULE_MAP = {
     'props.rs': ['cDynamicProp', 'cZoneManager'],
     'pavement.rs': ['cLocalAreaKnowledge', 'cRoadNetwork'],
     'ped_paths.rs': ['cPedRoute', 'cPedPath'],
-    'hud.rs': ['Gui', 'HUDText', 'cMiniHud'],
+    'hud.rs': ['Gui', 'HUDText', 'cMiniHud', 'cInWaterHelpText'],
+    'gpu.rs': ['cWaterRenderBlock', 'cParticleEmitterWaterSplash'],
     'radar.rs': ['cRadar', 'cRadarBlip', 'cTurfMap'],
     'gps.rs': ['cGPS', 'cRouteManager'],
     'pda.rs': ['PDAImpl', 'cPda', 'cEmailApp', 'cPhoneApp'],

@@ -1130,10 +1130,11 @@ pub fn run(
                     }
                     let was_vaulting = player.vault.is_some();
                     let was_rolling = player.roll.is_some();
+                    let is_attacking = scene.as_ref().is_some_and(|s| s.attack_timer > 0.);
                     let mut step = |c: &Collision| {
                         player.step(
                             c,
-                            if scene.as_ref().is_some_and(|s| s.attack_timer > 0.) {
+                            if is_attacking {
                                 [0.; 2]
                             } else {
                                 camera.movement(direction[0], direction[1])
@@ -1148,8 +1149,11 @@ pub fn run(
                             },
                         )
                     };
-                    if let Some(s) = scene.as_ref() {
+                    if let Some(s) = scene.as_mut() {
                         s.with_car_collision(&mut collision, &mut step);
+                        if player.in_water {
+                            s.swimming = true;
+                        }
                     } else {
                         step(&collision);
                     }

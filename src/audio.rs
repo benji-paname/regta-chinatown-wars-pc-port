@@ -1750,52 +1750,11 @@ mod tests {
         // Police pursuit with 1 star (wail siren)
         police.set_stars(1);
         // Spawn car with police spec
-        let spec = crate::vehicle::spec(18); // POLICE
-        let car = crate::actors::Car {
-            p: [15.0, 10.0, 0.0],
-            angle: 0.0,
-            speed: 10.0,
-            lat_vel: 0.0,
-            yaw_rate: 0.0,
-            steer_angle: 0.0,
-            gear: 1,
-            rpm: 0.5,
-            roll: 0.0,
-            pitch: 0.0,
-            roll_vel: 0.0,
-            pitch_vel: 0.0,
-            wheel_spin: false,
-            front_skidding: false,
-            rear_skidding: false,
-            braking: false,
-            headlights: true,
-            info_id: spec.info_id,
-            model_id: spec.model_id,
-            name: spec.name,
-            h: spec.half_extents(),
-            paint: 0,
-            from_cargen: false,
-            parked: false,
-            lane: 0,
-            wobble: 0.0,
-            next_lane: 0,
-            next_wobble: 0.0,
-            rail_dist: 0.0,
-            next_target: 0,
-            on_rail: false,
-            start_delay: 0.0,
-            driver_appearance: None,
-            driver_pose: crate::ped::Pose::default(),
-            target: 0,
-            previous: 0,
-            blocked: 0.0,
-            siren_active: true,
-            health: 1000.0,
-            flat_tires: [false; 4],
-            disabled: false,
-            sparks: 0.0,
-            respray_timer: 0.0,
-        };
+        let mut car = crate::actors::make_vehicle([15.0, 10.0, 0.0], 0.0, 0, 0, 18, 0, false, false);
+        car.speed = 10.0;
+        car.gear = 1;
+        car.rpm = 0.5;
+        car.siren_active = true;
         cars.push(car);
 
         sound_system.update_sirens(&police, &cars, [0.0, 0.0, 0.0], [0.0, 1.0]);

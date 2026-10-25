@@ -404,7 +404,9 @@ impl Renderer {
             glDisable(0x0de1);
             glDisable(0x0be2);
             glDisable(0x0bc0);
-            glColor3f(0.12, 0.26, 0.31);
+
+            // 1. Broad distant ocean base
+            glColor3f(0.08, 0.18, 0.24);
             glBegin(7);
             for (x, y) in [
                 (-3500., -2500.),
@@ -412,9 +414,51 @@ impl Renderer {
                 (3500., 2500.),
                 (-3500., 2500.),
             ] {
-                glVertex3f(x, y, -7.5);
+                glVertex3f(x, y, -7.6);
             }
             glEnd();
+
+            // 2. Chinatown Wars Dynamic Animated Water Surface Mesh (cWaterRenderBlock)
+            let center_x = walker.p[0];
+            let center_y = walker.p[1];
+            let time = (ticks as f32) * (1.0 / 30.0);
+            let wave_fn = |wx: f32, wy: f32| -> f32 {
+                -7.44 + 0.11 * (0.055 * wx + 1.8 * time).sin() + 0.08 * (0.065 * wy + 2.3 * time).cos()
+            };
+
+            let grid_step = 10.0;
+            let grid_half = 14;
+            let base_gx = (center_x / grid_step).floor() as i32;
+            let base_gy = (center_y / grid_step).floor() as i32;
+
+            glBegin(7);
+            for ix in -grid_half..grid_half {
+                for iy in -grid_half..grid_half {
+                    let x0 = (base_gx + ix) as f32 * grid_step;
+                    let y0 = (base_gy + iy) as f32 * grid_step;
+                    let x1 = x0 + grid_step;
+                    let y1 = y0 + grid_step;
+
+                    let z00 = wave_fn(x0, y0);
+                    let z10 = wave_fn(x1, y0);
+                    let z11 = wave_fn(x1, y1);
+                    let z01 = wave_fn(x0, y1);
+
+                    let avg_h = (z00 + z10 + z11 + z01) * 0.25;
+                    let crest_factor = ((avg_h - (-7.44)) / 0.18).clamp(0.0, 1.0);
+                    let r = 0.08 + crest_factor * 0.08;
+                    let g = 0.20 + crest_factor * 0.24;
+                    let b = 0.28 + crest_factor * 0.22;
+                    glColor3f(r, g, b);
+
+                    glVertex3f(x0, y0, z00);
+                    glVertex3f(x1, y0, z10);
+                    glVertex3f(x1, y1, z11);
+                    glVertex3f(x0, y1, z01);
+                }
+            }
+            glEnd();
+
             glEnable(0x0bc0);
             glEnable(0x0be2);
             self.instances = 0;
@@ -744,6 +788,56 @@ impl Renderer {
                     glVertex3f(hw, -hl, -hh);
                     glEnd();
                     glPopMatrix();
+                }
+
+                // Chinatown Wars authentic Boat Wake Trails (cBoatWakeEmitter)
+                for car in &scene.cars {
+                    if let Some(wake) = &car.wake_emitter {
+                        for seg in &wake.segments {
+                            if seg.alpha > 0.02 {
+                                glColor4f(0.88, 0.94, 0.98, (seg.alpha * 0.65).clamp(0.0, 1.0));
+                                glBegin(7); // GL_QUADS
+                                glVertex3f(seg.left_edge[0], seg.left_edge[1], seg.left_edge[2]);
+                                glVertex3f(seg.right_edge[0], seg.right_edge[1], seg.right_edge[2]);
+                                glVertex3f(seg.right_edge[0] + 0.3, seg.right_edge[1] + 0.3, seg.right_edge[2]);
+                                glVertex3f(seg.left_edge[0] - 0.3, seg.left_edge[1] - 0.3, seg.left_edge[2]);
+                                glEnd();
+                            }
+                        }
+                    }
+                    if let Some(spray) = &car.spray_emitter {
+                        for p in &spray.particles {
+                            if p.alpha > 0.02 {
+                                glColor4f(0.92, 0.96, 1.0, (p.alpha * 0.70).clamp(0.0, 1.0));
+                                let sz = p.size;
+                                glBegin(7);
+                                glVertex3f(p.pos[0] - sz, p.pos[1] - sz, p.pos[2]);
+                                glVertex3f(p.pos[0] + sz, p.pos[1] - sz, p.pos[2]);
+                                glVertex3f(p.pos[0] + sz, p.pos[1] + sz, p.pos[2] + sz);
+                                glVertex3f(p.pos[0] - sz, p.pos[1] + sz, p.pos[2] + sz);
+                                glEnd();
+                            }
+                        }
+                    }
+                }
+
+                // Chinatown Wars Swimming Water Ripples (cParticleEmitterWaterSplash)
+                if scene.swimming {
+                    let swim_p = walker.p;
+                    for r_idx in 0..3 {
+                        let phase = (scene.swim_timer * 2.0 + (r_idx as f32) * 0.8) % 2.0;
+                        let r_size = 0.4 + phase * 1.6;
+                        let r_alpha = ((1.0 - phase / 2.0) * 0.55).max(0.0);
+                        glColor4f(0.85, 0.95, 1.0, r_alpha);
+                        glLineWidth(2.0);
+                        glBegin(2); // GL_LINE_LOOP
+                        for a_step in 0..16 {
+                            let angle = (a_step as f32) * std::f32::consts::TAU / 16.0;
+                            glVertex3f(swim_p[0] + angle.cos() * r_size, swim_p[1] + angle.sin() * r_size, -7.38);
+                        }
+                        glEnd();
+                        glLineWidth(1.0);
+                    }
                 }
 
                 for trace in &scene.bullet_traces {

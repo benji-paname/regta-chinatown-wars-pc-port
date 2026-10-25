@@ -65,6 +65,15 @@ impl Spec {
     pub fn is_bike(&self) -> bool {
         self.kind == 1
     }
+    pub fn is_boat(&self) -> bool {
+        self.kind == 2
+    }
+    pub fn is_jetski(&self) -> bool {
+        self.kind == 3
+    }
+    pub fn is_watercraft(&self) -> bool {
+        matches!(self.kind, 2 | 3)
+    }
     pub fn is_emergency(&self) -> bool {
         matches!(self.name, "POLICE" | "AMBULANCE" | "FIRETRUCK" | "SWAT" | "FBIRANCHER")
     }
@@ -764,6 +773,362 @@ impl PayNSprayManager {
     }
 }
 
+/// Helper for linear scalar approach towards a target.
+fn move_towards_scalar(current: f32, target: f32, max_delta: f32) -> f32 {
+    if (target - current).abs() <= max_delta {
+        target
+    } else {
+        current + (target - current).signum() * max_delta
+    }
+}
+
+/// Individual node in a boat's trailing hydrodynamic wake ribbon.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct WakeSegment {
+    pub pos: [f32; 3],
+    pub left_edge: [f32; 3],
+    pub right_edge: [f32; 3],
+    pub width: f32,
+    pub alpha: f32,
+    pub life: f32,
+}
+
+/// Dynamic dual-trail hydrodynamic wake emitter (`cBoatWakeEmitter`).
+#[derive(Debug, Clone, Default)]
+pub struct BoatWakeEmitter {
+    pub segments: Vec<WakeSegment>,
+    pub spawn_timer: f32,
+}
+
+impl BoatWakeEmitter {
+    pub fn new() -> Self {
+        Self {
+            segments: Vec::with_capacity(64),
+            spawn_timer: 0.0,
+        }
+    }
+
+    /// Emits expanding foam ribbon segments behind moving boat stern.
+    pub fn update(&mut self, dt: f32, boat_pos: [f32; 3], boat_angle: f32, speed: f32, is_jetski: bool) {
+        for seg in &mut self.segments {
+            seg.life += dt;
+            seg.alpha = (1.0 - seg.life / 3.2).max(0.0);
+            seg.width += 2.0 * dt;
+            let perp_x = -boat_angle.cos();
+            let perp_y = boat_angle.sin();
+            seg.left_edge[0] = seg.pos[0] - perp_x * seg.width;
+            seg.left_edge[1] = seg.pos[1] - perp_y * seg.width;
+            seg.right_edge[0] = seg.pos[0] + perp_x * seg.width;
+            seg.right_edge[1] = seg.pos[1] + perp_y * seg.width;
+        }
+        self.segments.retain(|s| s.alpha > 0.02);
+
+        if speed.abs() > 1.2 {
+            self.spawn_timer += dt;
+            let interval = if is_jetski { 0.045 } else { 0.065 };
+            if self.spawn_timer >= interval {
+                self.spawn_timer = 0.0;
+                let stern_offset = if is_jetski { -1.1 } else { -2.4 };
+                let stern_x = boat_pos[0] + boat_angle.sin() * stern_offset;
+                let stern_y = boat_pos[1] + boat_angle.cos() * stern_offset;
+                let initial_w = if is_jetski { 0.55 } else { 1.15 };
+                let perp_x = -boat_angle.cos();
+                let perp_y = boat_angle.sin();
+                self.segments.push(WakeSegment {
+                    pos: [stern_x, stern_y, -7.38],
+                    left_edge: [stern_x - perp_x * initial_w, stern_y - perp_y * initial_w, -7.38],
+                    right_edge: [stern_x + perp_x * initial_w, stern_y + perp_y * initial_w, -7.38],
+                    width: initial_w,
+                    alpha: 0.85,
+                    life: 0.0,
+                });
+            }
+        }
+    }
+}
+
+/// Bow spray water droplets (`cBoatSprayEmitter`).
+#[derive(Debug, Clone, Copy)]
+pub struct BoatSprayParticle {
+    pub pos: [f32; 3],
+    pub vel: [f32; 3],
+    pub life: f32,
+    pub alpha: f32,
+    pub size: f32,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct BoatSprayEmitter {
+    pub particles: Vec<BoatSprayParticle>,
+}
+
+impl BoatSprayEmitter {
+    pub fn new() -> Self {
+        Self { particles: Vec::with_capacity(48) }
+    }
+
+    pub fn update(&mut self, dt: f32, bow_pos: [f32; 3], angle: f32, speed: f32, is_jetski: bool) {
+        for p in &mut self.particles {
+            p.life += dt;
+            p.pos[0] += p.vel[0] * dt;
+            p.pos[1] += p.vel[1] * dt;
+            p.pos[2] += p.vel[2] * dt;
+            p.vel[2] -= 9.8 * dt;
+            p.alpha = (1.0 - p.life / 0.42).max(0.0);
+            p.size += 0.7 * dt;
+        }
+        self.particles.retain(|p| p.alpha > 0.05 && p.pos[2] >= -7.5);
+
+        if speed > 3.5 && self.particles.len() < 36 {
+            let fwd = [angle.sin(), angle.cos()];
+            let right = [fwd[1], -fwd[0]];
+            let bow_len = if is_jetski { 0.95 } else { 2.3 };
+            let spray_speed = speed * 0.42;
+
+            // Port bow spray
+            self.particles.push(BoatSprayParticle {
+                pos: [bow_pos[0] + fwd[0] * bow_len - right[0] * 0.6, bow_pos[1] + fwd[1] * bow_len - right[1] * 0.6, -7.32],
+                vel: [-right[0] * spray_speed + fwd[0] * 1.2, -right[1] * spray_speed + fwd[1] * 1.2, 2.6],
+                life: 0.0,
+                alpha: 0.75,
+                size: 0.22,
+            });
+            // Starboard bow spray
+            self.particles.push(BoatSprayParticle {
+                pos: [bow_pos[0] + fwd[0] * bow_len + right[0] * 0.6, bow_pos[1] + fwd[1] * bow_len + right[1] * 0.6, -7.32],
+                vel: [right[0] * spray_speed + fwd[0] * 1.2, right[1] * spray_speed + fwd[1] * 1.2, 2.6],
+                life: 0.0,
+                alpha: 0.75,
+                size: 0.22,
+            });
+        }
+    }
+}
+
+/// Authentic hydrodynamic boat engine with water drag, hydroplane lift, and wave oscillation (`cBoatEngine`).
+#[derive(Debug, Clone)]
+pub struct BoatEngine {
+    pub throttle: f32,
+    pub steer: f32,
+    pub water_level: f32,
+    pub wave_phase: f32,
+    pub buoyant_force: f32,
+    pub planing_lift: f32,
+}
+
+impl Default for BoatEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl BoatEngine {
+    pub fn new() -> Self {
+        Self {
+            throttle: 0.0,
+            steer: 0.0,
+            water_level: -7.42,
+            wave_phase: 0.0,
+            buoyant_force: 1.0,
+            planing_lift: 0.0,
+        }
+    }
+
+    /// Computes hydrodynamics step: water resistance, propeller thrust, hydroplane planing.
+    pub fn step(
+        &mut self,
+        dt: f32,
+        speed: &mut f32,
+        angle: &mut f32,
+        pitch: &mut f32,
+        roll: &mut f32,
+        p: &mut [f32; 3],
+        input_throttle: f32,
+        input_steer: f32,
+        is_jetski: bool,
+    ) {
+        self.throttle = input_throttle.clamp(-1.0, 1.0);
+        self.steer = input_steer.clamp(-1.0, 1.0);
+        self.wave_phase += dt * 2.2;
+
+        let max_speed = if is_jetski { 32.0 } else { 26.0 };
+        let accel = if is_jetski { 18.0 } else { 12.0 };
+        let water_drag = if is_jetski { 4.5 } else { 3.2 };
+
+        if self.throttle.abs() > 0.05 {
+            *speed += self.throttle * accel * dt;
+        } else {
+            *speed = move_towards_scalar(*speed, 0.0, water_drag * dt);
+        }
+        *speed = speed.clamp(-8.0, max_speed);
+
+        let steer_authority = (speed.abs() / 4.0).min(1.0).max(0.2);
+        let turn_rate = if is_jetski { 2.2 } else { 1.4 };
+        *angle -= self.steer * turn_rate * steer_authority * dt;
+
+        let target_pitch = if *speed > 3.0 {
+            let bow_rise = (*speed / max_speed) * if is_jetski { 0.16 } else { 0.10 };
+            -bow_rise
+        } else {
+            0.02 * (self.wave_phase * 1.5).sin()
+        };
+        *pitch += (target_pitch - *pitch) * (6.0 * dt).min(1.0);
+
+        let target_roll = if is_jetski {
+            self.steer * 0.35 * (*speed / max_speed).min(1.0)
+        } else {
+            -self.steer * 0.12 * (*speed / max_speed).min(1.0) + 0.03 * (self.wave_phase * 1.8).cos()
+        };
+        *roll += (target_roll - *roll) * (8.0 * dt).min(1.0);
+
+        let wave_bob = 0.06 * (self.wave_phase).sin() + 0.04 * (self.wave_phase * 1.7 + 0.5).cos();
+        p[2] = self.water_level + wave_bob;
+    }
+}
+
+/// Tracks a land vehicle submerging into water (`cCarInWater`).
+#[derive(Debug, Clone)]
+pub struct CarInWater {
+    pub submersion: f32,
+    pub bubble_timer: f32,
+    pub engine_stalled: bool,
+    pub trigger_sinking_minigame: bool,
+}
+
+impl Default for CarInWater {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl CarInWater {
+    pub fn new() -> Self {
+        Self {
+            submersion: 0.0,
+            bubble_timer: 0.0,
+            engine_stalled: false,
+            trigger_sinking_minigame: false,
+        }
+    }
+
+    pub fn update(&mut self, dt: f32, is_player_driving: bool) {
+        self.submersion = (self.submersion + dt * 0.35).min(1.0);
+        if self.submersion > 0.15 {
+            self.engine_stalled = true;
+        }
+        if is_player_driving && self.submersion > 0.40 && !self.trigger_sinking_minigame {
+            self.trigger_sinking_minigame = true;
+        }
+    }
+}
+
+/// Ambient watercraft waypoint on Liberty City navigable waterways (`cAIBoat`).
+#[derive(Debug, Clone, Copy)]
+pub struct WaterWaypoint {
+    pub p: [f32; 2],
+    pub name: &'static str,
+}
+
+/// Liberty City authentic navigable waterways channels:
+/// East River, West River, North Bohan Canal, Humboldt Bay.
+pub const WATER_WAYPOINTS: &[WaterWaypoint] = &[
+    WaterWaypoint { p: [ 600.0, -1200.0], name: "East River South" },
+    WaterWaypoint { p: [ 750.0,   -200.0], name: "East River Mid" },
+    WaterWaypoint { p: [ 680.0,    800.0], name: "East River North" },
+    WaterWaypoint { p: [ 300.0,   1600.0], name: "Humboldt River" },
+    WaterWaypoint { p: [-200.0,   2100.0], name: "Bohan Channel" },
+    WaterWaypoint { p: [-950.0,   1500.0], name: "West River North" },
+    WaterWaypoint { p: [-1100.0,   200.0], name: "West River Mid" },
+    WaterWaypoint { p: [-900.0,  -1100.0], name: "West River South" },
+];
+
+/// Ambient boat and police patrol boat management system (`cAmbientBoatManager`, `cPoliceBoat`).
+#[derive(Debug, Clone)]
+pub struct AmbientBoatManager {
+    pub spawn_timer: f32,
+    pub active_patrols: usize,
+}
+
+impl Default for AmbientBoatManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl AmbientBoatManager {
+    pub fn new() -> Self {
+        Self {
+            spawn_timer: 0.0,
+            active_patrols: 0,
+        }
+    }
+
+    /// Spawns ambient boats or police watercraft depending on player location and wanted level.
+    pub fn update(
+        &mut self,
+        dt: f32,
+        player_p: [f32; 3],
+        wanted_stars: u8,
+        cars: &mut Vec<crate::actors::Car>,
+        rng: &mut Rng,
+    ) {
+        self.spawn_timer += dt;
+        if self.spawn_timer >= 5.0 {
+            self.spawn_timer = 0.0;
+
+            let water_boats_count = cars.iter().filter(|c| c.is_watercraft()).count();
+            if water_boats_count < 4 {
+                let mut best_pt = None;
+                let mut best_d = 350.0 * 350.0;
+                for wp in WATER_WAYPOINTS {
+                    let dx = wp.p[0] - player_p[0];
+                    let dy = wp.p[1] - player_p[1];
+                    let d = dx * dx + dy * dy;
+                    if d < best_d && d > 60.0 * 60.0 {
+                        best_d = d;
+                        best_pt = Some(wp.p);
+                    }
+                }
+
+                if let Some(pos) = best_pt {
+                    let (info_id, model_id, name) = if wanted_stars >= 2 {
+                        if rng.below(2) == 0 {
+                            (36, 85, "CGDINGHY")
+                        } else {
+                            (37, 87, "CGLAUNCH")
+                        }
+                    } else {
+                        match rng.below(4) {
+                            0 => (11, 47, "SPEEDER"),
+                            1 => (43, 97, "WETSKI"),
+                            2 => (39, 92, "DINGHY"),
+                            _ => (99, 190, "JETMAX"),
+                        }
+                    };
+
+                    let angle = (rng.below(628) as f32) / 100.0;
+                    let mut boat = crate::actors::make_vehicle(
+                        [pos[0], pos[1], -7.42],
+                        angle,
+                        0,
+                        0,
+                        info_id,
+                        model_id,
+                        false,
+                        false,
+                    );
+                    boat.name = name;
+                    boat.speed = 8.0 + (rng.below(8) as f32);
+                    boat.wake_emitter = Some(BoatWakeEmitter::new());
+                    boat.spray_emitter = Some(BoatSprayEmitter::new());
+                    boat.boat_engine = Some(BoatEngine::new());
+                    cars.push(boat);
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -883,5 +1248,61 @@ mod tests {
         assert_eq!(spent, 100, "100$ tracked in stats");
         assert!(police.is_cooling_down(), "Police evasion cooldown started");
         assert_eq!(pns.garages[0].state, PayNSprayState::Opening);
+    }
+
+    #[test]
+    fn boat_specs_buoyancy_and_hydrodynamics() {
+        // 1. Spec watercraft classifications
+        let speeder = spec(11);
+        assert!(speeder.is_boat() && speeder.is_watercraft() && !speeder.is_land_vehicle());
+        let wetski = spec(43);
+        assert!(wetski.is_jetski() && wetski.is_watercraft() && !wetski.is_land_vehicle());
+        let admiral = spec(0);
+        assert!(!admiral.is_watercraft() && admiral.is_land_vehicle());
+
+        // 2. Boat engine hydrodynamics step
+        let mut engine = BoatEngine::new();
+        let mut speed = 0.0;
+        let mut angle = 0.0;
+        let mut pitch = 0.0;
+        let mut roll = 0.0;
+        let mut pos = [500.0, -1000.0, -7.42];
+
+        // Accelerate forward
+        engine.step(0.1, &mut speed, &mut angle, &mut pitch, &mut roll, &mut pos, 1.0, 0.0, false);
+        assert!(speed > 0.0, "Boat accelerates forward");
+
+        // Rudder steering under speed
+        let prev_angle = angle;
+        engine.step(0.1, &mut speed, &mut angle, &mut pitch, &mut roll, &mut pos, 1.0, 1.0, false);
+        assert!(angle != prev_angle, "Rudder steers boat");
+
+        // Decelerate with natural water resistance
+        let cruise_speed = speed;
+        engine.step(0.5, &mut speed, &mut angle, &mut pitch, &mut roll, &mut pos, 0.0, 0.0, false);
+        assert!(speed < cruise_speed, "Water drag decelerates unpowered boat");
+
+        // 3. Wake emitter
+        let mut wake = BoatWakeEmitter::new();
+        assert!(wake.segments.is_empty());
+        wake.update(0.1, pos, angle, 12.0, false);
+        assert!(!wake.segments.is_empty(), "Wake segment spawned at speed");
+        let initial_width = wake.segments[0].width;
+        wake.update(0.2, pos, angle, 12.0, false);
+        assert!(wake.segments[0].width > initial_width, "Wake segment expands as it trails");
+
+        // 4. Bow spray emitter
+        let mut spray = BoatSprayEmitter::new();
+        spray.update(0.05, pos, angle, 14.0, false);
+        assert!(!spray.particles.is_empty(), "Bow spray particles emitted at planing speed");
+
+        // 5. Land car sinking in water
+        let mut car_in_water = CarInWater::new();
+        assert!(!car_in_water.engine_stalled);
+        assert!(!car_in_water.trigger_sinking_minigame);
+        car_in_water.update(0.5, true);
+        assert!(car_in_water.engine_stalled, "Engine stalls in water");
+        car_in_water.update(1.0, true);
+        assert!(car_in_water.trigger_sinking_minigame, "Sinking car minigame triggered for player");
     }
 }

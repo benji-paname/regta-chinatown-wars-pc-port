@@ -650,6 +650,7 @@ pub struct Walker {
     pub roll: Option<crate::roll::Roll>,
     pub rolls_completed: usize,
     pub rolls_blocked: usize,
+    pub in_water: bool,
     action_pending: bool,
     vault_buffer: f32,
     counter: u8,
@@ -684,6 +685,7 @@ impl Walker {
             roll: None,
             rolls_completed: 0,
             rolls_blocked: 0,
+            in_water: false,
             action_pending: false,
             vault_buffer: 0.,
             counter: 0,
@@ -901,7 +903,10 @@ impl Walker {
         self.update_speed(moving, desired, sprint, walk);
         if self.grounded {
             let a = self.angle as f32 * std::f32::consts::TAU / 65536.;
-            let speed = self.speed_fixed() as f32 / 4096.;
+            let mut speed = self.speed_fixed() as f32 / 4096.;
+            if self.in_water {
+                speed = speed.min(if sprint { 5.2 } else { 3.2 });
+            }
             self.velocity[0] = (a.sin() * 4096.) as i32 as f32 / 4096. * speed;
             self.velocity[1] = (a.cos() * 4096.) as i32 as f32 / 4096. * speed;
         }
@@ -921,7 +926,15 @@ impl Walker {
             p[1] += self.velocity[1] * elapsed / n as f32;
             let hit = c.push_out(&mut p, 0.875, 2.);
             let g = c.ground(p[0], p[1], old[2]);
-            if !g.water && g.z <= old[2] + 0.5 {
+            if g.water {
+                self.in_water = true;
+                p[2] = -7.3;
+                self.velocity[2] = 0.;
+                self.grounded = true;
+                self.p = p;
+                self.distance += ((p[0] - old[0]).powi(2) + (p[1] - old[1]).powi(2)).sqrt();
+            } else if g.z <= old[2] + 0.5 {
+                self.in_water = false;
                 if self.grounded && g.z >= old[2] - 1.5 {
                     p[2] = g.z;
                     self.velocity[2] = 0.;
@@ -939,10 +952,16 @@ impl Walker {
             let g = c.ground(self.p[0], self.p[1], self.p[2]);
             self.p[2] += self.velocity[2] * elapsed;
             self.velocity[2] -= 0x1ed0 as f32 / 4096. * dt * 30.;
-            if !g.water && self.p[2] <= g.z {
+            if g.water && self.p[2] <= -7.3 {
+                self.p[2] = -7.3;
+                self.velocity[2] = 0.;
+                self.grounded = true;
+                self.in_water = true;
+            } else if !g.water && self.p[2] <= g.z {
                 self.p[2] = g.z;
                 self.velocity[2] = 0.;
                 self.grounded = true;
+                self.in_water = false;
             }
         }
         self.vault_ready = self.grounded

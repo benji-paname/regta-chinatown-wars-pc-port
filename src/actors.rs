@@ -730,16 +730,17 @@ impl Scene {
         // GenerateRandomPed / GetCreatePosition: civilians start on a pavement
         // link and walk from its first node to the second (cWanderPath).
         // Authentic off-screen spawning prevents popping in directly in front of the camera.
-        for (q, from, to) in pavement.spawn_points(player, 28., 90., &mut scene.rng) {
+        for (q, from, to) in pavement.spawn_points(player, 28., 95., &mut scene.rng) {
             if scene.peds.len() >= 20 {
                 break;
             }
-            if scene.peds.iter().any(|ped| distance(ped.p, q) < 8.)
+            if distance(q, player) < 18.
+                || scene.peds.iter().any(|ped| distance(ped.p, q) < 7.)
                 || scene.cars.iter().any(|car| point_in_car(car, q, 1.5))
             {
                 continue;
             }
-            if let Some(q) = person_position(c, q) {
+            if let Some(q) = person_position(c, q).filter(|p| areas.contains(*p)) {
                 let target = pavement.wander_target(to, &mut scene.rng);
                 let mut ped = make_ped(q, target, scene.peds.len());
                 ped.prev = Some(from);
@@ -747,9 +748,9 @@ impl Scene {
                 scene.peds.push(ped);
             }
         }
-        for &(_, p, a, from, to) in &candidates {
+        for &(_, p, _a, from, to) in &candidates {
             if scene.cars.len() < 9
-                && distance(p, player) > 14.
+                && distance(p, player) > 28.
                 && scene.cars.iter().all(|car| distance(car.p, p) > 12.)
                 && scene.peds.iter().all(|ped| distance(ped.p, p) > 4.5)
             {
@@ -786,46 +787,28 @@ impl Scene {
                     scene.cars.push(veh);
                 }
             }
-            if scene.peds.len() < 12 {
-                let f = forward(a);
-                for side in [-22., -17., -12., 12., 17., 22.] {
-                    let q = [p[0] + f[1] * side, p[1] - f[0] * side, p[2]];
-                    if distance(q, player) > 28.
-                        && scene.peds.iter().all(|ped| distance(ped.p, q) > 8.)
-                        && scene.cars.iter().all(|car| distance(car.p, q) > 4.5)
-                    {
-                        if let Some(q) = person_position(c, q).filter(|p| areas.contains(*p)) {
-                            let target = [q[0] + f[0] * 12., q[1] + f[1] * 12., q[2]];
-                            scene.peds.push(make_ped(q, target, scene.peds.len()));
-                        }
-                    }
-                }
-            }
             if scene.cars.len() >= 9 && scene.peds.len() >= 20 {
                 break;
             }
         }
-        // Populate nearby walkable ground as well as road edges, so a plaza or
-        // car park is not empty at the initial presentation viewpoint.
-        for radius in [32., 45., 60., 75., 90.] {
-            for i in 0..16 {
+        // Populate additional pavement links if needed to reach full civilian count.
+        if scene.peds.len() < 20 {
+            for (q, from, to) in pavement.spawn_points(player, 24., 130., &mut scene.rng) {
                 if scene.peds.len() >= 20 {
                     break;
                 }
-                let a = (i as f32 + 0.3) * TAU / 16.;
-                let p = [
-                    player[0] + a.sin() * radius,
-                    player[1] + a.cos() * radius,
-                    player[2],
-                ];
-                if scene.peds.iter().any(|ped| distance(ped.p, p) < 9.)
-                    || scene.cars.iter().any(|car| distance(car.p, p) < 5.)
+                if distance(q, player) < 16.
+                    || scene.peds.iter().any(|ped| distance(ped.p, q) < 6.)
+                    || scene.cars.iter().any(|car| point_in_car(car, q, 1.5))
                 {
                     continue;
                 }
-                if let Some(p) = person_position(c, p).filter(|p| areas.contains(*p)) {
-                    let target = [p[0] + a.cos() * 8., p[1] - a.sin() * 8., p[2]];
-                    scene.peds.push(make_ped(p, target, scene.peds.len()));
+                if let Some(q) = person_position(c, q).filter(|p| areas.contains(*p)) {
+                    let target = pavement.wander_target(to, &mut scene.rng);
+                    let mut ped = make_ped(q, target, scene.peds.len());
+                    ped.prev = Some(from);
+                    ped.cur = Some(to);
+                    scene.peds.push(ped);
                 }
             }
         }
@@ -1681,12 +1664,11 @@ impl Scene {
                         }
                     }
 
-                    // Emergency Siren Yield behavior: civilian cars yield to approaching sirens
+                    // Emergency Siren Yield behavior: civilian cars yield smoothly to approaching sirens
                     let yield_siren = self.traffic_manager.should_yield_to_siren(car.p) && !car.is_emergency();
                     if yield_siren && !obstacle {
                         car.speed = move_towards(car.speed, 2.8, 8.0 * dt);
-                        car.lane = 1;
-                        car.next_lane = 1;
+                        car.wobble = move_towards(car.wobble, 0.40, 1.2 * dt);
                     }
 
                     if obstacle {
@@ -1818,9 +1800,10 @@ impl Scene {
                     }
                     if car.panic_timer <= 0.0 {
                         car.panicked = false;
-                        car.on_rail = true;
-                        car.lane = 0;
-                        car.rail_dist = 0.0;
+                        car.speed = 0.0;
+                        car.lat_vel = 0.0;
+                        car.yaw_rate = 0.0;
+                        car.parked = true;
                     }
                 } else {
                     if let Some(node) = roads.nodes.get(car.target) {
@@ -1837,11 +1820,6 @@ impl Scene {
                             if let Some(next) = next {
                                 car.previous = car.target;
                                 car.target = next;
-                                car.lane = 0;
-                                car.wobble = 0.0;
-                                car.rail_dist = 0.0;
-                                car.next_target = next;
-                                car.on_rail = true;
                             }
                         }
                     }
@@ -2567,48 +2545,58 @@ impl Scene {
         if self.stream_timer >= 1.0 {
             self.stream_timer = 0.0;
 
-            // 1. Recycle distant civilian cars (> 95m from focus, not driven by player)
-            for (i, car) in self.cars.iter_mut().enumerate() {
-                if Some(i) != self.driving && !car.from_cargen && distance(car.p, focus) > 95.0 {
-                    // Find an off-screen road edge in the spawn band [52.0m, 78.0m] from focus
-                    for (a, b) in roads.edges() {
-                        let na = roads.nodes[a].p;
-                        let nb = roads.nodes[b].p;
-                        let mid = [(na[0] + nb[0]) * 0.5, (na[1] + nb[1]) * 0.5, (na[2] + nb[2]) * 0.5];
-                        let d = distance(mid, focus);
-                        if (52.0..=78.0).contains(&d) {
+            // 1. Recycle distant civilian cars (> 90m from focus, not driven by player)
+            let other_car_positions: Vec<[f32; 3]> = self.cars.iter().map(|c| c.p).collect();
+            let other_ped_positions: Vec<[f32; 3]> = self.peds.iter().map(|p| p.p).collect();
+            let all_edges: Vec<_> = roads.edges().collect();
+            if !all_edges.is_empty() {
+                let n_edges = all_edges.len();
+                let mut edge_offset = self.rng.below(n_edges as u32) as usize;
+                for (i, car) in self.cars.iter_mut().enumerate() {
+                    if Some(i) != self.driving && !car.from_cargen && distance(car.p, focus) > 90.0 {
+                        // Find an off-screen road edge in the spawn band [58.0m, 75.0m] from focus
+                        for step in 0..n_edges {
+                            let (a, b) = all_edges[(edge_offset + step) % n_edges];
+                            let na = roads.nodes[a].p;
+                            let nb = roads.nodes[b].p;
                             let (lane, wobble) = roads.select_lane(a, b, self.rng.below(0xffff_ffff));
                             let p_lane = roads.lane_world_pos(a, b, 0.5, lane, wobble);
                             let d_lane = distance(p_lane, focus);
-                            if d_lane >= 48.0 {
+                            if (58.0..=75.0).contains(&d_lane) {
                                 let a_lane = heading(na, nb);
                                 let info_id = crate::vehicle::choose_traffic_vehicle(p_lane, &mut self.rng);
                                 if let Some(valid_p) = car_position_for(c, p_lane, a_lane, info_id) {
-                                    let paint = crate::vehicle::choose_paint(info_id, 0xff, &mut self.rng);
-                                    let seg_len = (nb[0] - na[0]).hypot(nb[1] - na[1]).max(0.1);
-                                    let mut replacement = make_vehicle(valid_p, a_lane, b, a, info_id, paint, false, false);
-                                    replacement.lane = lane;
-                                    replacement.wobble = wobble;
-                                    replacement.rail_dist = seg_len * 0.5;
-                                    replacement.on_rail = true;
-                                    replacement.speed = 8.5; // Natural cruising flow into screen
-                                    if let Some(to_node) = roads.nodes.get(b) {
-                                        let next_cand = to_node
-                                            .links
-                                            .iter()
-                                            .copied()
-                                            .filter(|&n| roads.nodes[n].land() && n != a)
-                                            .nth(i % to_node.links.len().max(1))
-                                            .or_else(|| to_node.links.iter().copied().find(|&n| roads.nodes[n].land()));
-                                        if let Some(nt) = next_cand {
-                                            replacement.next_target = nt;
-                                            let (nl, nw) = roads.convert_lane(a, b, nt, lane, self.rng.below(0xffff_ffff));
-                                            replacement.next_lane = nl;
-                                            replacement.next_wobble = nw;
+                                    let is_clear = distance(valid_p, focus) >= 52.0
+                                        && other_car_positions.iter().enumerate().all(|(j, &op)| j == i || distance(op, valid_p) > 11.0)
+                                        && other_ped_positions.iter().all(|&pp| distance(pp, valid_p) > 5.0);
+                                    if is_clear {
+                                        edge_offset = (edge_offset + step + 1) % n_edges;
+                                        let paint = crate::vehicle::choose_paint(info_id, 0xff, &mut self.rng);
+                                        let seg_len = (nb[0] - na[0]).hypot(nb[1] - na[1]).max(0.1);
+                                        let mut replacement = make_vehicle(valid_p, a_lane, b, a, info_id, paint, false, false);
+                                        replacement.lane = lane;
+                                        replacement.wobble = wobble;
+                                        replacement.rail_dist = seg_len * 0.5;
+                                        replacement.on_rail = true;
+                                        replacement.speed = 8.5; // Natural cruising flow into screen
+                                        if let Some(to_node) = roads.nodes.get(b) {
+                                            let next_cand = to_node
+                                                .links
+                                                .iter()
+                                                .copied()
+                                                .filter(|&n| roads.nodes[n].land() && n != a)
+                                                .nth(i % to_node.links.len().max(1))
+                                                .or_else(|| to_node.links.iter().copied().find(|&n| roads.nodes[n].land()));
+                                            if let Some(nt) = next_cand {
+                                                replacement.next_target = nt;
+                                                let (nl, nw) = roads.convert_lane(a, b, nt, lane, self.rng.below(0xffff_ffff));
+                                                replacement.next_lane = nl;
+                                                replacement.next_wobble = nw;
+                                            }
                                         }
+                                        *car = replacement;
+                                        break;
                                     }
-                                    *car = replacement;
-                                    break;
                                 }
                             }
                         }
@@ -2617,19 +2605,25 @@ impl Scene {
             }
 
             // 2. Recycle distant pedestrians (> 75m from focus)
-            let ped_spawn_pts = self.pavement.spawn_points(focus, 42.0, 65.0, &mut self.rng);
+            let ped_spawn_pts = self.pavement.spawn_points(focus, 52.0, 72.0, &mut self.rng);
             let mut pt_idx = 0;
             for (ped_idx, ped) in self.peds.iter_mut().enumerate() {
                 if distance(ped.p, focus) > 75.0 && pt_idx < ped_spawn_pts.len() {
                     let (q, from, to) = ped_spawn_pts[pt_idx];
                     pt_idx += 1;
-                    if distance(q, focus) >= 38.0 {
+                    let d_ped = distance(q, focus);
+                    if d_ped >= 50.0 {
                         if let Some(valid_q) = person_position(c, q).filter(|p| self.pedestrian_areas.contains(*p)) {
-                            let target = self.pavement.wander_target(to, &mut self.rng);
-                            let mut replacement = make_ped(valid_q, target, ped_idx);
-                            replacement.prev = Some(from);
-                            replacement.cur = Some(to);
-                            *ped = replacement;
+                            let is_clear = distance(valid_q, focus) >= 48.0
+                                && other_ped_positions.iter().enumerate().all(|(j, &op)| j == ped_idx || distance(op, valid_q) > 6.0)
+                                && other_car_positions.iter().all(|&cp| distance(cp, valid_q) > 4.5);
+                            if is_clear {
+                                let target = self.pavement.wander_target(to, &mut self.rng);
+                                let mut replacement = make_ped(valid_q, target, ped_idx);
+                                replacement.prev = Some(from);
+                                replacement.cur = Some(to);
+                                *ped = replacement;
+                            }
                         }
                     }
                 }
@@ -3161,15 +3155,18 @@ fn step_car(car: &mut Car, c: &Collision, input: DriveInput, dt: f32) -> bool {
 
     let spec = car.spec();
     let mass = spec.mass();
-    let max_fwd = (spec.top_speed as f32 * 0.44).clamp(22.0, 68.0);
-    let max_rev = -(max_fwd * 0.32).clamp(10.0, 16.0);
-    let torque_ratio = ((spec.max_torque() / 35.0) / mass.powf(0.55)).clamp(0.38, 2.25);
+    let max_fwd = (spec.top_speed as f32 * 0.44).clamp(22.0, 72.0);
+    let max_rev = -(max_fwd * 0.35).clamp(10.0, 18.0);
     let throttle = input.throttle.clamp(-1., 1.);
     let steer_in = input.steer.clamp(-1., 1.);
-    let prev_speed = car.speed;
-    let burnout_attempt = input.brake && throttle.abs() > 0.25 && car.speed.abs() < 3.2;
-    let handbrake_turn = input.brake && (steer_in.abs() > 0.10 || car.lat_vel.abs() > 1.2) && car.speed.abs() >= 3.0;
-    car.braking = (input.brake && !burnout_attempt) || (car.speed * throttle < -0.15);
+
+    // In GTA Chinatown Wars, foot braking applies when throttle opposes current driving direction
+    let foot_braking = (car.gear >= 1 && throttle < -0.05 && car.speed > 0.25)
+        || (car.gear < 0 && throttle > 0.05 && car.speed < -0.25);
+
+    let burnout_attempt = (input.brake || (car.gear >= 1 && throttle < -0.2)) && throttle.abs() > 0.25 && car.speed.abs() < 2.0;
+    let handbrake_turn = input.brake && (steer_in.abs() > 0.05 || car.lat_vel.abs() > 0.6) && car.speed.abs() >= 2.0;
+    car.braking = foot_braking || (input.brake && !burnout_attempt);
 
     // Chinatown Wars authentic Launch Control / Burnout launch kick:
     // releasing the brake while holding throttle bursts forward with wheelspin
@@ -3182,201 +3179,231 @@ fn step_car(car: &mut Car, c: &Collision, input: DriveInput, dt: f32) -> bool {
     }
     car.burnout = burnout_attempt;
 
+    // ------------------------------------------------------------------------
+    // 1. Chinatown Wars Steering Rack (cWheeledVehicle::UpdateSteering)
+    // ------------------------------------------------------------------------
+    let steer_lock_rad = spec.steer_lock_deg().to_radians();
+    let steer_speed_red = spec.steer_speed_red();
+    let speed_kmh = car.speed.abs() * 3.6;
+    let speed_norm = (speed_kmh / 51.4).clamp(0.0, 1.0);
+    let lim = if car.gear < 0 {
+        0.96 // ~55 deg in reverse
+    } else {
+        ((steer_lock_rad * 0.5) - speed_norm * (steer_speed_red / 100.0) * steer_lock_rad * 1.6).max(0.12)
+    };
+
+    if steer_in.abs() < 0.03 {
+        car.steer_angle = 0.0;
+    } else {
+        let rate = if car.speed.abs() < 1.0 || burnout_attempt {
+            steer_lock_rad
+        } else {
+            (spec.steer_rate_deg().to_radians() * 2.8).clamp(8.0, 24.0) * steer_in.abs()
+        };
+        if steer_in < 0.0 {
+            car.steer_angle = (car.steer_angle.min(0.0) - rate * (dt * 30.0).max(1.0)).clamp(-lim, lim);
+        } else {
+            car.steer_angle = (car.steer_angle.max(0.0) + rate * (dt * 30.0).max(1.0)).clamp(-lim, lim);
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // 2. Drivetrain & CEngine Model (CEngine::Update & CEngine::HandleGearChange)
+    // ------------------------------------------------------------------------
+    let num_gears = (spec.num_gears.max(1) as usize).min(6);
+    const GEAR_RATIOS: [f32; 7] = [2.07, 2.97, 2.07, 1.43, 1.00, 0.84, 0.56];
+
+    if car.gear < 1 {
+        if throttle > 0.05 && car.speed >= -0.25 {
+            car.gear = 1;
+        } else if throttle < -0.05 && car.speed <= 0.25 {
+            car.gear = -1;
+        }
+    } else {
+        if throttle < -0.05 && car.speed <= 0.25 {
+            car.gear = -1; // Natural shift to reverse when stopped
+        } else {
+            let r_norm = car.rpm.clamp(0.2, 1.0);
+            if r_norm > 0.86 && (car.gear as usize) < num_gears {
+                car.gear += 1;
+            } else if r_norm < 0.45 && car.gear > 1 {
+                car.gear -= 1;
+            }
+        }
+    }
+
+    let cur_gear_idx = if car.gear < 0 { 0 } else { (car.gear as usize).clamp(1, num_gears) };
+    let gear_ratio = GEAR_RATIOS[cur_gear_idx];
+
+    let gear_band = 1.0 / num_gears as f32;
+    let gear_lo = ((car.gear.max(1) - 1) as f32) * gear_band;
+    let gear_hi = (car.gear.max(1) as f32) * gear_band;
+    let speed_frac = (car.speed.abs() / max_fwd).clamp(0.0, 1.0);
+
+    let target_rpm = if burnout_attempt {
+        (0.78 + throttle.abs() * 0.22).clamp(0.4, 1.0)
+    } else if throttle.abs() > 0.05 {
+        (0.28 + ((speed_frac - gear_lo) / (gear_hi - gear_lo).max(0.08)) * 0.72).clamp(0.28, 1.0)
+    } else {
+        move_towards(car.rpm, 0.22, 2.0 * dt)
+    };
+    car.rpm = target_rpm;
+
+    let r = car.rpm.clamp(0.0, 1.0);
+    let torque_curve = (((1.8 * r - 4.5) * r + 2.2) * r + 0.5).clamp(0.85, 1.35);
+    let damage_factor = if car.health < 290.0 { 0.25 } else if car.health < 790.0 { 0.55 } else { 1.0 };
+    let engine_torque = spec.max_torque() * torque_curve * gear_ratio * damage_factor;
+
+    // ------------------------------------------------------------------------
+    // 3. Two-Axle Tyre Friction Dynamics (cWheeledVehicle::UpdateTyres & CTyre::CalcForces)
+    // ------------------------------------------------------------------------
+    let y_f = (spec.front_axle_q12 as f32 / 4096.0).max(0.6);
+    let y_r = (spec.rear_axle_q12 as f32 / 4096.0).min(-0.6);
+    let wheelbase = y_f - y_r;
+    let weight_front = (-y_r / wheelbase).clamp(0.35, 0.65);
+    let weight_rear = 1.0 - weight_front;
+    let load_f = mass * 9.81 * weight_front;
+    let load_r = mass * 9.81 * weight_rear;
+
+    let grip_base = spec.grip();
+    let grip_f = grip_base;
+    let grip_r = if handbrake_turn {
+        grip_base * 0.30
+    } else {
+        grip_base
+    };
+
+    let v_f_x = car.lat_vel - car.yaw_rate * y_f;
+    let v_f_y = car.speed;
+    let v_r_x = car.lat_vel - car.yaw_rate * y_r;
+    let v_r_y = car.speed;
+
+    let cos_d = car.steer_angle.cos();
+    let sin_d = car.steer_angle.sin();
+    let _v_f_along = v_f_y * cos_d + v_f_x * sin_d;
+    let v_f_side = v_f_x * cos_d - v_f_y * sin_d;
+
+    let _v_r_along = v_r_y;
+    let v_r_side = v_r_x;
+
+    let gear_mul = match car.gear {
+        -1 => 1.00,
+        0 => 0.00,
+        1 => 1.15,
+        2 => 1.00,
+        _ => 0.88,
+    };
+    let torque_ratio = ((spec.max_torque() / 35.0) / mass.powf(0.55)).clamp(0.38, 2.25);
+    let drive_accel = 21.0 * torque_ratio * gear_mul * torque_curve * damage_factor;
+    let base_brake = (32.0 * (spec.brake_force() / 500.0).sqrt() / mass.powf(0.25)).max(36.0);
+
+    let acc_y = if burnout_attempt {
+        0.0
+    } else if foot_braking {
+        -base_brake * throttle.abs() * car.speed.signum()
+    } else if input.brake && !handbrake_turn {
+        -base_brake * 0.75 * car.speed.signum()
+    } else if handbrake_turn {
+        if (car.gear >= 1 && throttle > 0.05) || (car.gear < 0 && throttle < -0.05) {
+            drive_accel * throttle * 0.65
+        } else {
+            -base_brake * 0.35 * car.speed.signum()
+        }
+    } else if (car.gear >= 1 && throttle > 0.05) || (car.gear < 0 && throttle < -0.05) {
+        drive_accel * throttle
+    } else {
+        -(3.0 + (car.speed.abs() / max_fwd) * 2.0) * car.speed.signum()
+    };
+
+    let c_stiff_f = (spec.front_stiffness() * 16.0).clamp(40.0, 110.0);
+    let c_stiff_r = (spec.rear_stiffness() * 16.0).clamp(40.0, 110.0);
+
+    let max_lat_f = load_f * grip_f * 3.5;
+    let max_lat_r = load_r * grip_r * 3.5;
+
+    let f_f_side = (-v_f_side * c_stiff_f).clamp(-max_lat_f, max_lat_f);
+    let f_r_side = (-v_r_side * c_stiff_r).clamp(-max_lat_r, max_lat_r);
+
+    let f_f_body_x = f_f_side * cos_d;
+    let f_r_body_x = f_r_side;
+
+    let total_f_x = f_f_body_x + f_r_body_x - 0.025 * mass * car.lat_vel * car.lat_vel.abs() - car.lat_vel * 3.2;
+    let total_torque = -(y_f * f_f_body_x + y_r * f_r_body_x);
+
+    let h = spec.half_extents();
+    let i_zz = (1.0 / 12.0) * mass * (h[0] * h[0] + h[1] * h[1]) * 4.0;
+    let dyn_alpha = total_torque / i_zz.max(0.5);
+
+    let ackermann_yaw = -car.steer_angle.sin() * car.speed / wheelbase;
+    let beta = (car.speed.abs() / 4.0).clamp(0.0, 1.0);
+    let target_yaw_accel = (1.0 - beta) * (ackermann_yaw - car.yaw_rate) * 24.0 + beta * dyn_alpha;
+
+    let acc_x = total_f_x / mass;
+
     if burnout_attempt {
-        car.rear_skidding = true;
-        car.front_skidding = false;
-        car.wheel_spin = true;
-        car.rpm = (0.75 + throttle.abs() * 0.24).clamp(0.4, 1.0);
-        car.speed = move_towards(car.speed, 0.0, 14.0 * dt);
+        car.speed = move_towards(car.speed, 0.0, 16.0 * dt);
+        car.lat_vel = 0.0;
         if steer_in.abs() > 0.15 {
             car.yaw_rate = -steer_in * 3.4;
             car.angle = (car.angle + car.yaw_rate * dt).rem_euclid(std::f32::consts::TAU);
-        }
-    } else if input.brake {
-        let base_brake =
-            (32.0 * (spec.brake_force() / 500.0).sqrt().clamp(0.75, 1.55) / mass.powf(0.25))
-                .max(28.0);
-        if handbrake_turn {
-            car.rear_skidding = true;
-            car.front_skidding = car.speed.abs() > 12.0 && steer_in.abs() > 0.35;
-            car.wheel_spin = throttle > 0.2;
-            if throttle > 0.1 {
-                let r = car.rpm.clamp(0.0, 1.0);
-                let torque_curve = (((1.8 * r - 4.5) * r + 2.2) * r + 0.5).clamp(0.42, 1.38);
-                let acceleration = 15.0 * torque_ratio * torque_curve;
-                car.speed = (car.speed + throttle * acceleration * dt).clamp(max_rev, max_fwd);
-            } else {
-                let decel = base_brake * 0.42;
-                car.speed = move_towards(car.speed, 0., decel * dt);
-            }
-            car.rpm = (0.55 + throttle.abs() * 0.45).clamp(0.28, 1.0);
         } else {
-            car.rear_skidding = car.speed.abs() > 4.5;
-            car.front_skidding = car.speed.abs() > 8.0;
-            car.wheel_spin = false;
-            car.speed = move_towards(car.speed, 0., base_brake * dt);
-            car.rpm = move_towards(car.rpm, 0.22, 2.5 * dt);
+            car.yaw_rate = 0.0;
         }
-        if car.speed.abs() < 0.05 {
-            car.gear = 0;
-            car.rear_skidding = false;
-            car.front_skidding = false;
-        }
-    } else if throttle.abs() > 0.05 {
-        car.rear_skidding = car.lat_vel.abs() > 2.2 && car.speed.abs() > 5.0;
-        car.front_skidding = car.lat_vel.abs() > 3.6 && car.speed.abs() > 8.0;
-        if car.speed * throttle < -0.15 {
-            let oppose = (30.0 / mass.powf(0.25)).max(22.0);
-            car.speed = (car.speed + throttle * oppose * dt).clamp(max_rev, max_fwd);
-            car.wheel_spin = car.speed.abs() > 3.5;
-            if car.wheel_spin {
-                car.rear_skidding = true;
-            }
-        } else {
-            let num_gears = spec.num_gears.max(1) as i8;
-            let gear_mul = if throttle < 0. {
-                car.gear = -1;
-                car.rpm = (car.speed.abs() / max_rev.abs()).clamp(0.25, 0.98);
-                1.0
-            } else {
-                let sr = (car.speed.max(0.) / max_fwd).clamp(0., 1.);
-                car.gear = if sr < 0.36 {
-                    1
-                } else if sr < 0.70 {
-                    2.min(num_gears)
-                } else {
-                    num_gears
-                };
-                let band_lo = match car.gear {
-                    1 => 0.0,
-                    2 => 0.30,
-                    _ => 0.62,
-                };
-                let band_hi = match car.gear {
-                    1 => 0.40,
-                    2 => 0.74,
-                    _ => 1.0,
-                };
-                car.rpm = (0.32 + (sr - band_lo) / (band_hi - band_lo).max(0.1) * 0.66)
-                    .clamp(0.28, 1.0);
-                match car.gear {
-                    1 => 1.15,
-                    2 => 1.00,
-                    _ => 0.88,
-                }
-            };
-            // Chinatown Wars CEngine torque curve & power reduction when damaged
-            let r = car.rpm.clamp(0.0, 1.0);
-            let torque_curve = (((1.8 * r - 4.5) * r + 2.2) * r + 0.5).clamp(0.85, 1.35);
-            let damage_factor = if car.health < 290.0 { 0.25 } else if car.health < 790.0 { 0.55 } else { 1.0 };
-            let acceleration = 17.0 * torque_ratio * gear_mul * torque_curve * damage_factor;
-            car.speed = (car.speed + throttle * acceleration * dt).clamp(max_rev, max_fwd);
-            car.wheel_spin = launch_boost
-                || (car.speed.abs() < 6.0
-                    && throttle > 0.8
-                    && (spec.drive_split() < 0.25 || torque_ratio > 1.25));
-            if car.wheel_spin {
-                car.rear_skidding = true;
-            }
-        }
+        car.wheel_spin = true;
+        car.rear_skidding = true;
     } else {
-        car.rear_skidding = car.lat_vel.abs() > 2.4 && car.speed.abs() > 5.0;
-        car.front_skidding = car.lat_vel.abs() > 3.8 && car.speed.abs() > 8.0;
-        let coast = (3.0 + (car.speed.abs() / max_fwd) * 1.4) / mass.powf(0.2);
-        car.speed = move_towards(car.speed, 0., coast * dt);
-        car.rpm = move_towards(car.rpm, 0.22, 1.8 * dt);
-        car.wheel_spin = false;
-        if car.speed.abs() < 0.05 {
-            car.gear = 0;
-            car.rear_skidding = false;
-            car.front_skidding = false;
+        car.speed = (car.speed + acc_y * dt).clamp(max_rev, max_fwd);
+        car.lat_vel = (car.lat_vel + acc_x * dt).clamp(-18.0, 18.0);
+        car.yaw_rate = (car.yaw_rate + target_yaw_accel * dt).clamp(-7.0, 7.0);
+
+        if (input.brake || foot_braking) && !handbrake_turn && car.speed.abs() < 1.0 {
+            car.speed = 0.0;
+            car.lat_vel = 0.0;
+            car.yaw_rate = 0.0;
+        } else if car.speed.abs() < 0.15 && throttle.abs() < 0.05 {
+            car.speed = 0.0;
+            car.lat_vel = 0.0;
+            car.yaw_rate = 0.0;
         }
+
+        let handbrake_spin = handbrake_turn && throttle.abs() > 0.2;
+        car.rear_skidding = burnout_attempt || handbrake_turn || v_r_side.abs() > 2.2;
+        car.front_skidding = v_f_side.abs() > 3.4;
+        car.wheel_spin = burnout_attempt
+            || handbrake_spin
+            || launch_boost
+            || (car.speed.abs() < 6.0 && throttle > 0.8 && (spec.drive_split() < 0.25 || engine_torque > 100.0));
     }
 
-    // Steering response from PAK 29 steerLock, steerRate and steerSpeedRed.
-    // Low speeds grant immediate steering rack response; high speeds scale down smoothly via steerSpeedRed.
-    let speed_norm = (car.speed.abs() / max_fwd).clamp(0., 1.);
-    let speed_red = (1.0 - speed_norm * (spec.steer_speed_red() / 100.0) * 1.8).clamp(0.35, 1.0);
-    let lock_factor = (spec.steer_lock_deg() / 60.0).clamp(0.55, 1.45);
-    let steer_rate = if car.speed.abs() < 5.0 {
-        28.0 // Crisp immediate steering at low speed / intersections
-    } else {
-        (spec.steer_rate_deg() / 7.0).clamp(14.0, 32.0)
-    };
-    if steer_in.abs() < 0.02 {
-        car.steer_angle = move_towards(car.steer_angle, 0., steer_rate * 1.8 * dt);
-    } else {
-        car.steer_angle = move_towards(
-            car.steer_angle,
-            steer_in * lock_factor * speed_red,
-            steer_rate * dt,
-        );
-    }
-
-    let wb_factor = (4.59 / spec.wheelbase()).clamp(0.58, 1.52);
-    let oversteer = if handbrake_turn {
-        2.25
-    } else if throttle > 0.55 && spec.drive_split() < 0.20 {
-        1.35
-    } else {
-        1.0
-    };
-    // Ackermann kinematic engagement at low speeds + dynamic slip at high speeds
-    let speed_engage = (car.speed.abs() / 4.0).min(1.0) * car.speed.signum();
-    let front_bite = (spec.front_stiffness() / 5.0).clamp(0.65, 1.35);
-    let target_yaw = -car.steer_angle * 2.1 * wb_factor * oversteer * speed_engage;
-    let yaw_accel = if handbrake_turn { 34.0 } else { 24.0 } * spec.grip() * front_bite;
-    car.yaw_rate = move_towards(car.yaw_rate, target_yaw, yaw_accel * dt);
-
-    let slip_factor = if handbrake_turn || car.burnout {
-        0.65
-    } else if spec.drive_split() < 0.20 && throttle > 0.5 {
-        0.26
-    } else if spec.is_bike() {
-        0.04
-    } else {
-        0.08
-    };
-    let target_lat = if steer_in.abs() < 0.02 && !handbrake_turn && car.lat_vel.abs() < 0.6 {
-        0.0
-    } else {
-        -car.yaw_rate * car.speed.abs() * slip_factor
-    };
-    let lat_grip = (if handbrake_turn { 2.8 } else { 15.0 })
-        * spec.grip()
-        * (spec.rear_stiffness() / 5.0).clamp(0.55, 1.3);
-    car.lat_vel = move_towards(car.lat_vel, target_lat, lat_grip * dt);
-    if car.speed.abs() < 0.2 && !car.burnout {
-        car.lat_vel = 0.;
-        car.yaw_rate = 0.;
-        car.rear_skidding = false;
-        car.front_skidding = false;
-    }
-
-    // Body suspension sway (cars/trucks/tank) vs cornering lean & wheelie/stoppie (cBike).
+    // ------------------------------------------------------------------------
+    // 4. Body Sway / Motorcycle Lean & Wheelie/Stoppie (cBike::bikeAct)
+    // ------------------------------------------------------------------------
     if spec.is_bike() {
-        let target_roll = if car.speed.abs() > 0.4 {
-            steer_in * 0.65 * (car.speed.abs() / 16.0).min(1.0)
+        let speed_factor = (car.speed.abs() / 16.0).clamp(0.0, 1.0);
+        let target_roll = if steer_in.abs() > 0.05 {
+            steer_in * 0.72 * speed_factor.max(0.40)
+        } else if car.speed.abs() > 0.4 {
+            0.0
         } else if !car.parked {
             0.095
         } else {
             0.0
         };
-        car.roll += (target_roll - car.roll) * (8.5 * dt).min(1.0);
-        let target_pitch = if input.brake && car.speed > 3.0 {
-            -0.22 * (car.speed / 18.0).min(1.0)
-        } else if throttle > 0.5 && car.speed >= 0.0 && car.speed < max_fwd * 0.72 {
-            0.28 * throttle * (1.0 - car.speed / (max_fwd * 0.85)).max(0.2)
+        car.roll += (target_roll - car.roll) * (14.0 * dt).min(1.0);
+
+        let target_pitch = if input.brake && car.speed.abs() > 0.8 {
+            -0.22 * (car.speed.abs() / 18.0).clamp(0.35, 1.0)
+        } else if throttle > 0.5 && car.speed >= 0.0 && car.speed < max_fwd * 0.95 {
+            0.28 * throttle * (1.0 - car.speed / (max_fwd * 0.95)).max(0.2)
         } else {
             0.0
         };
-        car.pitch += (target_pitch - car.pitch) * (7.5 * dt).min(1.0);
+        let pitch_rate = if target_pitch > car.pitch { 18.0 } else { 12.0 };
+        car.pitch += (target_pitch - car.pitch) * (pitch_rate * dt).min(1.0);
     } else {
-        let lat_accel = -car.yaw_rate * car.speed;
-        let long_accel = (car.speed - prev_speed) / dt.max(1e-4);
-        let target_roll = (-lat_accel * 0.0045 / mass.sqrt()).clamp(-0.13, 0.13);
-        let target_pitch = (long_accel * 0.0026 / mass.sqrt()).clamp(-0.09, 0.07);
-        let damping = (spec.sway_damping() * 10.0).clamp(4.5, 9.0);
+        let target_roll = (car.yaw_rate * car.speed * 0.008).clamp(-0.16, 0.16);
+        let target_pitch = (acc_y * 0.006).clamp(-0.12, 0.12);
+        let damping = (spec.sway_damping() * 32.0).clamp(10.0, 45.0);
         car.roll_vel += (target_roll - car.roll) * 42.0 * dt - car.roll_vel * damping * dt;
         car.roll = (car.roll + car.roll_vel * dt).clamp(-0.16, 0.16);
         car.pitch_vel += (target_pitch - car.pitch) * 42.0 * dt - car.pitch_vel * damping * dt;

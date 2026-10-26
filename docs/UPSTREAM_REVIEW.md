@@ -38,3 +38,8 @@
 - **No borrowed coverage percentages**: The progress percentage seen in Android decompilation charts measures Android ELF symbol coverage, not PSP MIPS completion.
 - ReGTA CTW does not display an unverified percentage until an exact build-specific inventory of European PSP routines (`docs/progress/psp-routines.json`) is audited.
 - All progress is tracked through **verifiable, testable counts** in our codebase (unit tests, overlays, subsystems, and game features).
+
+
+## 26 October 2026 — Model choice discussion
+
+Both mirrors were fetched for this task: CTW-Native `b0506abc786fea229101c56e0a64726aa8b4ac97`; PSP recomp `6562163b6f504a1db93e1be5ce580d8cd6f024a7`. Reviewed the recent-commit snapshot against the previous review above; neither remote tip changed. These repositories do not provide a controlled Opus 5.5 versus GPT-6 Astra comparison for PSP reverse engineering or Rust recompilation. No upstream integration or gameplay change is relevant to this advisory task. Model recommendations must distinguish vendor benchmark evidence from project-specific evaluation.

@@ -1197,17 +1197,28 @@ pub fn run(
                     {
                         s.attack(&collision, player.p, player.heading);
                     }
+                    let is_handbrake = held(&[Key::Space]) > 0.
+                        || vault_button
+                        || pad.held(crate::gamepad::RB)
+                        || pad.held(crate::gamepad::B)
+                        || options.brake_at.is_some_and(|t| ticks >= t);
+
+                    // Authentic Chinatown Wars vehicle controls:
+                    // Gas: W / Up, Right Trigger (RT), or gamepad A (Cross on PlayStation)
+                    // Brake / Reverse: S / Down, Left Trigger (LT), or gamepad X (Square on PlayStation)
+                    // Handbrake / Drift: Space, Right Bumper (RB / R1), or gamepad B (Circle on PlayStation)
+                    let pad_gas = if pad.held(crate::gamepad::A) { 1.0 } else { 0.0 };
+                    let pad_brake = if pad.held(crate::gamepad::X) { 1.0 } else { 0.0 };
+                    let total_throttle = if target_frames.is_some() {
+                        direction[1]
+                    } else {
+                        (dy + pad.lift + pad.movement[1] + pad_gas - pad_brake).clamp(-1., 1.)
+                    };
+
                     let input = crate::actors::DriveInput {
-                        throttle: if target_frames.is_some() {
-                            direction[1]
-                        } else {
-                            (dy + pad.lift + pad.movement[1]).clamp(-1., 1.)
-                        },
+                        throttle: total_throttle,
                         steer: direction[0],
-                        brake: held(&[Key::Space]) > 0.
-                            || vault_button
-                            || pad.held(crate::gamepad::X)
-                            || options.brake_at.is_some_and(|t| ticks >= t),
+                        brake: is_handbrake,
                     };
                     let was_driving = s.driving;
                     let bike_info = was_driving.and_then(|idx| {

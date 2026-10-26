@@ -698,7 +698,7 @@ impl SoundSystem {
         }
 
         let speed = car.speed.abs();
-        let skidding = car.rear_skidding || car.front_skidding || (car.wheel_spin && speed > 2.0);
+        let skidding = car.rear_skidding || car.burnout || car.front_skidding || (car.wheel_spin && speed > 1.2);
 
         // Tire screech (event 0x13 in tables -> sample 19)
         if skidding {
@@ -722,10 +722,11 @@ impl SoundSystem {
             let idle_sample = gs.idle.max(0) as usize;
             let drive_sample = gs.drive.max(0) as usize;
 
-            let rpm_factor = (speed / 18.0).clamp(0.0, 1.0);
+            // Authentic Chinatown Wars CEngine RPM scaling
+            let rpm_factor = car.rpm.clamp(0.0, 1.0).max((speed / 18.0).clamp(0.0, 1.0));
             let idle_vol = ((1.0 - rpm_factor * 1.5).max(0.0)) * 0.55;
             let drive_vol = (rpm_factor * 1.2).clamp(0.0, 0.85);
-            let pitch = 0.85 + rpm_factor * 0.65;
+            let pitch = 0.70 + rpm_factor * 0.75;
 
             if let Ok(mut m) = self.mixer.lock() {
                 if !m.is_playing(self.engine_voice_idle) {

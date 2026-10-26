@@ -570,8 +570,9 @@ impl PoliceManager {
             self.on_cop_takedown();
         }
 
-        // Update pursuing cop car AI
-        for &idx in &self.cop_car_indices {
+        // Update pursuing cop car AI (Chinatown Wars policedriving.cpp: pursuitTarget, intercept lead & PIT ramming)
+        let player_right = [player_forward[1], -player_forward[0]];
+        for (order, &idx) in self.cop_car_indices.iter().enumerate() {
             if idx >= cars.len() {
                 continue;
             }
@@ -586,14 +587,32 @@ impl PoliceManager {
             // Pursue player with siren lights
             cop.headlights = true;
             cop.siren_active = true;
-            if dist > 3.0 && dist < 120.0 {
-                let target_angle = -dx.atan2(dy);
+
+            if dist > 2.5 && dist < 140.0 {
+                // Course selection: alternate Left Flank (-3.4m) and Right Flank (+3.4m)
+                let flank_sign = if order % 2 == 0 { -1.0 } else { 1.0 };
+                let lead_time = (dist / 22.0).clamp(0.2, 1.1);
+                let lead_dist = 6.0 * lead_time;
+                let flank_dist = if dist < 8.0 {
+                    0.0 // Close in for PIT maneuver ramming!
+                } else {
+                    flank_sign * 3.4
+                };
+
+                let target_x = player_p[0] + player_forward[0] * lead_dist + player_right[0] * flank_dist;
+                let target_y = player_p[1] + player_forward[1] * lead_dist + player_right[1] * flank_dist;
+
+                let aim_dx = target_x - cop.p[0];
+                let aim_dy = target_y - cop.p[1];
+                let target_angle = -aim_dx.atan2(aim_dy);
                 let diff = (target_angle - cop.angle + std::f32::consts::PI)
                     .rem_euclid(std::f32::consts::TAU)
                     - std::f32::consts::PI;
-                let steer = (-diff * 1.8).clamp(-1.0, 1.0);
-                cop.angle += steer * 2.2 * dt;
-                cop.speed = (cop.speed + 8.5 * dt).min(11.5);
+                let steer = (-diff * 2.2).clamp(-1.0, 1.0);
+                cop.angle += steer * 2.5 * dt;
+
+                let target_speed = if dist < 7.0 { 15.5 } else { 13.0 };
+                cop.speed = (cop.speed + 12.0 * dt).min(target_speed);
                 let f = [-cop.angle.sin(), cop.angle.cos()];
                 cop.p[0] += f[0] * cop.speed * dt;
                 cop.p[1] += f[1] * cop.speed * dt;
@@ -717,5 +736,31 @@ mod tests {
         assert!(police.heli_manager.heli.is_none(), "Helicopter destroyed on crash");
         assert!(police.heli_manager.crash_explosion.is_some(), "Explosion triggered at crash site");
         assert_eq!(police.stars, 3, "Drops 1 star upon helicopter takedown");
+    }
+
+    #[test]
+    fn police_pursuit_tactical_courses_and_pit_maneuver() {
+        let mut police = PoliceManager::new();
+        police.set_stars(2);
+
+        let mut cars = vec![
+            crate::actors::make_vehicle([95.0, 80.0, 0.0], 0.0, 0, 0, 0, 0, false, false), // Cop 1 (Left flank)
+            crate::actors::make_vehicle([105.0, 80.0, 0.0], 0.0, 0, 0, 0, 0, false, false), // Cop 2 (Right flank)
+        ];
+        police.cop_car_indices = vec![0, 1];
+
+        let player_p = [100.0, 95.0, 0.0];
+        let player_fwd = [0.0, 1.0];
+
+        // Step pursuit simulation
+        police.update(0.5, player_p, player_fwd, &mut cars);
+
+        assert!(cars[0].siren_active, "Cop car sirens activated during pursuit");
+        assert!(cars[1].siren_active);
+        assert!(cars[0].speed > 0.0, "Cop 1 accelerates towards left flank");
+        assert!(cars[1].speed > 0.0, "Cop 2 accelerates towards right flank");
+
+        // Cop 0 target x is left of player (< 100.0), Cop 1 target x is right (> 100.0)
+        assert!(cars[0].p[0] < cars[1].p[0], "Cops maintain dual-flank tactical positioning");
     }
 }

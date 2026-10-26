@@ -1,9 +1,9 @@
 {
-  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 1269 Rust functions)",
+  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 1272 Rust functions)",
   "bytes": 6469472,
-  "portedBytes": 284388,
+  "portedBytes": 285624,
   "routines": 25988,
-  "portedRoutines": 1014,
+  "portedRoutines": 1017,
   "subsystems": [
     {
       "name": "Missions",
@@ -3472,9 +3472,9 @@
     {
       "name": "People",
       "bytes": 255716,
-      "portedBytes": 29956,
+      "portedBytes": 30388,
       "routines": 1125,
-      "portedRoutines": 110,
+      "portedRoutines": 112,
       "classes": [
         {
           "name": "(free functions)",
@@ -3816,8 +3816,8 @@
           "name": "cPlayerPickup",
           "bytes": 1984,
           "routines": 7,
-          "portedBytes": 1712,
-          "portedRoutines": 6
+          "portedBytes": 1984,
+          "portedRoutines": 7
         },
         {
           "name": "cPlayerSafeSpot",
@@ -3858,8 +3858,8 @@
           "name": "cSimpleMover",
           "bytes": 6892,
           "routines": 56,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 160,
+          "portedRoutines": 1
         },
         {
           "name": "cSimpleMoverEffectRenderable",
@@ -4722,9 +4722,9 @@
     {
       "name": "Saves and wanted level",
       "bytes": 45700,
-      "portedBytes": 11288,
+      "portedBytes": 12092,
       "routines": 419,
-      "portedRoutines": 130,
+      "portedRoutines": 131,
       "classes": [
         {
           "name": "(free functions)",
@@ -4772,8 +4772,8 @@
           "name": "cPoliceChase",
           "bytes": 5500,
           "routines": 16,
-          "portedBytes": 3624,
-          "portedRoutines": 11
+          "portedBytes": 4428,
+          "portedRoutines": 12
         },
         {
           "name": "cProfileObject",

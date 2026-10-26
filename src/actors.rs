@@ -154,6 +154,13 @@ pub struct Car {
     pub spray_emitter: Option<crate::vehicle::BoatSprayEmitter>,
     pub boat_engine: Option<crate::vehicle::BoatEngine>,
     pub in_water: Option<crate::vehicle::CarInWater>,
+    pub horn_timer: f32,
+    pub recovery_timer: f32,
+    pub recovery_active: bool,
+    pub recovery_steer: f32,
+    pub panicked: bool,
+    pub panic_timer: f32,
+    pub burnout: bool,
 }
 impl Car {
     pub fn spec(&self) -> &'static crate::vehicle::Spec {
@@ -516,6 +523,13 @@ pub(crate) fn make_vehicle(
         spray_emitter: if spec.is_watercraft() { Some(crate::vehicle::BoatSprayEmitter::new()) } else { None },
         boat_engine: if spec.is_watercraft() { Some(crate::vehicle::BoatEngine::new()) } else { None },
         in_water: None,
+        horn_timer: 0.0,
+        recovery_timer: 0.0,
+        recovery_active: false,
+        recovery_steer: 0.0,
+        panicked: false,
+        panic_timer: 0.0,
+        burnout: false,
     }
 }
 
@@ -1683,6 +1697,13 @@ impl Scene {
                             car.speed = 0.0;
                             car.start_delay = 0.35;
                         }
+                        if car.blocked > 1.2 {
+                            car.horn_timer -= dt;
+                            if car.horn_timer <= 0.0 {
+                                self.pending_impact_sounds.push((car.p, false));
+                                car.horn_timer = 2.4 + ((i * 13) % 15) as f32 * 0.1;
+                            }
+                        }
                         if car.blocked > 0.5 {
                             if let Some(target_node) = roads.nodes.get(car.target) {
                                 let m = target_node.meta();
@@ -1711,6 +1732,13 @@ impl Scene {
                                     }
                                 }
                             }
+                        }
+                        if car.blocked > 2.4 {
+                            car.on_rail = false;
+                            car.recovery_active = true;
+                            car.recovery_timer = 1.25;
+                            car.recovery_steer = if (i + car.target) % 2 == 0 { -0.85 } else { 0.85 };
+                            car.blocked = 0.0;
                         }
                     } else if car.start_delay <= 0.0 {
                         car.blocked = 0.0;
@@ -1774,6 +1802,55 @@ impl Scene {
                             car.angle = new_angle;
                         }
                     }
+                } else if car.recovery_active {
+                    // cDrivingRecovery: reversing away from obstacle with counter-steering
+                    car.recovery_timer -= dt;
+                    let control = DriveInput {
+                        throttle: -0.65,
+                        steer: car.recovery_steer,
+                        brake: false,
+                    };
+                    step_car(car, c, control, dt);
+                    if car.recovery_timer <= 0.0 {
+                        car.recovery_active = false;
+                        car.blocked = 0.0;
+                        car.start_delay = 0.3;
+                    }
+                } else if car.panicked {
+                    // cVehicle::HandleReaction(3): panicking driver drives away aggressively
+                    car.panic_timer -= dt;
+                    car.horn_timer -= dt;
+                    if car.horn_timer <= 0.0 {
+                        self.pending_impact_sounds.push((car.p, false));
+                        car.horn_timer = 0.5;
+                    }
+                    if let Some(target) = roads.nodes.get(car.target) {
+                        let diff = wrapped(heading(car.p, target.p) - car.angle);
+                        let steer = (-diff * 2.2).clamp(-1.0, 1.0);
+                        let throttle = if car.speed < 18.5 { 1.0 } else { 0.4 };
+                        step_car(car, c, DriveInput { throttle, steer, brake: diff.abs() > 2.0 }, dt);
+                        if distance(car.p, target.p) < 6.0 {
+                            let next = target
+                                .links
+                                .iter()
+                                .copied()
+                                .filter(|&n| roads.nodes[n].land() && n != car.previous)
+                                .nth(i % target.links.len().max(1))
+                                .or_else(|| {
+                                    target.links.iter().copied().find(|&n| roads.nodes[n].land())
+                                });
+                            if let Some(next) = next {
+                                car.previous = car.target;
+                                car.target = next;
+                            }
+                        }
+                    }
+                    if car.panic_timer <= 0.0 {
+                        car.panicked = false;
+                        car.on_rail = true;
+                        car.lane = 0;
+                        car.rail_dist = 0.0;
+                    }
                 } else {
                     if let Some(node) = roads.nodes.get(car.target) {
                         if distance(car.p, node.p) < 6.0 {
@@ -1794,8 +1871,6 @@ impl Scene {
                                 car.rail_dist = 0.0;
                                 car.next_target = next;
                                 car.on_rail = true;
-                            } else {
-                                car.parked = true;
                             }
                         }
                     }
@@ -1817,8 +1892,11 @@ impl Scene {
                         } else {
                             car.blocked = 0.;
                         }
-                        if car.blocked > 2.0 {
-                            car.parked = true;
+                        if car.blocked > 1.8 {
+                            car.recovery_active = true;
+                            car.recovery_timer = 1.2;
+                            car.recovery_steer = if (i + car.target) % 2 == 0 { -0.85 } else { 0.85 };
+                            car.blocked = 0.0;
                         }
                     }
                 }
@@ -1918,6 +1996,14 @@ impl Scene {
                             }
                         }
 
+                        // Authentic Chinatown Wars cVehicle::HandleReaction(3): ramming civilian car triggers panic flee
+                        if rel_speed > 2.5 && !self.cars[other_idx].is_emergency() {
+                            self.cars[other_idx].panicked = true;
+                            self.cars[other_idx].panic_timer = 6.0;
+                            self.cars[other_idx].on_rail = false;
+                            self.cars[other_idx].horn_timer = 0.2;
+                        }
+
                         if self.cars[driver_idx].is_bike() {
                             let rel_speed = (vi - vj).abs();
                             if rel_speed > 7.5 {
@@ -1958,7 +2044,7 @@ impl Scene {
             }
         }
         for (i, car) in self.cars.iter().enumerate() {
-            let skidding_rear = car.rear_skidding || (car.wheel_spin && car.speed.abs() > 2.0);
+            let skidding_rear = car.rear_skidding || car.burnout || (car.wheel_spin && (car.speed.abs() > 2.0 || car.burnout));
             let skidding_front = car.front_skidding;
             let cf = forward(car.angle);
             let cside = [cf[1], -cf[0]];
@@ -3069,10 +3155,22 @@ fn step_car(car: &mut Car, c: &Collision, input: DriveInput, dt: f32) -> bool {
     let throttle = input.throttle.clamp(-1., 1.);
     let steer_in = input.steer.clamp(-1., 1.);
     let prev_speed = car.speed;
-    let handbrake_turn = input.brake && (steer_in.abs() > 0.10 || car.lat_vel.abs() > 1.2) && car.speed.abs() > 3.0;
-    car.braking = input.brake || (car.speed * throttle < -0.15);
+    let burnout_attempt = input.brake && throttle.abs() > 0.25 && car.speed.abs() < 3.2;
+    let handbrake_turn = input.brake && (steer_in.abs() > 0.10 || car.lat_vel.abs() > 1.2) && car.speed.abs() >= 3.0;
+    car.braking = (input.brake && !burnout_attempt) || (car.speed * throttle < -0.15);
+    car.burnout = burnout_attempt;
 
-    if input.brake {
+    if burnout_attempt {
+        car.rear_skidding = true;
+        car.front_skidding = false;
+        car.wheel_spin = true;
+        car.rpm = (0.75 + throttle.abs() * 0.24).clamp(0.4, 1.0);
+        car.speed = move_towards(car.speed, 0.0, 14.0 * dt);
+        if steer_in.abs() > 0.15 {
+            car.yaw_rate = -steer_in * 3.4;
+            car.angle = (car.angle + car.yaw_rate * dt).rem_euclid(std::f32::consts::TAU);
+        }
+    } else if input.brake {
         let base_brake =
             (32.0 * (spec.brake_force() / 500.0).sqrt().clamp(0.75, 1.55) / mass.powf(0.25))
                 .max(28.0);
@@ -3081,7 +3179,9 @@ fn step_car(car: &mut Car, c: &Collision, input: DriveInput, dt: f32) -> bool {
             car.front_skidding = car.speed.abs() > 12.0 && steer_in.abs() > 0.35;
             car.wheel_spin = throttle > 0.2;
             if throttle > 0.1 {
-                let acceleration = 15.0 * torque_ratio;
+                let r = car.rpm.clamp(0.0, 1.0);
+                let torque_curve = (((1.8 * r - 4.5) * r + 2.2) * r + 0.5).clamp(0.42, 1.38);
+                let acceleration = 15.0 * torque_ratio * torque_curve;
                 car.speed = (car.speed + throttle * acceleration * dt).clamp(max_rev, max_fwd);
             } else {
                 let decel = base_brake * 0.42;
@@ -3143,7 +3243,11 @@ fn step_car(car: &mut Car, c: &Collision, input: DriveInput, dt: f32) -> bool {
                     _ => 0.88,
                 }
             };
-            let acceleration = 17.0 * torque_ratio * gear_mul;
+            // Chinatown Wars CEngine torque curve & power reduction when damaged
+            let r = car.rpm.clamp(0.0, 1.0);
+            let torque_curve = (((1.8 * r - 4.5) * r + 2.2) * r + 0.5).clamp(0.85, 1.35);
+            let damage_factor = if car.health < 290.0 { 0.25 } else if car.health < 790.0 { 0.55 } else { 1.0 };
+            let acceleration = 17.0 * torque_ratio * gear_mul * torque_curve * damage_factor;
             car.speed = (car.speed + throttle * acceleration * dt).clamp(max_rev, max_fwd);
             car.wheel_spin = car.speed.abs() < 6.0
                 && throttle > 0.8
@@ -3168,7 +3272,7 @@ fn step_car(car: &mut Car, c: &Collision, input: DriveInput, dt: f32) -> bool {
 
     // Steering response from PAK 29 steerLock, steerRate and steerSpeedRed.
     let speed_norm = (car.speed.abs() / max_fwd).clamp(0., 1.);
-    let speed_red = (1.0 - speed_norm * spec.steer_speed_red() * 1.5).clamp(0.40, 1.0);
+    let speed_red = (1.0 - speed_norm * (spec.steer_speed_red() / 100.0) * 1.8).clamp(0.35, 1.0);
     let lock_factor = (spec.steer_lock_deg() / 60.0).clamp(0.55, 1.45);
     let steer_rate = (spec.steer_rate_deg() / 15.0).clamp(4.0, 12.0);
     if steer_in.abs() < 0.02 {
@@ -3183,21 +3287,21 @@ fn step_car(car: &mut Car, c: &Collision, input: DriveInput, dt: f32) -> bool {
 
     let wb_factor = (4.59 / spec.wheelbase()).clamp(0.58, 1.52);
     let oversteer = if handbrake_turn {
-        1.62
+        1.85
     } else if throttle > 0.55 && spec.drive_split() < 0.20 {
-        1.18
+        1.25
     } else {
         1.0
     };
     let speed_engage = (car.speed.abs() / 7.0).min(1.0) * car.speed.signum();
     let front_bite = (spec.front_stiffness() / 5.0).clamp(0.65, 1.25);
-    let target_yaw = -car.steer_angle * 1.75 * wb_factor * oversteer * speed_engage;
+    let target_yaw = -car.steer_angle * 1.85 * wb_factor * oversteer * speed_engage;
     car.yaw_rate = move_towards(car.yaw_rate, target_yaw, 18.0 * spec.grip() * front_bite * dt);
 
-    let slip_factor = if handbrake_turn {
-        0.45
+    let slip_factor = if handbrake_turn || car.burnout {
+        0.58
     } else if spec.drive_split() < 0.20 && throttle > 0.5 {
-        0.18
+        0.22
     } else if spec.is_bike() {
         0.04
     } else {
@@ -3208,11 +3312,11 @@ fn step_car(car: &mut Car, c: &Collision, input: DriveInput, dt: f32) -> bool {
     } else {
         -car.yaw_rate * car.speed.abs() * slip_factor
     };
-    let lat_grip = (if handbrake_turn { 4.5 } else { 15.0 })
+    let lat_grip = (if handbrake_turn { 3.8 } else { 15.0 })
         * spec.grip()
         * (spec.rear_stiffness() / 5.0).clamp(0.55, 1.3);
     car.lat_vel = move_towards(car.lat_vel, target_lat, lat_grip * dt);
-    if car.speed.abs() < 0.2 {
+    if car.speed.abs() < 0.2 && !car.burnout {
         car.lat_vel = 0.;
         car.yaw_rate = 0.;
         car.rear_skidding = false;
@@ -4265,5 +4369,87 @@ mod tests {
         assert!(bs.can_search([20.5, 20.0, 0.0], &ped), "Dead unsearched ped within 1.65m can be searched");
         bs.mark_searched(&mut ped);
         assert!(!bs.can_search([20.5, 20.0, 0.0], &ped), "Already searched corpse cannot be searched again");
+    }
+
+    #[test]
+    fn vehicle_traffic_ai_recovery_horn_and_panic_reaction() {
+        let mut s = empty();
+        let c = flat();
+        let roads = Roads {
+            nodes: vec![
+                crate::gps::Node {
+                    p: [100.0, 90.0, 0.0],
+                    flags: 0,
+                    links: vec![1],
+                },
+                crate::gps::Node {
+                    p: [100.0, 130.0, 0.0],
+                    flags: 0,
+                    links: vec![0],
+                },
+            ],
+        };
+        let assets = assets();
+
+        // 1. Spawn civilian car on rail with an obstacle car ahead
+        let mut civ_car = make_vehicle([100.0, 100.0, 0.0], 0.0, 0, 0, 0, 0, false, false);
+        civ_car.on_rail = true;
+        civ_car.previous = 0;
+        civ_car.target = 1;
+        civ_car.next_target = 1;
+        civ_car.blocked = 2.45; // blocked above recovery threshold (2.4s)
+        s.cars.push(civ_car);
+
+        let obs_car = make_vehicle([100.0, 105.0, 0.0], 0.0, 0, 0, 0, 0, false, false);
+        s.cars.push(obs_car);
+
+        // Simulation tick triggers recovery mode (reversing out)
+        s.tick(&c, &roads, &assets, [100.0, 100.0, 0.0], 1.0 / 30.0, DriveInput::default());
+        assert!(s.cars[0].recovery_active, "Blocked car initiates DrivingRecovery");
+        assert!(s.cars[0].recovery_timer > 0.0);
+
+        // 2. Collision with player car triggers panic flee mode
+        let mut player_car = make_vehicle([100.0, 97.5, 0.0], 0.0, 0, 0, 0, 0, false, false);
+        player_car.speed = 14.0; // Ramming into rear of civ_car at [100.0, 100.0, 0.0]
+        s.cars.push(player_car);
+        s.driving = Some(2);
+
+        s.tick(&c, &roads, &assets, [100.0, 100.0, 0.0], 1.0 / 30.0, DriveInput::default());
+        assert!(s.cars[0].panicked, "Civilian car rammed by player triggers panic reaction");
+        assert!(s.cars[0].panic_timer > 0.0);
+    }
+
+    #[test]
+    fn vehicle_burnout_and_handbrake_drift() {
+        let c = flat();
+        let mut car = make_vehicle([0.0, 0.0, 0.0], 0.0, 0, 0, 2, 0, false, false); // DUKES RWD
+
+        // 1. Standing burnout: brake + full throttle at 0 speed
+        let burnout_input = DriveInput {
+            throttle: 1.0,
+            steer: 0.8,
+            brake: true,
+        };
+        step_car(&mut car, &c, burnout_input, 1.0 / 30.0);
+        assert!(car.burnout, "Standing burnout active");
+        assert!(car.wheel_spin, "Wheel spin active during burnout");
+        assert!(car.rear_skidding, "Rear tires skidding during burnout");
+        assert!(car.rpm > 0.70, "Engine revs up during burnout");
+        assert!(car.yaw_rate.abs() > 1.0, "Donut yaw rotation active under steer");
+
+        // 2. Handbrake drift at speed (speed = 16.0)
+        let mut drift_car = make_vehicle([0.0, 0.0, 0.0], 0.0, 0, 0, 2, 0, false, false);
+        drift_car.speed = 16.0;
+        let drift_input = DriveInput {
+            throttle: 0.6,
+            steer: 0.9,
+            brake: true,
+        };
+        for _ in 0..10 {
+            step_car(&mut drift_car, &c, drift_input, 1.0 / 30.0);
+        }
+        assert!(!drift_car.burnout, "High-speed handbrake turn is not a standing burnout");
+        assert!(drift_car.rear_skidding, "Rear tires breaking traction in drift");
+        assert!(drift_car.yaw_rate.abs() > 0.5, "Strong oversteer yaw rotation");
     }
 }

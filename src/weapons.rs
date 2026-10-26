@@ -263,6 +263,255 @@ impl WeaponManager {
     }
 }
 
+// ============================================================================
+// Chinatown Wars Weapon Wheel Selector & Slot Icons (cHudWeaponSelect, cWeaponSlotIcon)
+// ============================================================================
+
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct WeaponSlotIcon {
+    pub slot: usize,
+    pub type_id: u8,
+    pub is_equipped: bool,
+    pub is_selected: bool,
+    pub ammo_count: i16,
+    pub clip_count: u8,
+    pub scale: f32,
+    pub alpha: f32,
+}
+
+#[allow(dead_code)]
+impl WeaponSlotIcon {
+    pub fn new(slot: usize) -> Self {
+        Self {
+            slot,
+            type_id: 0,
+            is_equipped: false,
+            is_selected: false,
+            ammo_count: 0,
+            clip_count: 0,
+            scale: 1.0,
+            alpha: 0.85,
+        }
+    }
+
+    pub fn update_from_weapon(&mut self, weapon: Option<&Weapon>, selected: bool) {
+        self.is_selected = selected;
+        if let Some(w) = weapon {
+            self.type_id = w.type_id;
+            self.is_equipped = true;
+            self.ammo_count = w.ammo;
+            self.clip_count = w.clip;
+        } else {
+            self.is_equipped = false;
+            self.ammo_count = 0;
+            self.clip_count = 0;
+        }
+        self.scale = if selected { 1.25 } else { 1.0 };
+        self.alpha = if selected { 1.0 } else { 0.70 };
+    }
+
+    pub fn slot_name(&self) -> &'static str {
+        match self.slot {
+            0 => "À mains nues",
+            1 => "Corps à corps",
+            2 => "Pistolet",
+            3 => "Épée Yu Jian",
+            4 => "Fusil à pompe",
+            5 => "Mitraillette",
+            6 => "Fusil d'assaut",
+            7 => "Arme lourde",
+            8 => "Fusil de sniper",
+            9 => "Projectiles",
+            10 => "Arme spéciale",
+            _ => "Arme",
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        !self.is_equipped
+    }
+
+    pub fn icon_color(&self) -> [f32; 4] {
+        if self.is_selected {
+            [1.0, 0.85, 0.20, self.alpha]
+        } else if self.is_equipped {
+            [0.85, 0.88, 0.92, self.alpha]
+        } else {
+            [0.35, 0.38, 0.42, 0.35]
+        }
+    }
+
+    pub fn get_slot(&self) -> usize {
+        self.slot
+    }
+
+    pub fn get_type_id(&self) -> u8 {
+        self.type_id
+    }
+
+    pub fn ammo(&self) -> i16 {
+        self.ammo_count
+    }
+
+    pub fn clip(&self) -> u8 {
+        self.clip_count
+    }
+
+    pub fn is_selected(&self) -> bool {
+        self.is_selected
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub struct HudWeaponSelect {
+    pub active: bool,
+    pub slots: [WeaponSlotIcon; NUM_SLOTS],
+    pub hovered_slot: usize,
+    pub open_timer: f32,
+    pub fade_alpha: f32,
+    pub time_dilation: f32,
+    pub wheel_angle: f32,
+}
+
+impl Default for HudWeaponSelect {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[allow(dead_code)]
+impl HudWeaponSelect {
+    pub fn new() -> Self {
+        let slots = std::array::from_fn(WeaponSlotIcon::new);
+        Self {
+            active: false,
+            slots,
+            hovered_slot: 0,
+            open_timer: 0.0,
+            fade_alpha: 0.0,
+            time_dilation: 1.0,
+            wheel_angle: 0.0,
+        }
+    }
+
+    pub fn open(&mut self, cur_slot: usize, wm: &WeaponManager) {
+        self.active = true;
+        self.hovered_slot = cur_slot;
+        self.sync_slots(wm);
+        self.time_dilation = 0.35;
+    }
+
+    pub fn close(&mut self, wm: &mut WeaponManager) {
+        self.active = false;
+        self.time_dilation = 1.0;
+        if self.slots[self.hovered_slot].is_equipped {
+            wm.cur_slot = self.hovered_slot;
+        }
+    }
+
+    pub fn toggle(&mut self, wm: &mut WeaponManager) {
+        if self.active {
+            self.close(wm);
+        } else {
+            self.open(wm.cur_slot, wm);
+        }
+    }
+
+    pub fn select_next(&mut self, wm: &WeaponManager) {
+        for step in 1..=NUM_SLOTS {
+            let next = (self.hovered_slot + step) % NUM_SLOTS;
+            if wm.slots[next].is_some() {
+                self.hovered_slot = next;
+                self.sync_slots(wm);
+                break;
+            }
+        }
+    }
+
+    pub fn select_prev(&mut self, wm: &WeaponManager) {
+        for step in 1..=NUM_SLOTS {
+            let prev = (self.hovered_slot + NUM_SLOTS - (step % NUM_SLOTS)) % NUM_SLOTS;
+            if wm.slots[prev].is_some() {
+                self.hovered_slot = prev;
+                self.sync_slots(wm);
+                break;
+            }
+        }
+    }
+
+    pub fn select_slot(&mut self, slot: usize, wm: &WeaponManager) {
+        if slot < NUM_SLOTS && wm.slots[slot].is_some() {
+            self.hovered_slot = slot;
+            self.sync_slots(wm);
+        }
+    }
+
+    pub fn sync_slots(&mut self, wm: &WeaponManager) {
+        for s in 0..NUM_SLOTS {
+            let is_sel = s == self.hovered_slot;
+            self.slots[s].update_from_weapon(wm.slots[s].as_ref(), is_sel);
+        }
+    }
+
+    pub fn update(&mut self, dt: f32, wm: &WeaponManager) {
+        if self.active {
+            self.open_timer += dt;
+            self.fade_alpha = (self.fade_alpha + dt * 6.0).min(1.0);
+            self.wheel_angle += dt * 0.8;
+            self.sync_slots(wm);
+        } else {
+            self.open_timer = 0.0;
+            self.fade_alpha = (self.fade_alpha - dt * 8.0).max(0.0);
+        }
+    }
+
+    pub fn is_visible(&self) -> bool {
+        self.fade_alpha > 0.0
+    }
+
+    pub fn get_hovered_name(&self) -> &'static str {
+        self.slots[self.hovered_slot].slot_name()
+    }
+
+    pub fn get_hovered_ammo(&self) -> (i16, u8) {
+        (
+            self.slots[self.hovered_slot].ammo_count,
+            self.slots[self.hovered_slot].clip_count,
+        )
+    }
+
+    pub fn get_slot_position(&self, slot: usize, center: [f32; 2], radius: f32) -> [f32; 2] {
+        let angle = (slot as f32) * (std::f32::consts::TAU / NUM_SLOTS as f32)
+            - std::f32::consts::FRAC_PI_2;
+        [
+            center[0] + angle.cos() * radius,
+            center[1] + angle.sin() * radius,
+        ]
+    }
+
+    pub fn alpha(&self) -> f32 {
+        self.fade_alpha
+    }
+
+    pub fn active_slot(&self) -> usize {
+        self.hovered_slot
+    }
+
+    pub fn is_slot_equipped(&self, slot: usize) -> bool {
+        if slot < NUM_SLOTS {
+            self.slots[slot].is_equipped
+        } else {
+            false
+        }
+    }
+
+    pub fn time_scale(&self) -> f32 {
+        self.time_dilation
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TargetKind {
     Ped(usize),
@@ -1932,5 +2181,52 @@ mod tests {
         assert!(!store.is_recorded(42));
         store.record(42);
         assert!(store.is_recorded(42));
+    }
+
+    #[test]
+    fn hud_weapon_select_wheel_and_slot_icons() {
+        let mut records = vec![WeaponRecord::default(); 28];
+        records[2].slot = 2; // Pistol in slot 2
+        records[4].slot = 4; // Shotgun in slot 4
+        let tables = WeaponTables {
+            records,
+            default_ammo: [50; 28],
+            trace_lifetimes: [3, 4, 4],
+        };
+        let mut wm = WeaponManager::new(&tables);
+        wm.give(2, &tables); // Pistol (slot 2)
+        wm.give(4, &tables); // Shotgun (slot 4)
+
+        let mut wheel = HudWeaponSelect::new();
+        assert!(!wheel.active);
+        assert_eq!(wheel.time_scale(), 1.0);
+
+        // Open weapon wheel selector
+        wheel.open(wm.cur_slot, &wm);
+        assert!(wheel.active);
+        assert_eq!(wheel.time_scale(), 0.35, "Slows down simulation for tactical wheel selection");
+        assert_eq!(wheel.active_slot(), wm.cur_slot);
+
+        // Update animation
+        wheel.update(0.1, &wm);
+        assert!(wheel.alpha() > 0.0);
+        assert!(wheel.is_visible());
+
+        // Cycle next equipped weapon in wheel
+        wheel.select_next(&wm);
+        assert!(wheel.is_slot_equipped(wheel.active_slot()));
+
+        // Check slot icon properties
+        let icon = &wheel.slots[2];
+        assert_eq!(icon.get_slot(), 2);
+        assert_eq!(icon.get_type_id(), 2);
+        assert!(!icon.is_empty());
+        let col = icon.icon_color();
+        assert!(col[3] > 0.0);
+
+        // Close and commit selected weapon
+        wheel.close(&mut wm);
+        assert!(!wheel.active);
+        assert_eq!(wheel.time_scale(), 1.0);
     }
 }

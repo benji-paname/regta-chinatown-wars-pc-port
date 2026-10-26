@@ -503,6 +503,332 @@ impl MinigameSession {
     }
 }
 
+// ============================================================================
+// Authentic Chinatown Wars Ammu-Nation Online Store (cAmmozoneApp, Overlay 001)
+// ============================================================================
+
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AmmozoneCategory {
+    Handguns = 0,
+    Shotguns = 1,
+    SubmachineGuns = 2,
+    AssaultRifles = 3,
+    HeavyWeapons = 4,
+    Explosives = 5,
+    BodyArmor = 6,
+}
+
+#[allow(dead_code)]
+impl AmmozoneCategory {
+    pub const ALL: [AmmozoneCategory; 7] = [
+        AmmozoneCategory::Handguns,
+        AmmozoneCategory::Shotguns,
+        AmmozoneCategory::SubmachineGuns,
+        AmmozoneCategory::AssaultRifles,
+        AmmozoneCategory::HeavyWeapons,
+        AmmozoneCategory::Explosives,
+        AmmozoneCategory::BodyArmor,
+    ];
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            AmmozoneCategory::Handguns => "ARMES DE POING",
+            AmmozoneCategory::Shotguns => "FUSILS & POMPES",
+            AmmozoneCategory::SubmachineGuns => "MITRAILLETTES",
+            AmmozoneCategory::AssaultRifles => "FUSILS D'ASSAUT",
+            AmmozoneCategory::HeavyWeapons => "ARMES LOURDES",
+            AmmozoneCategory::Explosives => "EXPLOSIFS & GRENADES",
+            AmmozoneCategory::BodyArmor => "PROTECTIONS KEVLAR",
+        }
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct AmmozoneItem {
+    pub id: usize,
+    pub name: &'static str,
+    pub category: AmmozoneCategory,
+    pub type_id: u8,
+    pub price: u32,
+    pub ammo_pack: u16,
+    pub damage_stars: u8,
+    pub fire_rate_stars: u8,
+    pub description: &'static str,
+}
+
+#[allow(dead_code)]
+pub const AMMOZONE_CATALOG: &[AmmozoneItem] = &[
+    AmmozoneItem { id: 0, name: "Pistolet 9mm", category: AmmozoneCategory::Handguns, type_id: 2, price: 500, ammo_pack: 50, damage_stars: 2, fire_rate_stars: 3, description: "Arme de poing standard, fiable et économique." },
+    AmmozoneItem { id: 1, name: "Pistolets Doubles (.45)", category: AmmozoneCategory::Handguns, type_id: 5, price: 1200, ammo_pack: 60, damage_stars: 3, fire_rate_stars: 4, description: "Puissance de feu doublée pour les fusillades rapprochées." },
+    AmmozoneItem { id: 2, name: "Desert Eagle .50", category: AmmozoneCategory::Handguns, type_id: 2, price: 1800, ammo_pack: 35, damage_stars: 4, fire_rate_stars: 2, description: "Calibre lourd capable de neutraliser en un coup." },
+    AmmozoneItem { id: 3, name: "Fusil à pompe Pump-Action", category: AmmozoneCategory::Shotguns, type_id: 4, price: 1200, ammo_pack: 30, damage_stars: 4, fire_rate_stars: 2, description: "Dévastateur à courte portée avec gerbe de plombs." },
+    AmmozoneItem { id: 4, name: "Fusil à canon scié", category: AmmozoneCategory::Shotguns, type_id: 4, price: 950, ammo_pack: 25, damage_stars: 4, fire_rate_stars: 3, description: "Compact et dissimulable pour les règlements de compte." },
+    AmmozoneItem { id: 5, name: "Micro-SMG (Uzi)", category: AmmozoneCategory::SubmachineGuns, type_id: 6, price: 2000, ammo_pack: 120, damage_stars: 2, fire_rate_stars: 5, description: "Cadence de tir ultra-rapide en tir continu." },
+    AmmozoneItem { id: 6, name: "SMG Tactique (MP5)", category: AmmozoneCategory::SubmachineGuns, type_id: 6, price: 2600, ammo_pack: 120, damage_stars: 3, fire_rate_stars: 4, description: "Précision chirurgicale et groupement de tirs optimal." },
+    AmmozoneItem { id: 7, name: "Fusil d'assaut AK-47", category: AmmozoneCategory::AssaultRifles, type_id: 7, price: 3500, ammo_pack: 150, damage_stars: 4, fire_rate_stars: 4, description: "Le classique mondial, puissance et pénétration assurées." },
+    AmmozoneItem { id: 8, name: "Lance-roquettes RPG", category: AmmozoneCategory::HeavyWeapons, type_id: 10, price: 10000, ammo_pack: 8, damage_stars: 5, fire_rate_stars: 1, description: "Roquette explosive capable de détruire véhicules et hélicoptères." },
+    AmmozoneItem { id: 9, name: "Lance-flammes", category: AmmozoneCategory::HeavyWeapons, type_id: 11, price: 8000, ammo_pack: 200, damage_stars: 4, fire_rate_stars: 5, description: "Projection de carburant enflammé nettoyant toute zone." },
+    AmmozoneItem { id: 10, name: "Minigun Rotatif", category: AmmozoneCategory::HeavyWeapons, type_id: 10, price: 15000, ammo_pack: 300, damage_stars: 5, fire_rate_stars: 5, description: "6 canons rotatifs délivrant un déluge d'acier continu." },
+    AmmozoneItem { id: 11, name: "Grenades à fragmentation (x5)", category: AmmozoneCategory::Explosives, type_id: 13, price: 800, ammo_pack: 5, damage_stars: 5, fire_rate_stars: 2, description: "Explosif défensif à retardateur 2.5 secondes." },
+    AmmozoneItem { id: 12, name: "Cocktails Molotov (x5)", category: AmmozoneCategory::Explosives, type_id: 14, price: 650, ammo_pack: 5, damage_stars: 4, fire_rate_stars: 2, description: "Bouteille incendiaire créant une nappe de feu au sol." },
+    AmmozoneItem { id: 13, name: "Gilet Pare-balles Kevlar", category: AmmozoneCategory::BodyArmor, type_id: 99, price: 500, ammo_pack: 1, damage_stars: 0, fire_rate_stars: 0, description: "Protection balistique absorbant les tirs ennemis (100%)." },
+];
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub struct CartEntry {
+    pub item_id: usize,
+    pub quantity: u32,
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub struct AmmozoneApp {
+    pub current_category: AmmozoneCategory,
+    pub selected_item_idx: usize,
+    pub cart: Vec<CartEntry>,
+    pub delivery_in_progress: bool,
+    pub delivery_timer: f32,
+    pub total_delivered_orders: u32,
+}
+
+impl Default for AmmozoneApp {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[allow(dead_code)]
+impl AmmozoneApp {
+    pub fn new() -> Self {
+        Self {
+            current_category: AmmozoneCategory::Handguns,
+            selected_item_idx: 0,
+            cart: Vec::new(),
+            delivery_in_progress: false,
+            delivery_timer: 0.0,
+            total_delivered_orders: 0,
+        }
+    }
+
+    pub fn switch_category(&mut self, cat: AmmozoneCategory) {
+        self.current_category = cat;
+        self.selected_item_idx = 0;
+    }
+
+    pub fn next_category(&mut self) {
+        let cur = self.current_category as usize;
+        let next = (cur + 1) % AmmozoneCategory::ALL.len();
+        self.current_category = AmmozoneCategory::ALL[next];
+        self.selected_item_idx = 0;
+    }
+
+    pub fn prev_category(&mut self) {
+        let cur = self.current_category as usize;
+        let prev = (cur + AmmozoneCategory::ALL.len() - 1) % AmmozoneCategory::ALL.len();
+        self.current_category = AmmozoneCategory::ALL[prev];
+        self.selected_item_idx = 0;
+    }
+
+    pub fn filtered_items(&self) -> Vec<&'static AmmozoneItem> {
+        AMMOZONE_CATALOG.iter().filter(|i| i.category == self.current_category).collect()
+    }
+
+    pub fn next_item(&mut self) {
+        let count = self.filtered_items().len();
+        if count > 0 {
+            self.selected_item_idx = (self.selected_item_idx + 1) % count;
+        }
+    }
+
+    pub fn prev_item(&mut self) {
+        let count = self.filtered_items().len();
+        if count > 0 {
+            self.selected_item_idx = (self.selected_item_idx + count - 1) % count;
+        }
+    }
+
+    pub fn current_item(&self) -> Option<&'static AmmozoneItem> {
+        self.filtered_items().get(self.selected_item_idx).copied()
+    }
+
+    pub fn add_to_cart(&mut self, item_id: usize, qty: u32) {
+        if let Some(entry) = self.cart.iter_mut().find(|e| e.item_id == item_id) {
+            entry.quantity = entry.quantity.saturating_add(qty);
+        } else {
+            self.cart.push(CartEntry { item_id, quantity: qty });
+        }
+    }
+
+    pub fn remove_from_cart(&mut self, item_id: usize) {
+        self.cart.retain(|e| e.item_id != item_id);
+    }
+
+    pub fn clear_cart(&mut self) {
+        self.cart.clear();
+    }
+
+    pub fn cart_total(&self) -> u32 {
+        self.cart.iter().map(|e| {
+            let price = AMMOZONE_CATALOG.iter().find(|i| i.id == e.item_id).map(|i| i.price).unwrap_or(0);
+            price * e.quantity
+        }).sum()
+    }
+
+    pub fn checkout(&mut self, player_cash: &mut u32) -> Result<u32, &'static str> {
+        if self.cart.is_empty() {
+            return Err("Panier vide");
+        }
+        let total = self.cart_total();
+        if *player_cash < total {
+            return Err("Fonds insuffisants");
+        }
+        *player_cash -= total;
+        self.delivery_in_progress = true;
+        self.delivery_timer = 45.0;
+        self.cart.clear();
+        Ok(total)
+    }
+
+    pub fn update(&mut self, dt: f32) -> bool {
+        if self.delivery_in_progress {
+            self.delivery_timer -= dt;
+            if self.delivery_timer <= 0.0 {
+                self.delivery_in_progress = false;
+                self.total_delivered_orders += 1;
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn is_delivering(&self) -> bool {
+        self.delivery_in_progress
+    }
+
+    pub fn delivery_remaining_seconds(&self) -> u32 {
+        self.delivery_timer.max(0.0).ceil() as u32
+    }
+}
+
+// ============================================================================
+// Authentic Chinatown Wars Full-Screen Interactive GPS Map (cMapApp)
+// ============================================================================
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub struct MapApp {
+    pub cursor_pos: [f32; 2],
+    pub pan_offset: [f32; 2],
+    pub zoom_level: f32,
+    pub filter_dealers: bool,
+    pub filter_safehouses: bool,
+    pub filter_contacts: bool,
+    pub filter_stunts: bool,
+    pub filter_cameras: bool,
+    pub user_waypoint: Option<[f32; 3]>,
+    pub gps_route: Vec<[f32; 2]>,
+}
+
+impl Default for MapApp {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[allow(dead_code)]
+impl MapApp {
+    pub fn new() -> Self {
+        Self {
+            cursor_pos: [250.0, 250.0],
+            pan_offset: [0.0, 0.0],
+            zoom_level: 1.0,
+            filter_dealers: true,
+            filter_safehouses: true,
+            filter_contacts: true,
+            filter_stunts: true,
+            filter_cameras: true,
+            user_waypoint: None,
+            gps_route: Vec::new(),
+        }
+    }
+
+    pub fn set_zoom(&mut self, zoom: f32) {
+        self.zoom_level = zoom.clamp(0.6, 3.0);
+    }
+
+    pub fn zoom_in(&mut self) {
+        self.set_zoom(self.zoom_level + 0.25);
+    }
+
+    pub fn zoom_out(&mut self) {
+        self.set_zoom(self.zoom_level - 0.25);
+    }
+
+    pub fn pan(&mut self, dx: f32, dy: f32) {
+        self.pan_offset[0] += dx / self.zoom_level;
+        self.pan_offset[1] += dy / self.zoom_level;
+        self.cursor_pos[0] += dx / self.zoom_level;
+        self.cursor_pos[1] += dy / self.zoom_level;
+    }
+
+    pub fn center_on(&mut self, pos: [f32; 2]) {
+        self.cursor_pos = pos;
+        self.pan_offset = [0.0, 0.0];
+    }
+
+    pub fn place_waypoint(&mut self, pos: [f32; 3]) {
+        self.user_waypoint = Some(pos);
+    }
+
+    pub fn clear_waypoint(&mut self) {
+        self.user_waypoint = None;
+        self.gps_route.clear();
+    }
+
+    pub fn waypoint(&self) -> Option<[f32; 3]> {
+        self.user_waypoint
+    }
+
+    pub fn toggle_dealers(&mut self) {
+        self.filter_dealers = !self.filter_dealers;
+    }
+
+    pub fn toggle_safehouses(&mut self) {
+        self.filter_safehouses = !self.filter_safehouses;
+    }
+
+    pub fn toggle_contacts(&mut self) {
+        self.filter_contacts = !self.filter_contacts;
+    }
+
+    pub fn toggle_stunts(&mut self) {
+        self.filter_stunts = !self.filter_stunts;
+    }
+
+    pub fn toggle_cameras(&mut self) {
+        self.filter_cameras = !self.filter_cameras;
+    }
+
+    pub fn set_gps_route(&mut self, path: Vec<[f32; 2]>) {
+        self.gps_route = path;
+    }
+
+    pub fn zoom(&self) -> f32 {
+        self.zoom_level
+    }
+
+    pub fn cursor(&self) -> [f32; 2] {
+        self.cursor_pos
+    }
+
+    pub fn route_points_count(&self) -> usize {
+        self.gps_route.len()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -690,5 +1016,74 @@ mod tests {
 
         let loot = session.body_search_loot();
         assert_eq!(loot, Some((120, Some((crate::drugs::DrugType::Coke, 2)), Some((6, 45)))));
+    }
+
+    #[test]
+    fn ammozone_app_cart_checkout_and_delivery() {
+        let mut app = AmmozoneApp::new();
+        assert_eq!(app.current_category, AmmozoneCategory::Handguns);
+        assert!(!app.is_delivering());
+
+        // Category switching
+        app.next_category();
+        assert_eq!(app.current_category, AmmozoneCategory::Shotguns);
+        app.prev_category();
+        assert_eq!(app.current_category, AmmozoneCategory::Handguns);
+
+        // Add 2 Pistols (ID 0, $500 ea) to cart
+        app.add_to_cart(0, 2);
+        assert_eq!(app.cart_total(), 1000);
+
+        // Add 1 AK-47 (ID 7, $3500)
+        app.add_to_cart(7, 1);
+        assert_eq!(app.cart_total(), 4500);
+
+        // Checkout with insufficient funds
+        let mut cash = 3000u32;
+        assert!(app.checkout(&mut cash).is_err());
+        assert_eq!(cash, 3000);
+
+        // Checkout with sufficient funds
+        cash = 6000;
+        let checkout_res = app.checkout(&mut cash);
+        assert!(checkout_res.is_ok());
+        assert_eq!(cash, 1500);
+        assert!(app.is_delivering());
+        assert!(app.delivery_remaining_seconds() > 0);
+
+        // Advance delivery timer to completion
+        assert!(!app.update(20.0));
+        assert!(app.is_delivering());
+        assert!(app.update(26.0), "Delivery arrives at safehouse!");
+        assert!(!app.is_delivering());
+        assert_eq!(app.total_delivered_orders, 1);
+    }
+
+    #[test]
+    fn map_app_navigation_and_waypoints() {
+        let mut map = MapApp::new();
+        assert_eq!(map.zoom(), 1.0);
+
+        // Zoom controls
+        map.zoom_in();
+        assert_eq!(map.zoom(), 1.25);
+        map.zoom_out();
+        assert_eq!(map.zoom(), 1.0);
+
+        // Pan map
+        map.pan(50.0, -25.0);
+        assert!(map.cursor()[0] > 250.0);
+
+        // Place and clear waypoint
+        assert!(map.waypoint().is_none());
+        map.place_waypoint([485.0, 275.0, 6.0]);
+        assert_eq!(map.waypoint(), Some([485.0, 275.0, 6.0]));
+        map.clear_waypoint();
+        assert!(map.waypoint().is_none());
+
+        // Toggle filters
+        assert!(map.filter_dealers);
+        map.toggle_dealers();
+        assert!(!map.filter_dealers);
     }
 }

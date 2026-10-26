@@ -2724,6 +2724,12 @@ impl Renderer {
                 if let Some(s) = scene.filter(|s| s.trade_session.is_some() && !paused) {
                     self.draw_dealer_trade_ui(s, ticks);
                 }
+                if let Some(scene) = scene.filter(|s| s.weapon_select.is_visible() && !paused) {
+                    self.draw_weapon_wheel(&scene.weapon_select);
+                }
+                if let Some(scene) = scene.filter(|s| s.context_help.is_active() && !paused) {
+                    self.draw_context_help(&scene.context_help);
+                }
                 if scene.is_some_and(|s| s.health <= 0.) {
                     rounded([W as f32 / 2. - 200., 245., 400., 96.], 4., ink);
                     self.psp_text(
@@ -3146,6 +3152,151 @@ impl Renderer {
             );
         }
     }
+
+    unsafe fn draw_weapon_wheel(&self, ws: &crate::weapons::HudWeaponSelect) {
+        let alpha = ws.alpha();
+        if alpha <= 0.001 {
+            return;
+        }
+
+        glEnable(0x0be2);
+        glBlendFunc(0x0302, 0x0303);
+
+        let cx = W as f32 / 2.0;
+        let cy = H as f32 / 2.0;
+        let radius = 145.0;
+
+        // 1. Semi-transparent dark circular backdrop
+        glColor4f(0.04, 0.05, 0.07, 0.82 * alpha);
+        glBegin(6);
+        glVertex2f(cx, cy);
+        for i in 0..=36 {
+            let a = (i as f32) * (std::f32::consts::TAU / 36.0);
+            glVertex2f(cx + a.cos() * (radius + 45.0), cy + a.sin() * (radius + 45.0));
+        }
+        glEnd();
+
+        // 2. Inner ring decoration
+        glColor4f(0.25, 0.28, 0.35, 0.50 * alpha);
+        glLineWidth(2.0);
+        glBegin(2);
+        for i in 0..=36 {
+            let a = (i as f32) * (std::f32::consts::TAU / 36.0);
+            glVertex2f(cx + a.cos() * (radius - 35.0), cy + a.sin() * (radius - 35.0));
+        }
+        glEnd();
+
+        // 3. Render 11 radial slot nodes
+        for (i, slot) in ws.slots.iter().enumerate() {
+            let pos = ws.get_slot_position(i, [cx, cy], radius);
+            let is_sel = i == ws.active_slot();
+            let btn_r = if is_sel { 28.0 } else { 22.0 };
+
+            // Slot circular badge
+            let bg = if is_sel {
+                [0.95, 0.85, 0.20, 0.95 * alpha]
+            } else if slot.is_equipped {
+                [0.18, 0.22, 0.30, 0.85 * alpha]
+            } else {
+                [0.08, 0.09, 0.11, 0.50 * alpha]
+            };
+
+            glColor4f(bg[0], bg[1], bg[2], bg[3]);
+            glBegin(6);
+            glVertex2f(pos[0], pos[1]);
+            for k in 0..=24 {
+                let a = (k as f32) * (std::f32::consts::TAU / 24.0);
+                glVertex2f(pos[0] + a.cos() * btn_r, pos[1] + a.sin() * btn_r);
+            }
+            glEnd();
+
+            // Slot ring
+            let border_col = if is_sel { [1.0, 1.0, 1.0, alpha] } else { [0.35, 0.40, 0.48, 0.6 * alpha] };
+            glColor4f(border_col[0], border_col[1], border_col[2], border_col[3]);
+            glBegin(2);
+            for k in 0..=24 {
+                let a = (k as f32) * (std::f32::consts::TAU / 24.0);
+                glVertex2f(pos[0] + a.cos() * (btn_r + 1.0), pos[1] + a.sin() * (btn_r + 1.0));
+            }
+            glEnd();
+
+            // Short slot tag label
+            let tag = match i {
+                0 => "POING",
+                1 => "MELEE",
+                2 => "PIST",
+                3 => "EPEE",
+                4 => "FUSIL",
+                5 => "SMG",
+                6 => "AK47",
+                7 => "LOURD",
+                8 => "SNIP",
+                9 => "GREN",
+                10 => "TAZER",
+                _ => "ARME",
+            };
+            let tag_col = if is_sel { [0.10, 0.10, 0.12] } else if slot.is_equipped { [0.90, 0.92, 0.95] } else { [0.45, 0.48, 0.52] };
+            self.psp_text(pos[0] - 14.0, pos[1] - 6.0, tag, 1.3, tag_col);
+        }
+
+        // 4. Center Weapon Display Info
+        let sel_slot = ws.active_slot();
+        let sel_icon = &ws.slots[sel_slot];
+        let name_str = sel_icon.slot_name();
+        self.psp_text(cx - 65.0, cy - 24.0, name_str, 2.0, [1.0, 0.90, 0.25]);
+
+        if sel_icon.is_equipped {
+            let (ammo, clip) = ws.get_hovered_ammo();
+            let ammo_str = if clip > 0 {
+                format!("MUNITIONS : {} / {}", ammo, clip)
+            } else if ammo > 0 {
+                format!("MUNITIONS : {}", ammo)
+            } else {
+                "ARME PRETE".to_string()
+            };
+            self.psp_text(cx - 55.0, cy + 2.0, &ammo_str, 1.6, [0.85, 0.88, 0.92]);
+        } else {
+            self.psp_text(cx - 45.0, cy + 2.0, "VIDE", 1.6, [0.55, 0.58, 0.62]);
+        }
+
+        // Footer prompt
+        self.psp_text(cx - 150.0, cy + radius + 25.0, "[ TAB / MOLETTE / A-D ] CHOISIR  |  [ RELACHER Q ] EQUIPER", 1.5, [0.80, 0.85, 0.90]);
+
+        glDisable(0x0be2);
+    }
+
+    unsafe fn draw_context_help(&self, help: &crate::pda::ContextHelp) {
+        if !help.is_active() {
+            return;
+        }
+
+        let cx = W as f32 / 2.0;
+        let y = 20.0;
+        let w = 440.0;
+        let h = 38.0;
+
+        glEnable(0x0be2);
+        glBlendFunc(0x0302, 0x0303);
+
+        // Dark background pill with gold left accent border
+        rounded([cx - w / 2.0, y, w, h], 5.0, [0.08, 0.10, 0.14]);
+        rounded([cx - w / 2.0, y, 6.0, h], 2.0, [0.95, 0.80, 0.20]);
+
+        // Hint text and button prompt
+        let text = help.current_text().unwrap_or("");
+        let prompt = help.current_prompt().unwrap_or("");
+        self.psp_text(cx - w / 2.0 + 16.0, y + 6.0, text, 1.6, [0.95, 0.96, 0.98]);
+        if !prompt.is_empty() {
+            self.psp_text(cx - w / 2.0 + 16.0, y + 21.0, prompt, 1.4, [0.98, 0.82, 0.22]);
+        }
+
+        // Animated progress timer bar along bottom of banner
+        let prog = help.current_progress();
+        rounded([cx - w / 2.0 + 10.0, y + h - 3.0, (w - 20.0) * (1.0 - prog), 2.0], 1.0, [0.95, 0.80, 0.20]);
+
+        glDisable(0x0be2);
+    }
+
     unsafe fn draw_pda(&self, pda: &crate::pda::PdaEngine, cash: u32, ticks: usize) {
         let px = W as f32 / 2. - 250.;
         let py = H as f32 / 2. - 240.;

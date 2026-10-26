@@ -1,9 +1,9 @@
 {
-  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 1100 Rust functions)",
+  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 1227 Rust functions)",
   "bytes": 6469472,
-  "portedBytes": 206528,
+  "portedBytes": 280560,
   "routines": 25988,
-  "portedRoutines": 847,
+  "portedRoutines": 972,
   "subsystems": [
     {
       "name": "Missions",
@@ -1914,9 +1914,9 @@
     {
       "name": "Minigames",
       "bytes": 943456,
-      "portedBytes": 40092,
+      "portedBytes": 98828,
       "routines": 2639,
-      "portedRoutines": 116,
+      "portedRoutines": 209,
       "classes": [
         {
           "name": "(free functions)",
@@ -2048,8 +2048,8 @@
           "name": "cAmmozoneApp",
           "bytes": 39048,
           "routines": 75,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 34980,
+          "portedRoutines": 65
         },
         {
           "name": "cAutoSaveSelectApp",
@@ -2090,8 +2090,8 @@
           "name": "cCarBombFittingApp",
           "bytes": 6132,
           "routines": 23,
-          "portedBytes": 6132,
-          "portedRoutines": 23
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cContactsApp",
@@ -2167,8 +2167,8 @@
           "name": "cDumpsterWeaponStashApp",
           "bytes": 19648,
           "routines": 47,
-          "portedBytes": 780,
-          "portedRoutines": 3
+          "portedBytes": 0,
+          "portedRoutines": 0
         },
         {
           "name": "cDynRaceMarkerProp",
@@ -2181,8 +2181,8 @@
           "name": "cEmailApp",
           "bytes": 36628,
           "routines": 66,
-          "portedBytes": 5960,
-          "portedRoutines": 12
+          "portedBytes": 36628,
+          "portedRoutines": 66
         },
         {
           "name": "cEmptyTheBootApp",
@@ -2756,9 +2756,9 @@
     {
       "name": "Weapons",
       "bytes": 142532,
-      "portedBytes": 32588,
+      "portedBytes": 47448,
       "routines": 663,
-      "portedRoutines": 114,
+      "portedRoutines": 143,
       "classes": [
         {
           "name": "(free functions)",
@@ -3009,8 +3009,8 @@
           "name": "cHudWeaponSelect",
           "bytes": 16352,
           "routines": 31,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 16352,
+          "portedRoutines": 31
         },
         {
           "name": "cMeleeBasedWeapon",
@@ -3065,8 +3065,8 @@
           "name": "cMolotovManager",
           "bytes": 5628,
           "routines": 12,
-          "portedBytes": 5300,
-          "portedRoutines": 10
+          "portedBytes": 3808,
+          "portedRoutines": 8
         },
         {
           "name": "cMp5",
@@ -4864,9 +4864,9 @@
     {
       "name": "HUD and PDA",
       "bytes": 340436,
-      "portedBytes": 19076,
+      "portedBytes": 19512,
       "routines": 1552,
-      "portedRoutines": 53,
+      "portedRoutines": 56,
       "classes": [
         {
           "name": "(free functions)",
@@ -4900,8 +4900,8 @@
           "name": "PDAImpl",
           "bytes": 8004,
           "routines": 87,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 436,
+          "portedRoutines": 3
         },
         {
           "name": "PadImpl",

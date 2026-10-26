@@ -314,6 +314,13 @@ pub struct Scene {
     pub ambient_boats: crate::vehicle::AmbientBoatManager,
     pub pickups: crate::weapons::PickupManager,
     pub body_search_ped: Option<usize>,
+    pub weapon_select: crate::weapons::HudWeaponSelect,
+    pub context_help: crate::pda::ContextHelp,
+    pub ammozone: crate::minigames::AmmozoneApp,
+    #[allow(dead_code)]
+    pub map_app: crate::minigames::MapApp,
+    #[allow(dead_code)]
+    pub iphone_pad: crate::pda::IPhonePad,
     pub safehouse_session: Option<crate::safehouse::SafehouseSession>,
     pub trade_session: Option<crate::drugs::TradeSession>,
     stream_timer: f32,
@@ -606,6 +613,11 @@ impl Scene {
             ambient_boats: crate::vehicle::AmbientBoatManager::new(),
             pickups: crate::weapons::PickupManager::new(),
             body_search_ped: None,
+            weapon_select: crate::weapons::HudWeaponSelect::new(),
+            context_help: crate::pda::ContextHelp::new(),
+            ammozone: crate::minigames::AmmozoneApp::new(),
+            map_app: crate::minigames::MapApp::new(),
+            iphone_pad: crate::pda::IPhonePad::new(),
             safehouse_session: None,
             trade_session: None,
             driving: None,
@@ -2687,6 +2699,15 @@ impl Scene {
             }
         }
 
+        // Chinatown Wars authentic Weapon Wheel Selector, Context Help, and Ammu-Nation updates
+        if let Some(wm) = &self.weapons {
+            self.weapon_select.update(dt, wm);
+        }
+        self.context_help.update(dt);
+        if self.ammozone.update(dt) {
+            self.banner = Some(("LIVRAISON AMMU-NATION : Vos armes sont arrivées dans votre planque !".to_string(), 4.5));
+        }
+
         // Update banner message countdown timer
         if let Some((_, timer)) = &mut self.banner {
             *timer -= dt;
@@ -3424,6 +3445,11 @@ mod tests {
             ambient_boats: crate::vehicle::AmbientBoatManager::new(),
             pickups: crate::weapons::PickupManager::new(),
             body_search_ped: None,
+            weapon_select: crate::weapons::HudWeaponSelect::new(),
+            context_help: crate::pda::ContextHelp::new(),
+            ammozone: crate::minigames::AmmozoneApp::new(),
+            map_app: crate::minigames::MapApp::new(),
+            iphone_pad: crate::pda::IPhonePad::new(),
             safehouse_session: None,
             trade_session: None,
             driving: None,

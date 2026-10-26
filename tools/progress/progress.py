@@ -61,7 +61,8 @@ RUST_MODULE_MAP = {
         'cPickupAk47', 'cPickupDoubleBarrelShot', 'cPickupSawnOffShot', 'cPickupFlashBang',
         'cPickupHealth', 'cPickupArmour', 'cPickupBribe', 'cPickupMoney', 'cPickupManager',
         'cBasePickup', 'cPickupGen', 'cPickupGeneric', 'cPickupLuckLion', 'cPickupRandomStuff',
-        'cPickupListener', 'cCollectedAmbientPickupStore'
+        'cPickupListener', 'cCollectedAmbientPickupStore',
+        'cHudWeaponSelect', 'cWeaponSlotIcon'
     ],
     'explosions.rs': ['Explosion', 'cBaseExplosion', 'FadeExplosion'],
     'collision.rs': ['CCollision', 'CCollisionBox', 'CCollisionMesh'],
@@ -73,7 +74,7 @@ RUST_MODULE_MAP = {
     'gpu.rs': ['cWaterRenderBlock', 'cParticleEmitterWaterSplash', 'cPickupEffectRenderable'],
     'radar.rs': ['cRadar', 'cRadarBlip', 'cTurfMap'],
     'gps.rs': ['cGPS', 'cRouteManager'],
-    'pda.rs': ['PDAImpl', 'cPda', 'cEmailApp', 'cPhoneApp'],
+    'pda.rs': ['PDAImpl', 'cPda', 'cEmailApp', 'cPhoneApp', 'cIPhonePad', 'cContextHelp', 'cContainerWnd', 'cWnd', 'cListBox'],
     'audio.rs': ['cAudio', 'cAudioManager', 'cAudioBase', 'SoundImpl', 'cSoundEvents'],
     'radio.rs': ['cRadioApp', 'cSoundStream', 'cAudioBaseOAL'],
     'weather.rs': ['cWeather', 'cTimeCycle', 'cLightManager', 'Fire', 'cFire', 'cParticleEmitterFire'],
@@ -92,7 +93,8 @@ RUST_MODULE_MAP = {
     'minigames.rs': [
         'cHotWiringApp', 'cScratchCardApp', 'cShootingRange', 'cTattooingApp',
         'cSinkingCarApp', 'cSafeCrackingApp', 'cDumpsterWeaponStashApp', 'cCarBombFittingApp',
-        'cMolotovApp', 'cRifleConstructionApp', 'cSearchingBodiesApp'
+        'cMolotovApp', 'cRifleConstructionApp', 'cSearchingBodiesApp',
+        'cAmmozoneApp', 'cMapApp'
     ],
 }
 

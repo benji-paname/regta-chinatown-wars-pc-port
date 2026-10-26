@@ -114,6 +114,7 @@ pub const FOOT: &[Hint] = &[
     ("BANDES D INFORMATIONS", "F5", "RB+BACK"),
     ("LANGUE", "F4", "LB+RS"),
     ("DEPLACER", "ZQSD", "LS"),
+    ("ROUE DES ARMES", "Q", "LB"),
     ("CHANGER D ARME", "TAB / MOLETTE", "CROIX DROITE/GAUCHE"),
     ("TIRER / ATTAQUER", "CLIC G / J", "B / RB"),
     ("LUNETTE SNIPER", "Z", "RS CLIC"),

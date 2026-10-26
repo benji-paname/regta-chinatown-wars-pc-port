@@ -1017,31 +1017,62 @@ pub fn run(
                 || (pad.pressed(crate::gamepad::B) && !pad.held(crate::gamepad::START))
                 || pad.pressed(crate::gamepad::RB);
 
-            if pressed.contains(&Key::Tab) || pad.pressed(crate::gamepad::DPAD_RIGHT) {
+            let weapon_wheel_active = scene.as_ref().is_some_and(|s| s.weapon_select.active);
+            if pressed.contains(&Key::Q) || (pad.pressed(crate::gamepad::LB) && !pad.held(crate::gamepad::START)) {
                 if let Some(s) = scene.as_mut() {
                     if let Some(wm) = s.weapons.as_mut() {
-                        wm.cycle_next();
+                        s.weapon_select.toggle(wm);
                     }
                 }
             }
-            if pad.pressed(crate::gamepad::DPAD_LEFT) {
+            if weapon_wheel_active {
                 if let Some(s) = scene.as_mut() {
                     if let Some(wm) = s.weapons.as_mut() {
-                        wm.cycle_prev();
+                        if pressed.contains(&Key::Tab) || pressed.contains(&Key::Right) || pad.pressed(crate::gamepad::DPAD_RIGHT) {
+                            s.weapon_select.select_next(wm);
+                        }
+                        if pressed.contains(&Key::Left) || pad.pressed(crate::gamepad::DPAD_LEFT) {
+                            s.weapon_select.select_prev(wm);
+                        }
+                        if let Some((_, scroll)) = window.get_scroll_wheel() {
+                            if scroll > 0.5 {
+                                s.weapon_select.select_prev(wm);
+                            } else if scroll < -0.5 {
+                                s.weapon_select.select_next(wm);
+                            }
+                        }
+                        if pressed.contains(&Key::Enter) || pressed.contains(&Key::Space) || pad.pressed(crate::gamepad::A) {
+                            s.weapon_select.close(wm);
+                        }
                     }
                 }
-            }
-            if let Some((_, scroll)) = window.get_scroll_wheel() {
-                if scroll > 0.5 {
+            } else {
+                if pressed.contains(&Key::Tab) || pad.pressed(crate::gamepad::DPAD_RIGHT) {
+                    if let Some(s) = scene.as_mut() {
+                        if let Some(wm) = s.weapons.as_mut() {
+                            wm.cycle_next();
+                        }
+                    }
+                }
+                if pad.pressed(crate::gamepad::DPAD_LEFT) {
                     if let Some(s) = scene.as_mut() {
                         if let Some(wm) = s.weapons.as_mut() {
                             wm.cycle_prev();
                         }
                     }
-                } else if scroll < -0.5 {
-                    if let Some(s) = scene.as_mut() {
-                        if let Some(wm) = s.weapons.as_mut() {
-                            wm.cycle_next();
+                }
+                if let Some((_, scroll)) = window.get_scroll_wheel() {
+                    if scroll > 0.5 {
+                        if let Some(s) = scene.as_mut() {
+                            if let Some(wm) = s.weapons.as_mut() {
+                                wm.cycle_prev();
+                            }
+                        }
+                    } else if scroll < -0.5 {
+                        if let Some(s) = scene.as_mut() {
+                            if let Some(wm) = s.weapons.as_mut() {
+                                wm.cycle_next();
+                            }
                         }
                     }
                 }

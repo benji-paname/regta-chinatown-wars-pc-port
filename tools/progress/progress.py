@@ -43,7 +43,9 @@ RUST_MODULE_MAP = {
         'cTrafficLight', 'cTrafficLightManager', 'cTrafficManager', 'cWanderRoads', 'cCarController',
         'cPayNSpray', 'cPayNSprayManager',
         'cBoat', 'cAIBoat', 'cAmbientBoatManager', 'cBoatEngine', 'cBoatWakeEmitter', 'cBoatSprayEmitter',
-        'cCarInWater', 'cPoliceBoat'
+        'cCarInWater', 'cPoliceBoat',
+        'cSkidmark', 'cSkidmarkManager', 'cCarGen', 'cCarGenManager',
+        'cVehicleDoor', 'cDoor', 'cDoorManager', 'cRollOutOfVehicle', 'cTank', 'cParticleEmitterSkidSmoke'
     ],
     'ped.rs': ['cPed', 'cPlayer', 'cPopulationManager', 'cPedSprite', 'cAnimation'],
     'actors.rs': ['cAIGang', 'cAITaskHub', 'cSimpleMover', 'cPlayerOnFoot', 'cPlayerBoat', 'cLeaveWater', 'cPlayerPickup', 'cBodySearch'],

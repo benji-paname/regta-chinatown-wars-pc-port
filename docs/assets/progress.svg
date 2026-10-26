@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" font-family="Verdana,DejaVu Sans,sans-serif">
 <rect width="1000" height="560" fill="#16191c"/>
-<text x="8" y="18" font-size="13" fill="#e6e8ea">Original game code ported in Rust: 4.34% (972 / 25988 routines, by code size)</text>
+<text x="8" y="18" font-size="13" fill="#e6e8ea">Original game code ported in Rust: 4.40% (1014 / 25988 routines, by code size)</text>
 <rect x="3.0" y="42.0" width="115.8" height="70.5" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <text x="6.0" y="53.0" font-size="9" fill="#e6e8ea">cIntro</text>
 <rect x="118.8" y="42.0" width="102.9" height="70.5" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
@@ -513,7 +513,7 @@
 <rect x="625.2" y="405.7" width="29.6" height="27.6" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="654.8" y="306.4" width="27.0" height="29.2" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="654.8" y="335.6" width="27.0" height="26.1" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
-<rect x="654.8" y="344.3" width="27.0" height="17.4" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
+<rect x="654.8" y="335.6" width="27.0" height="26.1" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="654.8" y="361.7" width="27.0" height="24.2" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="654.8" y="385.9" width="27.0" height="24.1" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="654.8" y="410.0" width="27.0" height="23.3" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
@@ -529,6 +529,7 @@
 <rect x="681.8" y="400.2" width="20.1" height="16.7" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="681.8" y="416.9" width="20.1" height="16.4" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="701.9" y="327.9" width="18.7" height="17.4" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
+<rect x="701.9" y="344.6" width="18.7" height="0.7" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="720.6" y="327.9" width="18.5" height="17.4" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="739.1" y="327.9" width="18.5" height="17.4" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="757.6" y="327.9" width="17.1" height="17.4" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
@@ -595,8 +596,9 @@
 <rect x="791.8" y="401.6" width="7.5" height="8.0" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="799.2" y="401.6" width="7.3" height="8.0" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="775.3" y="409.6" width="31.2" height="23.7" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
+<rect x="775.3" y="432.5" width="31.2" height="0.8" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="582.1" y="290.4" width="225.4" height="143.9" fill="none" stroke="#e6e8ea" stroke-opacity="0.55" stroke-width="1.2"/>
-<text x="586.1" y="302.4" font-size="11" font-weight="bold" fill="#e6e8ea">Vehicles 2.2%</text>
+<text x="586.1" y="302.4" font-size="11" font-weight="bold" fill="#e6e8ea">Vehicles 3.1%</text>
 <rect x="583.1" y="450.3" width="38.2" height="38.3" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="583.1" y="488.6" width="38.2" height="38.1" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <text x="586.1" y="499.6" font-size="9" fill="#e6e8ea">cPda</text>

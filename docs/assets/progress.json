@@ -1,9 +1,9 @@
 {
-  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 1227 Rust functions)",
+  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 1269 Rust functions)",
   "bytes": 6469472,
-  "portedBytes": 280560,
+  "portedBytes": 284388,
   "routines": 25988,
-  "portedRoutines": 972,
+  "portedRoutines": 1014,
   "subsystems": [
     {
       "name": "Missions",
@@ -3922,9 +3922,9 @@
     {
       "name": "Vehicles",
       "bytes": 396136,
-      "portedBytes": 8560,
+      "portedBytes": 12388,
       "routines": 1623,
-      "portedRoutines": 70,
+      "portedRoutines": 112,
       "classes": [
         {
           "name": "(free functions)",
@@ -3951,15 +3951,15 @@
           "name": "Vehicle",
           "bytes": 9860,
           "routines": 95,
-          "portedBytes": 6568,
-          "portedRoutines": 61
+          "portedBytes": 9860,
+          "portedRoutines": 95
         },
         {
           "name": "VehicleType",
           "bytes": 360,
           "routines": 7,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 360,
+          "portedRoutines": 7
         },
         {
           "name": "cAIBiker",
@@ -3972,8 +3972,8 @@
           "name": "cAIBoat",
           "bytes": 4548,
           "routines": 19,
-          "portedBytes": 0,
-          "portedRoutines": 0
+          "portedBytes": 176,
+          "portedRoutines": 1
         },
         {
           "name": "cAIVehicle",

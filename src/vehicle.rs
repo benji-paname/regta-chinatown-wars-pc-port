@@ -1129,6 +1129,477 @@ impl AmbientBoatManager {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Authentic Chinatown Wars Vehicle Subsystem Classes:
+// cSkidmark, cSkidmarkManager, cCarGen, cCarGenManager, cVehicleDoor, cDoor,
+// cDoorManager, cRollOutOfVehicle, cTank, cParticleEmitterSkidSmoke
+// ---------------------------------------------------------------------------
+
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SkidmarkPoint {
+    pub pos: [f32; 3],
+    pub normal: [f32; 3],
+    pub alpha: f32,
+    pub width: f32,
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub struct Skidmark {
+    pub points: Vec<SkidmarkPoint>,
+    pub active: bool,
+    pub life_timer: f32,
+    pub max_lifetime: f32,
+}
+
+#[allow(dead_code)]
+impl Skidmark {
+    pub fn new() -> Self {
+        Self {
+            points: Vec::with_capacity(64),
+            active: true,
+            life_timer: 0.0,
+            max_lifetime: 20.0,
+        }
+    }
+
+    pub fn add_point(&mut self, pos: [f32; 3], normal: [f32; 3], width: f32) {
+        if self.points.len() >= 128 {
+            self.points.remove(0);
+        }
+        self.points.push(SkidmarkPoint {
+            pos,
+            normal,
+            alpha: 0.85,
+            width,
+        });
+    }
+
+    pub fn update(&mut self, dt: f32) {
+        self.life_timer += dt;
+        let fade_ratio = (1.0 - (self.life_timer / self.max_lifetime)).clamp(0.0, 1.0);
+        for pt in &mut self.points {
+            pt.alpha = 0.85 * fade_ratio;
+        }
+        if self.life_timer >= self.max_lifetime {
+            self.active = false;
+        }
+    }
+
+    pub fn is_expired(&self) -> bool {
+        !self.active || self.life_timer >= self.max_lifetime
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub struct SkidmarkManager {
+    pub strips: Vec<Skidmark>,
+    pub max_strips: usize,
+}
+
+#[allow(dead_code)]
+impl SkidmarkManager {
+    pub fn new() -> Self {
+        Self {
+            strips: Vec::with_capacity(32),
+            max_strips: 32,
+        }
+    }
+
+    pub fn start_strip(&mut self) -> usize {
+        if self.strips.len() >= self.max_strips {
+            self.strips.remove(0);
+        }
+        self.strips.push(Skidmark::new());
+        self.strips.len() - 1
+    }
+
+    pub fn add_mark(&mut self, strip_idx: usize, pos: [f32; 3], normal: [f32; 3], width: f32) {
+        if let Some(strip) = self.strips.get_mut(strip_idx) {
+            strip.add_point(pos, normal, width);
+        }
+    }
+
+    pub fn update(&mut self, dt: f32) {
+        for strip in &mut self.strips {
+            strip.update(dt);
+        }
+        self.strips.retain(|s| !s.is_expired());
+    }
+
+    pub fn active_strips_count(&self) -> usize {
+        self.strips.iter().filter(|s| s.active).count()
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub struct CarGenerator {
+    pub pos: [f32; 3],
+    pub heading: f32,
+    pub model_id: usize,
+    pub info_id: usize,
+    pub cooldown: f32,
+    pub spawned_vehicle_id: Option<usize>,
+    pub enabled: bool,
+}
+
+#[allow(dead_code)]
+impl CarGenerator {
+    pub fn new(pos: [f32; 3], heading: f32, model_id: usize, info_id: usize) -> Self {
+        Self {
+            pos,
+            heading,
+            model_id,
+            info_id,
+            cooldown: 0.0,
+            spawned_vehicle_id: None,
+            enabled: true,
+        }
+    }
+
+    pub fn should_spawn(&self, player_pos: [f32; 3], spawn_radius: f32) -> bool {
+        if !self.enabled || self.spawned_vehicle_id.is_some() || self.cooldown > 0.0 {
+            return false;
+        }
+        let dx = self.pos[0] - player_pos[0];
+        let dy = self.pos[1] - player_pos[1];
+        let dist_sq = dx * dx + dy * dy;
+        dist_sq <= spawn_radius * spawn_radius && dist_sq >= 15.0 * 15.0
+    }
+
+    pub fn notify_spawned(&mut self, id: usize) {
+        self.spawned_vehicle_id = Some(id);
+    }
+
+    pub fn notify_despawned(&mut self) {
+        self.spawned_vehicle_id = None;
+        self.cooldown = 30.0;
+    }
+
+    pub fn update(&mut self, dt: f32) {
+        if self.cooldown > 0.0 {
+            self.cooldown = (self.cooldown - dt).max(0.0);
+        }
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub struct CarGenManager {
+    pub generators: Vec<CarGenerator>,
+    pub spawn_radius: f32,
+    pub despawn_radius: f32,
+}
+
+#[allow(dead_code)]
+impl CarGenManager {
+    pub fn new() -> Self {
+        Self {
+            generators: Vec::new(),
+            spawn_radius: 120.0,
+            despawn_radius: 160.0,
+        }
+    }
+
+    pub fn add_generator(&mut self, gen: CarGenerator) {
+        self.generators.push(gen);
+    }
+
+    pub fn update(&mut self, dt: f32) {
+        for gen in &mut self.generators {
+            gen.update(dt);
+        }
+    }
+
+    pub fn count_pending_spawns(&self, player_pos: [f32; 3]) -> usize {
+        self.generators
+            .iter()
+            .filter(|g| g.should_spawn(player_pos, self.spawn_radius))
+            .count()
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DoorId {
+    DriverFront,
+    PassengerFront,
+    RearLeft,
+    RearRight,
+    Hood,
+    Trunk,
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum DoorState {
+    Closed,
+    Ajar(f32),
+    Open,
+    Detached,
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub struct VehicleDoor {
+    pub id: DoorId,
+    pub angle: f32,
+    pub max_angle: f32,
+    pub state: DoorState,
+    pub locked: bool,
+    pub damage: f32,
+}
+
+#[allow(dead_code)]
+impl VehicleDoor {
+    pub fn new(id: DoorId) -> Self {
+        Self {
+            id,
+            angle: 0.0,
+            max_angle: 65.0_f32.to_radians(),
+            state: DoorState::Closed,
+            locked: false,
+            damage: 0.0,
+        }
+    }
+
+    pub fn open(&mut self) -> bool {
+        if self.locked || self.state == DoorState::Detached {
+            return false;
+        }
+        self.state = DoorState::Open;
+        self.angle = self.max_angle;
+        true
+    }
+
+    pub fn close(&mut self) {
+        if self.state != DoorState::Detached {
+            self.state = DoorState::Closed;
+            self.angle = 0.0;
+        }
+    }
+
+    pub fn apply_damage(&mut self, amount: f32) {
+        self.damage += amount;
+        if self.damage > 100.0 {
+            self.state = DoorState::Detached;
+            self.angle = 0.0;
+        } else if self.damage > 40.0 && self.state == DoorState::Closed {
+            self.state = DoorState::Ajar(0.2);
+            self.angle = self.max_angle * 0.2;
+        }
+    }
+
+    pub fn is_open(&self) -> bool {
+        matches!(self.state, DoorState::Open | DoorState::Ajar(_))
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug, Default)]
+pub struct DoorManager {
+    pub doors: Vec<VehicleDoor>,
+}
+
+#[allow(dead_code)]
+impl DoorManager {
+    pub fn new_standard_sedan() -> Self {
+        Self {
+            doors: vec![
+                VehicleDoor::new(DoorId::DriverFront),
+                VehicleDoor::new(DoorId::PassengerFront),
+                VehicleDoor::new(DoorId::RearLeft),
+                VehicleDoor::new(DoorId::RearRight),
+                VehicleDoor::new(DoorId::Hood),
+                VehicleDoor::new(DoorId::Trunk),
+            ],
+        }
+    }
+
+    pub fn get_door_mut(&mut self, id: DoorId) -> Option<&mut VehicleDoor> {
+        self.doors.iter_mut().find(|d| d.id == id)
+    }
+
+    pub fn lock_all(&mut self) {
+        for door in &mut self.doors {
+            door.locked = true;
+        }
+    }
+
+    pub fn unlock_all(&mut self) {
+        for door in &mut self.doors {
+            door.locked = false;
+        }
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub struct RollOutOfVehicle {
+    pub in_progress: bool,
+    pub timer: f32,
+    pub duration: f32,
+    pub exit_velocity: [f32; 2],
+    pub abrasion_damage: f32,
+}
+
+#[allow(dead_code)]
+impl RollOutOfVehicle {
+    pub fn new() -> Self {
+        Self {
+            in_progress: false,
+            timer: 0.0,
+            duration: 0.85,
+            exit_velocity: [0.0, 0.0],
+            abrasion_damage: 0.0,
+        }
+    }
+
+    pub fn trigger(&mut self, car_velocity: [f32; 2]) -> bool {
+        let speed_sq = car_velocity[0] * car_velocity[0] + car_velocity[1] * car_velocity[1];
+        let speed = speed_sq.sqrt();
+        if speed < 4.0 {
+            return false;
+        }
+        self.in_progress = true;
+        self.timer = 0.0;
+        self.exit_velocity = [car_velocity[0] * 0.75, car_velocity[1] * 0.75];
+        self.abrasion_damage = (speed * 2.2).clamp(5.0, 45.0);
+        true
+    }
+
+    pub fn update(&mut self, dt: f32) -> bool {
+        if !self.in_progress {
+            return false;
+        }
+        self.timer += dt;
+        self.exit_velocity[0] *= (1.0 - dt * 3.5).max(0.0);
+        self.exit_velocity[1] *= (1.0 - dt * 3.5).max(0.0);
+        if self.timer >= self.duration {
+            self.in_progress = false;
+            return true;
+        }
+        false
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub struct RhinoTank {
+    pub turret_heading: f32,
+    pub target_turret_heading: f32,
+    pub reload_timer: f32,
+    pub reload_cooldown: f32,
+    pub shells_fired: u32,
+    pub recoil_offset: f32,
+}
+
+#[allow(dead_code)]
+impl RhinoTank {
+    pub fn new() -> Self {
+        Self {
+            turret_heading: 0.0,
+            target_turret_heading: 0.0,
+            reload_timer: 0.0,
+            reload_cooldown: 1.8,
+            shells_fired: 0,
+            recoil_offset: 0.0,
+        }
+    }
+
+    pub fn aim_turret(&mut self, target_angle: f32) {
+        self.target_turret_heading = target_angle;
+    }
+
+    pub fn update(&mut self, dt: f32) {
+        let diff = (self.target_turret_heading - self.turret_heading)
+            .rem_euclid(std::f32::consts::TAU);
+        let turn_step = dt * 2.2;
+        if diff < turn_step || diff > std::f32::consts::TAU - turn_step {
+            self.turret_heading = self.target_turret_heading;
+        } else if diff < std::f32::consts::PI {
+            self.turret_heading += turn_step;
+        } else {
+            self.turret_heading -= turn_step;
+        }
+        self.turret_heading = self.turret_heading.rem_euclid(std::f32::consts::TAU);
+
+        if self.reload_timer > 0.0 {
+            self.reload_timer = (self.reload_timer - dt).max(0.0);
+        }
+        if self.recoil_offset > 0.0 {
+            self.recoil_offset = (self.recoil_offset - dt * 4.0).max(0.0);
+        }
+    }
+
+    pub fn fire_cannon(&mut self) -> bool {
+        if self.reload_timer > 0.0 {
+            return false;
+        }
+        self.reload_timer = self.reload_cooldown;
+        self.shells_fired += 1;
+        self.recoil_offset = 0.35;
+        true
+    }
+
+    pub fn can_crush_vehicle(&self, other_mass: f32) -> bool {
+        other_mass < 3.0
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SkidSmokeParticle {
+    pub pos: [f32; 3],
+    pub vel: [f32; 3],
+    pub alpha: f32,
+    pub scale: f32,
+    pub life: f32,
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug, Default)]
+pub struct SkidSmokeEmitter {
+    pub particles: Vec<SkidSmokeParticle>,
+}
+
+#[allow(dead_code)]
+impl SkidSmokeEmitter {
+    pub fn new() -> Self {
+        Self {
+            particles: Vec::with_capacity(32),
+        }
+    }
+
+    pub fn emit(&mut self, wheel_pos: [f32; 3], intensity: f32) {
+        if self.particles.len() >= 64 {
+            self.particles.remove(0);
+        }
+        self.particles.push(SkidSmokeParticle {
+            pos: wheel_pos,
+            vel: [0.0, 0.0, 0.6 * intensity],
+            alpha: 0.75 * intensity.clamp(0.0, 1.0),
+            scale: 0.4,
+            life: 0.8,
+        });
+    }
+
+    pub fn update(&mut self, dt: f32) {
+        for p in &mut self.particles {
+            p.pos[0] += p.vel[0] * dt;
+            p.pos[1] += p.vel[1] * dt;
+            p.pos[2] += p.vel[2] * dt;
+            p.scale += dt * 0.8;
+            p.life -= dt;
+            p.alpha = (p.alpha - dt * 0.9).max(0.0);
+        }
+        self.particles.retain(|p| p.life > 0.0 && p.alpha > 0.0);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1304,5 +1775,131 @@ mod tests {
         assert!(car_in_water.engine_stalled, "Engine stalls in water");
         car_in_water.update(1.0, true);
         assert!(car_in_water.trigger_sinking_minigame, "Sinking car minigame triggered for player");
+    }
+
+    #[test]
+    fn skidmarks_and_skid_smoke_emitter() {
+        let mut mgr = SkidmarkManager::new();
+        assert_eq!(mgr.active_strips_count(), 0);
+
+        let strip_id = mgr.start_strip();
+        assert_eq!(mgr.active_strips_count(), 1);
+
+        // Add skid segments
+        mgr.add_mark(strip_id, [100.0, 200.0, 0.0], [0.0, 0.0, 1.0], 0.35);
+        mgr.add_mark(strip_id, [102.0, 201.0, 0.0], [0.0, 0.0, 1.0], 0.35);
+        assert_eq!(mgr.strips[strip_id].points.len(), 2);
+        assert_eq!(mgr.strips[strip_id].points[0].alpha, 0.85);
+
+        // Update simulation time: skidmark fades gradually
+        mgr.update(10.0);
+        assert!(mgr.strips[strip_id].points[0].alpha < 0.50);
+
+        // Smoke puff emitter on burnout
+        let mut smoke = SkidSmokeEmitter::new();
+        assert!(smoke.particles.is_empty());
+        smoke.emit([100.0, 200.0, 0.0], 1.0);
+        assert_eq!(smoke.particles.len(), 1);
+        smoke.update(0.1);
+        assert!(smoke.particles[0].pos[2] > 0.0, "Smoke rises vertically");
+    }
+
+    #[test]
+    fn cargen_parking_spawns_and_cooldown() {
+        let mut gen_mgr = CarGenManager::new();
+        let gen = CarGenerator::new([100.0, 100.0, 0.0], 0.0, 30, 0);
+        gen_mgr.add_generator(gen);
+
+        // Distant player (200m away) does not trigger spawn
+        assert_eq!(gen_mgr.count_pending_spawns([300.0, 100.0, 0.0]), 0);
+
+        // Player within 50m triggers spawn
+        assert_eq!(gen_mgr.count_pending_spawns([150.0, 100.0, 0.0]), 1);
+
+        // Notify vehicle spawned
+        gen_mgr.generators[0].notify_spawned(42);
+        assert_eq!(gen_mgr.count_pending_spawns([150.0, 100.0, 0.0]), 0);
+
+        // Notify despawned initiates 30s cooldown
+        gen_mgr.generators[0].notify_despawned();
+        assert_eq!(gen_mgr.generators[0].cooldown, 30.0);
+        assert_eq!(gen_mgr.count_pending_spawns([150.0, 100.0, 0.0]), 0);
+
+        gen_mgr.update(30.5);
+        assert_eq!(gen_mgr.generators[0].cooldown, 0.0);
+        assert_eq!(gen_mgr.count_pending_spawns([150.0, 100.0, 0.0]), 1);
+    }
+
+    #[test]
+    fn doors_locks_damage_and_bailout() {
+        let mut sedan = DoorManager::new_standard_sedan();
+        assert_eq!(sedan.doors.len(), 6);
+
+        // Driver door opens and closes
+        let driver_door = sedan.get_door_mut(DoorId::DriverFront).unwrap();
+        assert_eq!(driver_door.state, DoorState::Closed);
+        assert!(driver_door.open());
+        assert!(driver_door.is_open());
+        driver_door.close();
+        assert_eq!(driver_door.state, DoorState::Closed);
+
+        // Locking locks all doors
+        sedan.lock_all();
+        let locked_door = sedan.get_door_mut(DoorId::DriverFront).unwrap();
+        assert!(!locked_door.open(), "Locked door cannot be opened");
+
+        // Damage detaches door
+        locked_door.apply_damage(120.0);
+        assert_eq!(locked_door.state, DoorState::Detached);
+
+        // Roll out of vehicle bail-out at speed
+        let mut bailout = RollOutOfVehicle::new();
+        assert!(!bailout.in_progress);
+
+        // Stationary car does not cause bailout roll
+        assert!(!bailout.trigger([1.0, 0.0]));
+
+        // High-speed exit triggers roll
+        assert!(bailout.trigger([12.0, 0.0]));
+        assert!(bailout.in_progress);
+        assert!(bailout.abrasion_damage > 15.0);
+
+        // Tumble deceleration
+        bailout.update(0.5);
+        assert!(bailout.in_progress);
+        assert!(bailout.exit_velocity[0] < 12.0);
+
+        // Completes roll
+        let finished = bailout.update(0.4);
+        assert!(finished);
+        assert!(!bailout.in_progress);
+    }
+
+    #[test]
+    fn rhino_tank_turret_aiming_and_cannon() {
+        let mut tank = RhinoTank::new();
+        assert_eq!(tank.shells_fired, 0);
+        assert!(tank.can_crush_vehicle(1.2), "Tank crushes 1.2-ton civilian sedan");
+        assert!(!tank.can_crush_vehicle(4.5), "Tank cannot crush other 4.5-ton heavy tanks");
+
+        // Aim turret towards 90 degrees (PI/2)
+        tank.aim_turret(std::f32::consts::FRAC_PI_2);
+        tank.update(0.5);
+        assert!(tank.turret_heading > 0.0, "Turret rotates toward target angle");
+
+        // Fire cannon shell
+        assert!(tank.fire_cannon());
+        assert_eq!(tank.shells_fired, 1);
+        assert!(tank.recoil_offset > 0.0, "Cannon recoils on shot");
+        assert_eq!(tank.reload_timer, 1.8);
+
+        // Cannot fire again while reloading
+        assert!(!tank.fire_cannon());
+
+        // Reload finishes after 1.8s
+        tank.update(1.85);
+        assert_eq!(tank.reload_timer, 0.0);
+        assert!(tank.fire_cannon(), "Can fire again after reload completes");
+        assert_eq!(tank.shells_fired, 2);
     }
 }

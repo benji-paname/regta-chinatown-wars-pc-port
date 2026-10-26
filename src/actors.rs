@@ -671,7 +671,7 @@ impl Scene {
         // road node is far down a long street. Use world clearance, never teleport
         // a car into a wall or the water to satisfy a visual count.
         let road_angle = candidates.first().map(|v| v.2).unwrap_or(0.);
-        for radius in [7., 10., 14., 18.] {
+        for radius in [12., 15., 18.] {
             for i in 0..12 {
                 let a = i as f32 * TAU / 12.;
                 let p = [
@@ -702,7 +702,7 @@ impl Scene {
         let rf = forward(road_angle);
         let rside = [rf[1], -rf[0]];
         let base_p = scene.cars.first().map(|c| c.p).unwrap_or(player);
-        for back in [8.5, 11.0, 14.0, 17.5] {
+        for back in [9.0, 12.0, 15.0] {
             let mut placed = false;
             for lat in [0.0, 2.2, -2.2] {
                 let p = [
@@ -728,9 +728,9 @@ impl Scene {
             }
         }
         // GenerateRandomPed / GetCreatePosition: civilians start on a pavement
-        // link and walk from its first node to the second (cWanderPath). The
-        // slice fills a 9-90 unit ring at once instead of the original trickle.
-        for (q, from, to) in pavement.spawn_points(player, 9., 90., &mut scene.rng) {
+        // link and walk from its first node to the second (cWanderPath).
+        // Authentic off-screen spawning prevents popping in directly in front of the camera.
+        for (q, from, to) in pavement.spawn_points(player, 28., 90., &mut scene.rng) {
             if scene.peds.len() >= 20 {
                 break;
             }
@@ -749,7 +749,7 @@ impl Scene {
         }
         for &(_, p, a, from, to) in &candidates {
             if scene.cars.len() < 9
-                && distance(p, player) > 12.
+                && distance(p, player) > 14.
                 && scene.cars.iter().all(|car| distance(car.p, p) > 12.)
                 && scene.peds.iter().all(|ped| distance(ped.p, p) > 4.5)
             {
@@ -790,7 +790,7 @@ impl Scene {
                 let f = forward(a);
                 for side in [-22., -17., -12., 12., 17., 22.] {
                     let q = [p[0] + f[1] * side, p[1] - f[0] * side, p[2]];
-                    if distance(q, player) > 9.
+                    if distance(q, player) > 28.
                         && scene.peds.iter().all(|ped| distance(ped.p, q) > 8.)
                         && scene.cars.iter().all(|car| distance(car.p, q) > 4.5)
                     {
@@ -807,7 +807,7 @@ impl Scene {
         }
         // Populate nearby walkable ground as well as road edges, so a plaza or
         // car park is not empty at the initial presentation viewpoint.
-        for radius in [18., 28., 40., 55., 70., 90.] {
+        for radius in [32., 45., 60., 75., 90.] {
             for i in 0..16 {
                 if scene.peds.len() >= 20 {
                     break;
@@ -1704,35 +1704,6 @@ impl Scene {
                                 car.horn_timer = 2.4 + ((i * 13) % 15) as f32 * 0.1;
                             }
                         }
-                        if car.blocked > 0.5 {
-                            if let Some(target_node) = roads.nodes.get(car.target) {
-                                let m = target_node.meta();
-                                if m.lanes > 1 && !m.flag5 {
-                                    let alt_lane = if car.lane == 0 { 1 } else { 0 };
-                                    let alt_clear = previous.iter().enumerate().all(|(j, &(other_p, _, _))| {
-                                        if j == i {
-                                            return true;
-                                        }
-                                        let dx = other_p[0] - car.p[0];
-                                        let dy = other_p[1] - car.p[1];
-                                        let dot = dx * cf[0] + dy * cf[1];
-                                        if dot > -2.0 && dot < look_ahead + 2.0 {
-                                            let lat = (dx * cf[1] - dy * cf[0]).abs();
-                                            lat > m.half_width * 0.70
-                                        } else {
-                                            true
-                                        }
-                                    });
-                                    if alt_clear {
-                                        car.lane = alt_lane;
-                                        car.next_lane = alt_lane;
-                                        car.wobble = 0.0;
-                                        car.blocked = 0.0;
-                                        car.start_delay = 0.0;
-                                    }
-                                }
-                            }
-                        }
                         if car.blocked > 2.4 {
                             car.on_rail = false;
                             car.recovery_active = true;
@@ -2590,34 +2561,75 @@ impl Scene {
                 }
             }
         }
+        // Chinatown Wars authentic Population Streaming (cPopulationManager / cWanderRoads)
+        // Continuously recycles distant entities strictly into off-screen rings (never in camera frustum, never on player).
         self.stream_timer += dt;
-        if self.stream_timer > 3. {
-            self.stream_timer = 0.;
-            if self
-                .peds
-                .iter()
-                .filter(|p| distance(p.p, focus) < 85.)
-                .count()
-                < 8
-            {
-                let mut fresh = Self::new(
-                    c,
-                    roads,
-                    focus,
-                    self.pedestrian_areas.clone(),
-                    self.pavement.clone(),
-                );
-                for ped in &mut self.peds {
-                    if distance(ped.p, focus) > 85. {
-                        if let Some(replacement) = fresh.peds.pop() {
-                            *ped = replacement;
+        if self.stream_timer >= 1.0 {
+            self.stream_timer = 0.0;
+
+            // 1. Recycle distant civilian cars (> 95m from focus, not driven by player)
+            for (i, car) in self.cars.iter_mut().enumerate() {
+                if Some(i) != self.driving && !car.from_cargen && distance(car.p, focus) > 95.0 {
+                    // Find an off-screen road edge in the spawn band [52.0m, 78.0m] from focus
+                    for (a, b) in roads.edges() {
+                        let na = roads.nodes[a].p;
+                        let nb = roads.nodes[b].p;
+                        let mid = [(na[0] + nb[0]) * 0.5, (na[1] + nb[1]) * 0.5, (na[2] + nb[2]) * 0.5];
+                        let d = distance(mid, focus);
+                        if (52.0..=78.0).contains(&d) {
+                            let (lane, wobble) = roads.select_lane(a, b, self.rng.below(0xffff_ffff));
+                            let p_lane = roads.lane_world_pos(a, b, 0.5, lane, wobble);
+                            let d_lane = distance(p_lane, focus);
+                            if d_lane >= 48.0 {
+                                let a_lane = heading(na, nb);
+                                let info_id = crate::vehicle::choose_traffic_vehicle(p_lane, &mut self.rng);
+                                if let Some(valid_p) = car_position_for(c, p_lane, a_lane, info_id) {
+                                    let paint = crate::vehicle::choose_paint(info_id, 0xff, &mut self.rng);
+                                    let seg_len = (nb[0] - na[0]).hypot(nb[1] - na[1]).max(0.1);
+                                    let mut replacement = make_vehicle(valid_p, a_lane, b, a, info_id, paint, false, false);
+                                    replacement.lane = lane;
+                                    replacement.wobble = wobble;
+                                    replacement.rail_dist = seg_len * 0.5;
+                                    replacement.on_rail = true;
+                                    replacement.speed = 8.5; // Natural cruising flow into screen
+                                    if let Some(to_node) = roads.nodes.get(b) {
+                                        let next_cand = to_node
+                                            .links
+                                            .iter()
+                                            .copied()
+                                            .filter(|&n| roads.nodes[n].land() && n != a)
+                                            .nth(i % to_node.links.len().max(1))
+                                            .or_else(|| to_node.links.iter().copied().find(|&n| roads.nodes[n].land()));
+                                        if let Some(nt) = next_cand {
+                                            replacement.next_target = nt;
+                                            let (nl, nw) = roads.convert_lane(a, b, nt, lane, self.rng.below(0xffff_ffff));
+                                            replacement.next_lane = nl;
+                                            replacement.next_wobble = nw;
+                                        }
+                                    }
+                                    *car = replacement;
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
-                for (i, car) in self.cars.iter_mut().enumerate() {
-                    if Some(i) != self.driving && distance(car.p, focus) > 155. {
-                        if let Some(replacement) = fresh.cars.pop() {
-                            *car = replacement;
+            }
+
+            // 2. Recycle distant pedestrians (> 75m from focus)
+            let ped_spawn_pts = self.pavement.spawn_points(focus, 42.0, 65.0, &mut self.rng);
+            let mut pt_idx = 0;
+            for (ped_idx, ped) in self.peds.iter_mut().enumerate() {
+                if distance(ped.p, focus) > 75.0 && pt_idx < ped_spawn_pts.len() {
+                    let (q, from, to) = ped_spawn_pts[pt_idx];
+                    pt_idx += 1;
+                    if distance(q, focus) >= 38.0 {
+                        if let Some(valid_q) = person_position(c, q).filter(|p| self.pedestrian_areas.contains(*p)) {
+                            let target = self.pavement.wander_target(to, &mut self.rng);
+                            let mut replacement = make_ped(valid_q, target, ped_idx);
+                            replacement.prev = Some(from);
+                            replacement.cur = Some(to);
+                            *ped = replacement;
                         }
                     }
                 }
@@ -3158,6 +3170,16 @@ fn step_car(car: &mut Car, c: &Collision, input: DriveInput, dt: f32) -> bool {
     let burnout_attempt = input.brake && throttle.abs() > 0.25 && car.speed.abs() < 3.2;
     let handbrake_turn = input.brake && (steer_in.abs() > 0.10 || car.lat_vel.abs() > 1.2) && car.speed.abs() >= 3.0;
     car.braking = (input.brake && !burnout_attempt) || (car.speed * throttle < -0.15);
+
+    // Chinatown Wars authentic Launch Control / Burnout launch kick:
+    // releasing the brake while holding throttle bursts forward with wheelspin
+    let launch_boost = car.burnout && !input.brake && throttle > 0.35;
+    if launch_boost {
+        car.speed = (car.speed + 9.5).min(max_fwd);
+        car.wheel_spin = true;
+        car.rear_skidding = true;
+        car.rpm = 1.0;
+    }
     car.burnout = burnout_attempt;
 
     if burnout_attempt {
@@ -3249,9 +3271,10 @@ fn step_car(car: &mut Car, c: &Collision, input: DriveInput, dt: f32) -> bool {
             let damage_factor = if car.health < 290.0 { 0.25 } else if car.health < 790.0 { 0.55 } else { 1.0 };
             let acceleration = 17.0 * torque_ratio * gear_mul * torque_curve * damage_factor;
             car.speed = (car.speed + throttle * acceleration * dt).clamp(max_rev, max_fwd);
-            car.wheel_spin = car.speed.abs() < 6.0
-                && throttle > 0.8
-                && (spec.drive_split() < 0.25 || torque_ratio > 1.25);
+            car.wheel_spin = launch_boost
+                || (car.speed.abs() < 6.0
+                    && throttle > 0.8
+                    && (spec.drive_split() < 0.25 || torque_ratio > 1.25));
             if car.wheel_spin {
                 car.rear_skidding = true;
             }
@@ -3271,12 +3294,17 @@ fn step_car(car: &mut Car, c: &Collision, input: DriveInput, dt: f32) -> bool {
     }
 
     // Steering response from PAK 29 steerLock, steerRate and steerSpeedRed.
+    // Low speeds grant immediate steering rack response; high speeds scale down smoothly via steerSpeedRed.
     let speed_norm = (car.speed.abs() / max_fwd).clamp(0., 1.);
     let speed_red = (1.0 - speed_norm * (spec.steer_speed_red() / 100.0) * 1.8).clamp(0.35, 1.0);
     let lock_factor = (spec.steer_lock_deg() / 60.0).clamp(0.55, 1.45);
-    let steer_rate = (spec.steer_rate_deg() / 15.0).clamp(4.0, 12.0);
+    let steer_rate = if car.speed.abs() < 5.0 {
+        28.0 // Crisp immediate steering at low speed / intersections
+    } else {
+        (spec.steer_rate_deg() / 7.0).clamp(14.0, 32.0)
+    };
     if steer_in.abs() < 0.02 {
-        car.steer_angle = move_towards(car.steer_angle, 0., steer_rate * 1.6 * dt);
+        car.steer_angle = move_towards(car.steer_angle, 0., steer_rate * 1.8 * dt);
     } else {
         car.steer_angle = move_towards(
             car.steer_angle,
@@ -3287,21 +3315,23 @@ fn step_car(car: &mut Car, c: &Collision, input: DriveInput, dt: f32) -> bool {
 
     let wb_factor = (4.59 / spec.wheelbase()).clamp(0.58, 1.52);
     let oversteer = if handbrake_turn {
-        1.85
+        2.25
     } else if throttle > 0.55 && spec.drive_split() < 0.20 {
-        1.25
+        1.35
     } else {
         1.0
     };
-    let speed_engage = (car.speed.abs() / 7.0).min(1.0) * car.speed.signum();
-    let front_bite = (spec.front_stiffness() / 5.0).clamp(0.65, 1.25);
-    let target_yaw = -car.steer_angle * 1.85 * wb_factor * oversteer * speed_engage;
-    car.yaw_rate = move_towards(car.yaw_rate, target_yaw, 18.0 * spec.grip() * front_bite * dt);
+    // Ackermann kinematic engagement at low speeds + dynamic slip at high speeds
+    let speed_engage = (car.speed.abs() / 4.0).min(1.0) * car.speed.signum();
+    let front_bite = (spec.front_stiffness() / 5.0).clamp(0.65, 1.35);
+    let target_yaw = -car.steer_angle * 2.1 * wb_factor * oversteer * speed_engage;
+    let yaw_accel = if handbrake_turn { 34.0 } else { 24.0 } * spec.grip() * front_bite;
+    car.yaw_rate = move_towards(car.yaw_rate, target_yaw, yaw_accel * dt);
 
     let slip_factor = if handbrake_turn || car.burnout {
-        0.58
+        0.65
     } else if spec.drive_split() < 0.20 && throttle > 0.5 {
-        0.22
+        0.26
     } else if spec.is_bike() {
         0.04
     } else {
@@ -3312,7 +3342,7 @@ fn step_car(car: &mut Car, c: &Collision, input: DriveInput, dt: f32) -> bool {
     } else {
         -car.yaw_rate * car.speed.abs() * slip_factor
     };
-    let lat_grip = (if handbrake_turn { 3.8 } else { 15.0 })
+    let lat_grip = (if handbrake_turn { 2.8 } else { 15.0 })
         * spec.grip()
         * (spec.rear_stiffness() / 5.0).clamp(0.55, 1.3);
     car.lat_vel = move_towards(car.lat_vel, target_lat, lat_grip * dt);
@@ -4451,5 +4481,61 @@ mod tests {
         assert!(!drift_car.burnout, "High-speed handbrake turn is not a standing burnout");
         assert!(drift_car.rear_skidding, "Rear tires breaking traction in drift");
         assert!(drift_car.yaw_rate.abs() > 0.5, "Strong oversteer yaw rotation");
+    }
+
+    #[test]
+    fn authentic_driving_launch_kick_and_offscreen_population_streaming() {
+        let c = flat();
+        let mut car = make_vehicle([0.0, 0.0, 0.0], 0.0, 0, 0, 2, 0, false, false); // DUKES RWD
+
+        // 1. Enter burnout mode
+        let burnout_input = DriveInput {
+            throttle: 1.0,
+            steer: 0.0,
+            brake: true,
+        };
+        step_car(&mut car, &c, burnout_input, 1.0 / 30.0);
+        assert!(car.burnout, "Burnout charged");
+
+        // 2. Dump the brake with full throttle held: launch boost activates!
+        let launch_input = DriveInput {
+            throttle: 1.0,
+            steer: 0.0,
+            brake: false,
+        };
+        step_car(&mut car, &c, launch_input, 1.0 / 30.0);
+        assert!(!car.burnout, "Burnout discharged into launch");
+        assert!(car.speed >= 9.0, "Launch kick propels vehicle forward at >= 9.0 m/s");
+        assert!(car.wheel_spin, "Wheel spin on launch");
+
+        // 3. Off-screen streaming test: distant car (> 95m) is recycled strictly off-screen (>= 45m)
+        let mut s = empty();
+        let roads = Roads {
+            nodes: vec![
+                crate::gps::Node {
+                    p: [100.0, 40.0, 0.0],
+                    flags: 0,
+                    links: vec![1],
+                },
+                crate::gps::Node {
+                    p: [100.0, 160.0, 0.0],
+                    flags: 0,
+                    links: vec![0],
+                },
+            ],
+        };
+        let assets = assets();
+        let mut far_car = make_vehicle([500.0, 500.0, 0.0], 0.0, 0, 0, 0, 0, false, false);
+        far_car.from_cargen = false;
+        s.cars.push(far_car);
+
+        let focus = [100.0, 100.0, 0.0];
+        s.stream_timer = 1.0; // Trigger streaming pass
+        s.tick(&c, &roads, &assets, focus, 1.0 / 30.0, DriveInput::default());
+
+        let recycled_car = &s.cars[0];
+        let d = distance(recycled_car.p, focus);
+        assert!(d >= 45.0, "Recycled car must spawn strictly off-screen (distance {d} >= 45m)");
+        assert!(recycled_car.on_rail, "Streaming vehicle placed smoothly on rail link");
     }
 }

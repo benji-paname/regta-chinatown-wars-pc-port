@@ -1,9 +1,9 @@
 {
-  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 1272 Rust functions)",
+  "build": "ReGTA CTW Rust Native (ULES-01347 v1.01 target, 1273 Rust functions)",
   "bytes": 6469472,
-  "portedBytes": 285624,
+  "portedBytes": 285664,
   "routines": 25988,
-  "portedRoutines": 1017,
+  "portedRoutines": 1018,
   "subsystems": [
     {
       "name": "Missions",
@@ -3472,9 +3472,9 @@
     {
       "name": "People",
       "bytes": 255716,
-      "portedBytes": 30388,
+      "portedBytes": 30428,
       "routines": 1125,
-      "portedRoutines": 112,
+      "portedRoutines": 113,
       "classes": [
         {
           "name": "(free functions)",
@@ -3858,8 +3858,8 @@
           "name": "cSimpleMover",
           "bytes": 6892,
           "routines": 56,
-          "portedBytes": 160,
-          "portedRoutines": 1
+          "portedBytes": 200,
+          "portedRoutines": 2
         },
         {
           "name": "cSimpleMoverEffectRenderable",

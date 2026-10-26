@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" font-family="Verdana,DejaVu Sans,sans-serif">
 <rect width="1000" height="560" fill="#16191c"/>
-<text x="8" y="18" font-size="13" fill="#e6e8ea">Original game code ported in Rust: 4.41% (1017 / 25988 routines, by code size)</text>
+<text x="8" y="18" font-size="13" fill="#e6e8ea">Original game code ported in Rust: 4.42% (1018 / 25988 routines, by code size)</text>
 <rect x="3.0" y="42.0" width="115.8" height="70.5" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <text x="6.0" y="53.0" font-size="9" fill="#e6e8ea">cIntro</text>
 <rect x="118.8" y="42.0" width="102.9" height="70.5" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
@@ -699,7 +699,7 @@
 <rect x="888.1" y="334.7" width="22.8" height="22.9" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="888.1" y="357.6" width="22.8" height="21.0" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="888.1" y="378.6" width="22.8" height="20.7" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
-<rect x="888.1" y="398.8" width="22.8" height="0.5" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
+<rect x="888.1" y="398.7" width="22.8" height="0.6" fill="#3fa34d" stroke="#16191c" stroke-width="0.6"/>
 <rect x="910.9" y="306.4" width="23.8" height="19.7" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="934.8" y="306.4" width="22.0" height="19.7" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
 <rect x="956.8" y="306.4" width="20.8" height="19.7" fill="#4d5257" stroke="#16191c" stroke-width="0.6"/>
